@@ -1,4 +1,56 @@
-baseURL = 'http://localhost:1313'
-languageCode = 'ja'
-title = 'My New Hugo Site'
-theme = 'hugo-texify2'
+baseURL = "http://localhost:1313"
+disqusShortname = ""
+enableGitInfo = true
+enableRobotsTXT = true
+googleAnalytics = "G-0GZRVRLSQV"
+hasCJKLanguage = true
+languageCode = "ja"
+paginate = 5
+rssLimit = 10
+theme = "hugo-texify2"
+title = "Xlog"
+
+[markup]
+defaultMarkdownHandler = "goldmark"
+[markup.goldmark.renderer]
+unsafe = true
+[markup.highlight]
+style = "tango"
+[markup.tableOfContents]
+endLevel = 6
+ordered = false
+startLevel = 2
+
+[author]
+email = "mail@buntin.xyz"
+name = "Takumi Aoki"
+
+[params]
+title = "Xlog"
+numberedSubtitles = true
+toc = true
+
+[params.commentEngine]
+code = """
+<script src="https://giscus.app/client.js"
+        data-repo="weastur/hugo-texify2"
+        data-repo-id="R_kgDOJwiYnA"
+        data-category="Comments"
+        data-category-id="DIC_kwDOJwiYnM4CXVgQ"
+        data-mapping="title"
+        data-strict="1"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="top"
+        data-theme="light"
+        data-lang="en"
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async>
+</script>
+"""
+
+[params.buymeacoffee]
+code = """
+<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="weastur" data-description="Support me on Buy me a coffee!" data-message="" data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+"""
