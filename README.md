@@ -1,15 +1,14 @@
 # xlog
 
-To install dependencies:
+hugo
 
 ```bash
-bun install
+hugo -b https://www.xlog.systems
 ```
 
 To run:
 
 ```bash
-bun run index.ts
+hugo
 ```
 
-This project was created using `bun init` in bun v1.0.27. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.

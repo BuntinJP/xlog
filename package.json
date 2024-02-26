@@ -1,17 +1,7 @@
 {
   "name": "xlog",
   "module": "index.ts",
-  "scripts": {
-    "dev": "hugo serve",
-    "start": "hugo -b https://www.xlog.systems"
-  },
   "type": "module",
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
   "dependencies": {
     "autoprefixer": "^10.4.17",
     "postcss-cli": "^11.0.0",
