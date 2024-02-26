@@ -2,85 +2,69 @@ baseURL = "/"
 disqusShortname = ""
 enableGitInfo = true
 enableRobotsTXT = true
-googleAnalytics = "G-Z9GF9XX44E"
 hasCJKLanguage = true
-languageCode = "ja"
+languageCode = "en"
 paginate = 5
 rssLimit = 10
-theme = "hugo-texify2"
+theme = "hugo-texify3"
 title = "Xlog"
-
-[markup]
-defaultMarkdownHandler = "goldmark"
-[markup.goldmark.renderer]
-unsafe = true
-[markup.highlight]
-style = "tango"
-[markup.tableOfContents]
-endLevel = 6
-ordered = false
-startLevel = 2
 
 [author]
+name = "Buntin Synthia"
 email = "mail@buntin.xyz"
-name = "Takumi Aoki"
+
+[taxonomies]
+tags = "tags"
+categories = "categories"
 
 [params]
-title = "Xlog"
-description = "Xlog, Is My Blog Service."
-images = ['images/buntin-logo.jpg']
+title = "xlog"
+description = "xlog buntin notes"
 footnote = """
-Follow me on <a class=link href=https://github.com/BuntinJP target=_blank rel=noopener>GitHub</a>,
-<a class=link href=/index.xml>RSS</a> |
+Powered by  <a class=link href=https://www.xlog.systems target=_blank rel=noopener>XLog</a> | 
+Theme <a class=link href=https://github.com/BuntinJP/hugo-texify3 target=_blank rel=noopener>TeXify3</a>
 """
-keywords = ["buntin", "aoki", "takumi", "blog", "tech", "Linux", "Unix"]
 customCSS = []
 customJS = []
 dateFormat = "2006-01-02"
 emphasisWithDots = true
-since = "2023"
 toc = true
-numberedSubtitles = true
-showWordCount = true
-showReadingTime = true
-rootFontSize = "120%"
+rootFontSize = "105%"
 math = true
 enableDuckDuckGoSearchBox = true
+numberedSubtitles = true
 
 [params.commentEngine]
 code = """
 <script src="https://giscus.app/client.js"
-        data-repo="buntinJP/xLog"
-        data-repo-id="R_kgDOLWCm7A"
-        data-category="General"
-        data-category-id="DIC_kwDOLWCm7M4CdhoJ"
-        data-mapping="pathname"
-        data-strict="1"
-        data-reactions-enabled="1"
-        data-emit-metadata="1"
-        data-input-position="top"
-        data-theme="preferred_color_scheme"
-        data-lang="ja"
-        data-loading="lazy"
-        crossorigin="anonymous"
-        async>
+    data-repo="BuntinJP/xlog"
+    data-repo-id="R_kgDOLWCm7A"
+    data-category="General"
+    data-category-id="DIC_kwDOLWCm7M4CdhoJ"
+    data-mapping="pathname"
+    data-strict="1"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="bottom"
+    data-theme="preferred_color_scheme"
+    data-lang="ja"
+    crossorigin="anonymous"
+    async>
 </script>
 """
 
 [params.buymeacoffee]
 code = """
-<script
-  data-name="BMC-Widget"
-  data-cfasync="false"
-  src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js"
-  data-id="buntin"
-  data-description="Support me on Buy me a coffee!"
-  data-message="金くれい"
-  data-color="#5F7FFF"
-  data-position="Right"
-  data-x_margin="18"
-  data-y_margin="18"
-></script>
+<script data-name="BMC-Widget" 
+    data-cfasync="false" 
+    src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" 
+    data-id="buntin" data-description="Support me on Buy me a coffee!" 
+    data-message="金plz" 
+    data-color="#5F7FFF" 
+    data-position="Right" 
+    data-x_margin="18" 
+    data-y_margin="18">
+</script>
 """
 
 [params.sharingbuttons]
@@ -92,35 +76,3 @@ reddit = true
 whatsapp = true
 hackernews = true
 telegram = true
-
-[module]
-[module.hugoVersion]
-min = "0.123.0"
-
-[[menu.main]]
-identifier = "post"
-name = "Posts"
-url = "/"
-weight = 1
-[[menu.main]]
-identifier = "archives"
-name = "Archive"
-url = "/post/"
-weight = 2
-[[menu.main]]
-identifier = "about"
-name = "About"
-url = "/about/"
-weight = 3
-
-[taxonomies]
-tags = "tags"
-
-# # ここで、広告専用のコンテナを追加するカスタマイズ
-# [params.ads]
-# enable = true
-# # 以下の設定は例示的であり、実際の広告プラットフォームの設定に基づいて調整する必要があります。
-# containerID = "ads-container"
-# provider = "GoogleAdsense"
-# clientID = "ca-pub-xxxxxxxxxxxxxxxx"
-# slotID = "xxxxxxxxxx"
