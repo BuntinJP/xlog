@@ -36,7 +36,7 @@ Follow me on <a class=link href=https://github.com/BuntinJP target=_blank rel=no
 keywords = ["buntin", "aoki", "takumi", "blog", "tech", "Linux", "Unix"]
 customCSS = []
 customJS = []
-dateFormat = "January 2, 2006"
+dateFormat = "2006-01-02"
 emphasisWithDots = true
 since = "2023"
 toc = true
@@ -95,7 +95,7 @@ telegram = true
 
 [module]
 [module.hugoVersion]
-min = "0.113.0"
+min = "0.123.0"
 
 [[menu.main]]
 identifier = "post"
