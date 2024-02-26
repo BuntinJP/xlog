@@ -1,4 +1,4 @@
-baseURL = "http://localhost:1313"
+baseURL = "/"
 disqusShortname = ""
 enableGitInfo = true
 enableRobotsTXT = true
