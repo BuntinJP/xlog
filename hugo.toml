@@ -2,7 +2,7 @@ baseURL = "http://localhost:1313"
 disqusShortname = ""
 enableGitInfo = true
 enableRobotsTXT = true
-googleAnalytics = "G-0GZRVRLSQV"
+googleAnalytics = "G-Z9GF9XX44E"
 hasCJKLanguage = true
 languageCode = "ja"
 paginate = 5
@@ -27,15 +27,13 @@ name = "Takumi Aoki"
 
 [params]
 title = "Xlog"
-description = "TeXify2 - a minimal, latex-style hugo theme for personal blogging"
-images = ['images/logo.jpg']
+description = "Xlog, Is My Blog Service."
+images = ['images/buntin-logo.jpg']
 footnote = """
-Follow me on <a class=link href=https://github.com/weastur target=_blank rel=noopener>GitHub</a>,
-<a class=link href=https://www.linkedin.com/in/weastur/ target=_blank rel=noopener>LinkedIn</a> or
+Follow me on <a class=link href=https://github.com/BuntinJP target=_blank rel=noopener>GitHub</a>,
 <a class=link href=/index.xml>RSS</a> |
-<a class=link href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en target=_blank rel=noopener>CC BY-NC-SA 4.0</a>
 """
-keywords = ["hugo", "latex", "theme", "blog", "texify", "texify2", "weastur"]
+keywords = ["buntin", "aoki", "takumi", "blog", "tech", "Linux", "Unix"]
 customCSS = []
 customJS = []
 dateFormat = "January 2, 2006"
@@ -71,7 +69,18 @@ code = """
 
 [params.buymeacoffee]
 code = """
-<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="weastur" data-description="Support me on Buy me a coffee!" data-message="" data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
+<script
+  data-name="BMC-Widget"
+  data-cfasync="false"
+  src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js"
+  data-id="buntin"
+  data-description="Support me on Buy me a coffee!"
+  data-message="金くれい"
+  data-color="#5F7FFF"
+  data-position="Right"
+  data-x_margin="18"
+  data-y_margin="18"
+></script>
 """
 
 [params.sharingbuttons]
