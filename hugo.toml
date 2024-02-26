@@ -107,11 +107,11 @@ weight = 3
 [taxonomies]
 tags = "tags"
 
-# ここで、広告専用のコンテナを追加するカスタマイズ
-[params.ads]
-enable = true
-# 以下の設定は例示的であり、実際の広告プラットフォームの設定に基づいて調整する必要があります。
-containerID = "ads-container"
-provider = "GoogleAdsense"
-clientID = "ca-pub-xxxxxxxxxxxxxxxx"
-slotID = "xxxxxxxxxx"
+# # ここで、広告専用のコンテナを追加するカスタマイズ
+# [params.ads]
+# enable = true
+# # 以下の設定は例示的であり、実際の広告プラットフォームの設定に基づいて調整する必要があります。
+# containerID = "ads-container"
+# provider = "GoogleAdsense"
+# clientID = "ca-pub-xxxxxxxxxxxxxxxx"
+# slotID = "xxxxxxxxxx"
