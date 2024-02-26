@@ -1,18 +1,15 @@
 +++
-title = "About"
+title = "index"
 description = "Buntin-BadCompany-Blog"
-date = "2023-06-20"
+date = "2023-02-27"
 author = "Buntin-Synthia"
 +++
-Buntin is a Infrastructure Engineer, who has been working in the IT industry in Ginza(Tokyo).
 
-<iframe src="https://github-btn.html?user=BuntinJP&repo=xlog&type=star&count=false&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+Buntin-XLog Service
 
-## About
+## 通知
 
-私は、IT業界でインフラエンジニアとして働いているものです。
-これは私の日記です。
-備忘録を最終的にまとめるところをいずれ作る予定でした。
+現在、記事整理中です。
 
 そのうち、HugoからBun,Cloudflare Workersに完全に移行する予定です。
 
