@@ -1,3 +1,6 @@
 [submodule "themes/hugo-texify2"]
 	path = themes/hugo-texify2
 	url = https://github.com/BuntinJP/hugo-texify2.git
+[submodule "themes/hugo-texify3"]
+	path = themes/hugo-texify3
+	url = git@github.com:BuntinJP/hugo-texify3.git
