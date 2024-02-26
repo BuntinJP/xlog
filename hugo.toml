@@ -27,23 +27,42 @@ name = "Takumi Aoki"
 
 [params]
 title = "Xlog"
-numberedSubtitles = true
+description = "TeXify2 - a minimal, latex-style hugo theme for personal blogging"
+images = ['images/logo.jpg']
+footnote = """
+Follow me on <a class=link href=https://github.com/weastur target=_blank rel=noopener>GitHub</a>,
+<a class=link href=https://www.linkedin.com/in/weastur/ target=_blank rel=noopener>LinkedIn</a> or
+<a class=link href=/index.xml>RSS</a> |
+<a class=link href=https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en target=_blank rel=noopener>CC BY-NC-SA 4.0</a>
+"""
+keywords = ["hugo", "latex", "theme", "blog", "texify", "texify2", "weastur"]
+customCSS = []
+customJS = []
+dateFormat = "January 2, 2006"
+emphasisWithDots = true
+since = "2023"
 toc = true
+numberedSubtitles = true
+showWordCount = true
+showReadingTime = true
+rootFontSize = "120%"
+math = true
+enableDuckDuckGoSearchBox = true
 
 [params.commentEngine]
 code = """
 <script src="https://giscus.app/client.js"
-        data-repo="weastur/hugo-texify2"
-        data-repo-id="R_kgDOJwiYnA"
-        data-category="Comments"
-        data-category-id="DIC_kwDOJwiYnM4CXVgQ"
-        data-mapping="title"
+        data-repo="buntinJP/xLog"
+        data-repo-id="R_kgDOLWCm7A"
+        data-category="General"
+        data-category-id="DIC_kwDOLWCm7M4CdhoJ"
+        data-mapping="pathname"
         data-strict="1"
         data-reactions-enabled="1"
-        data-emit-metadata="0"
+        data-emit-metadata="1"
         data-input-position="top"
-        data-theme="light"
-        data-lang="en"
+        data-theme="preferred_color_scheme"
+        data-lang="ja"
         data-loading="lazy"
         crossorigin="anonymous"
         async>
@@ -54,3 +73,45 @@ code = """
 code = """
 <script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="weastur" data-description="Support me on Buy me a coffee!" data-message="" data-color="#FF5F5F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
 """
+
+[params.sharingbuttons]
+facebook = true
+twitter = true
+email = true
+linkedin = true
+reddit = true
+whatsapp = true
+hackernews = true
+telegram = true
+
+[module]
+[module.hugoVersion]
+min = "0.113.0"
+
+[[menu.main]]
+identifier = "post"
+name = "Posts"
+url = "/"
+weight = 1
+[[menu.main]]
+identifier = "archives"
+name = "Archive"
+url = "/post/"
+weight = 2
+[[menu.main]]
+identifier = "about"
+name = "About"
+url = "/about/"
+weight = 3
+
+[taxonomies]
+tags = "tags"
+
+# ここで、広告専用のコンテナを追加するカスタマイズ
+[params.ads]
+enable = true
+# 以下の設定は例示的であり、実際の広告プラットフォームの設定に基づいて調整する必要があります。
+containerID = "ads-container"
+provider = "GoogleAdsense"
+clientID = "ca-pub-xxxxxxxxxxxxxxxx"
+slotID = "xxxxxxxxxx"
