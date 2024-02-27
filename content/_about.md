@@ -1,8 +1,18 @@
 +++
 title = "About"
 description = "Buntin-BadCompany-Blog"
-date = "2023-06-20"
+date = "2023-02-20"
 author = "Buntin-Synthia"
+tags: [
+    "company",
+    "tokyo",
+    "ginza",
+]
+categories: [
+    "xlog",
+    "work",
+]
+series: ["About"]
 +++
 Buntin is a Infrastructure Engineer, who has been working in the IT industry in Ginza(Tokyo).
 

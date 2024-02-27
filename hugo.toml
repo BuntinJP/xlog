@@ -78,6 +78,7 @@ math = true
 enableDuckDuckGoSearchBox = true
 numberedSubtitles = true
 
+
 [commentEngine]
 code = """
 <script src="https://giscus.app/client.js"
