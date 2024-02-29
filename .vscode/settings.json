@@ -3,11 +3,18 @@
     "Badcompany",
     "baseof",
     "dartsass",
+    "disqus",
     "fontawesome",
     "Ginza",
     "hackernews",
+    "opengraph",
     "sharingbuttons",
     "Synthia",
     "xlog"
-  ]
+  ],
+  "liveServer.settings.root": "./public",
+  "liveServer.settings.useWebExt": true,
+  "liveServer.settings.CustomBrowser": "chrome",
+  "liveServer.settings.port": 3000,
+  "liveServer.settings.ChromeDebuggingAttachment": true
 }
