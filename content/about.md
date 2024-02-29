@@ -33,4 +33,4 @@ Buntin is a Infrastructure Engineer, who has been working in the IT industry in 
 
 ## More Information about me
 
-[]
+[about2(post)](/posts/about2)

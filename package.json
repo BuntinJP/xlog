@@ -3,10 +3,10 @@
   "module": "src/bun_public_server.ts",
   "type": "module",
   "scripts": {
+    "start": "hugo serve -p 3000 -b http://localhost:3000",
     "serve:bun": "bun run src/bun_public_server.ts",
     "serve:node": "node server.js ./public 1313",
-    "build:dev": "hugo -b http://localhost:3000",
-    "serve": "cd public && webs-php"
+    "build:dev": "hugo -b http://localhost:3000"
   },
   "dependencies": {
     "autoprefixer": "^10.4.17",
