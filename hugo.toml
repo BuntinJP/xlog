@@ -72,7 +72,7 @@ Powered by  <a class=link href=https://www.xlog.systems target=_blank rel=noopen
 Theme <a class=link href=https://github.com/BuntinJP/hugo-texify3 target=_blank rel=noopener>TeXify3</a>
 """
 customCSS = []
-customJS = ["js/cloudflare_analytics.js"]
+customJS = ["js/cloudflare_analytics.js", "js/discuss_button.js"]
 dateFormat = "2006-01-02"
 emphasisWithDots = true
 toc = true
