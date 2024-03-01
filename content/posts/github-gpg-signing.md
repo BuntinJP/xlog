@@ -6,7 +6,6 @@ author = "Buntin-Synthia"
 categories = ["git","github","gpg","signing"]
 series = ["xlog構築"]
 toa = true
-draft = true
 +++
 
 ## クライアント(User)側の設定
@@ -95,3 +94,10 @@ git に ssh できる環境を作っておきましょう。これやってて�
 `設定 -> SSH and GPG keys -> New GPG keys`
 
 から追加可能。ID と公開鍵を入力する。
+
+## 完了!
+
+これで、コミット時に GPG 署名ができるようになります。
+
+
+{{< figure src="/images/github-gpg-signing-result.png" title="署名時" >}}

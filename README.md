@@ -12,3 +12,7 @@ To run:
 hugo
 ```
 
+TODO
+
+scriptなどできるだけjsdeliverのみに。
+
