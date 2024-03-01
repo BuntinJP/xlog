@@ -1,0 +1,97 @@
++++
+title = "GithubでGPG署名を設定する"
+description = "Buntin-BadCompany-Blog"
+date = "2024-03-01"
+author = "Buntin-Synthia"
+categories = ["git","github","gpg","signing"]
+series = ["xlog構築"]
+toa = true
+draft = true
++++
+
+## クライアント(User)側の設定
+
+### GPG 鍵を作成
+
+```bash
+gpg --full-generate-key
+```
+
+このとき、メールは Github に登録済みのメールを使用してください。
+
+### GPG 鍵の ID を取得
+
+```txt
+pub   rsa3072/OOOOOOOOOOOOOO 2024-03-01 [SC]
+      XXXXXXXXXXXXXXXXXXXXXXXXOOOOOOOOOOOOOO
+uid                 [  究極  ] Buntin Synthia (github) <mail@buntin.xyz>
+sub   rsa3072/TTTTTTTT 2024-03-01 [E]
+```
+
+この場合、ID は`OOOOOOOOOOOOOO`になります。
+
+以下でも取得できます。
+
+```bash
+gpg --list-keys --keyid-format LONG | grep pub | awk '{print $2}' | cut -d'/' -f2;
+```
+
+### GPG 公開鍵の出力
+
+ID がわかったら、以下のコマンドを実際の ID に差し替えて実行してください。
+
+```bash
+gpg --armor --export OOOOOOOOOOOOOO
+```
+
+以下の様な感じのが出てくるかと思います。それを後々 Github に登録するので ID と一緒に取っといてください。
+
+```
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+???
+...
+???
+-----END PGP PUBLIC KEY BLOCK-----
+```
+
+### pinentry の設定
+
+正確な定義はわかりませんが、コミット時署名のためのパスワードを打つための専用の TUI ソフトウェア的なやつです。
+
+```bash
+brew install pinentry-mac;        # Darwin
+sudo apt install pinentry-gtk2;   # Debian系 GUI
+sudo apt install pinentry-curses; # Debian系 CUI
+sudo dnf install pinentry;        # RHEL系(EPEL必要かも)
+```
+
+### Git の設定
+
+```bash
+git config --global user.signingkey OOOOOOOOOOOOOO # GPG鍵のID
+git config --global commit.gpgsign true
+git config --global gpg.program gpg
+```
+
+### 環境変数 GPG_TTY の設定
+
+.zshrc,.bashrc に、１行追加するだけです。
+
+出力先の指定、的なことを行なっています。
+
+```bash
+export GPG_TTY=$(tty)
+```
+
+### クライアント側終わり
+
+git に ssh できる環境を作っておきましょう。これやっててできないことはないと思いますが。
+
+## Github 側の設定
+
+### Github に鍵を追加する。
+
+`設定 -> SSH and GPG keys -> New GPG keys`
+
+から追加可能。ID と公開鍵を入力する。
