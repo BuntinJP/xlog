@@ -3,7 +3,8 @@ title = "GithubでGPG署名を設定する"
 description = "Buntin-BadCompany-Blog"
 date = "2024-03-01"
 author = "Buntin-Synthia"
-categories = ["git","github","gpg","signing"]
+categories = ["git","github","GPG","signing"]
+tags = ["git","github","GPG"]
 series = ["xlog構築"]
 toa = true
 +++

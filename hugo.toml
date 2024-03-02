@@ -1,7 +1,7 @@
 baseURL = "/"
 disqusShortname = ""
 enableGitInfo = true
-enableRobotsTXT = true
+enableRobotsTXT = false
 hasCJKLanguage = true
 languageCode = "ja"
 paginate = 5
@@ -9,6 +9,7 @@ rssLimit = 10
 theme = "hugo-texify3"
 title = "Xlog"
 googleAnalytics = "G-KS3MY4GBG7"
+
 
 [author]
 name = "Buntin Synthia"
