@@ -10,8 +10,6 @@ theme = "hugo-texify3"
 title = "Xlog"
 googleAnalytics = "G-KS3MY4GBG7"
 
-disableKinds = ['sitemap']
-
 
 [author]
 name = "Buntin Synthia"
