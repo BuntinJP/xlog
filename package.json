@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "hugo serve -p 3000 -b http://localhost:3000",
-    "serve": "cd public && python3 -m http.server 3000",
+    "serve": "cd public && php -S localhost:3000",
     "build": "hugo -b http://localhost:3000",
     "rhel:serve": "cd public && python3 -m http.server 3000",
     "rhel:build": "hugo -b https://dev.buntin.xyz"
