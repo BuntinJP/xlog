@@ -81,7 +81,7 @@ rootFontSize = "105%"
 math = true
 enableDuckDuckGoSearchBox = true
 numberedSubtitles = true
-
+disableKinds = ['sitemap']
 
 [params.commentEngine]
 code = """
