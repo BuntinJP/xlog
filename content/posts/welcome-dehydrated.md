@@ -6,7 +6,6 @@ author = "Buntin-Synthia"
 categories = ["SSL"]
 tags = ["SSL","Cloudflare","DNS"]
 toa = true
-draft = true
 +++
 
 ## より強固に？？
@@ -222,6 +221,8 @@ Processing example.com
 ```
 
 証明書の更新はこれで終わりです。
+
+{{< figure src="/images/welcome-dehydrated/info.png" title="新証明書" >}}
 
 唯々、神。以上です。(nginx への適用、リロードをお忘れなく)
 

@@ -2,6 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://www.xlog.systems/posts/</loc>
+    <lastmod>2024-03-08T16:15:14&#43;09:00</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://www.xlog.systems/categories/</loc>
     <lastmod>2024-03-02T19:36:25&#43;09:00</lastmod>
     
@@ -48,12 +54,6 @@
   
   <url>
     <loc>https://www.xlog.systems/categories/gpg/</loc>
-    <lastmod>2024-03-02T19:36:25&#43;09:00</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://www.xlog.systems/posts/</loc>
     <lastmod>2024-03-02T19:36:25&#43;09:00</lastmod>
     
   </url>
