@@ -4,6 +4,7 @@ description = "Buntin-BadCompany-Blog"
 date = "2024-03-01"
 author = "Buntin-Synthia"
 categories = ["git","github","GPG","signing"]
+keywords = ["git","github","GPG","署名","設定","コミット","commit","signing","verified"]
 tags = ["git","github","GPG"]
 series = ["xlog構築"]
 toa = true
@@ -99,6 +100,5 @@ git に ssh できる環境を作っておきましょう。これやってて�
 ## 完了!
 
 これで、コミット時に GPG 署名ができるようになります。
-
 
 {{< figure src="/images/github-gpg-signing-result.png" title="署名時" >}}

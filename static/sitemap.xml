@@ -2,14 +2,53 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://www.xlog.systems/posts/</loc>
-    <lastmod>2024-03-08T16:15:14&#43;09:00</lastmod>
+    <loc>https://www.xlog.systems/categories/</loc>
+    <lastmod>2024-03-10T20:20:55&#43;09:00</lastmod>
     
   </url>
   
   <url>
-    <loc>https://www.xlog.systems/categories/</loc>
-    <lastmod>2024-03-02T19:36:25&#43;09:00</lastmod>
+    <loc>https://www.xlog.systems/tags/cloudflare/</loc>
+    <lastmod>2024-03-10T20:20:55&#43;09:00</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://www.xlog.systems/tags/dns/</loc>
+    <lastmod>2024-03-10T20:20:55&#43;09:00</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://www.xlog.systems/posts/</loc>
+    <lastmod>2024-03-10T20:20:55&#43;09:00</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://www.xlog.systems/tags/ssl/</loc>
+    <lastmod>2024-03-10T20:20:55&#43;09:00</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://www.xlog.systems/categories/ssl/</loc>
+    <lastmod>2024-03-10T20:20:55&#43;09:00</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://www.xlog.systems/tags/</loc>
+    <lastmod>2024-03-10T20:20:55&#43;09:00</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://www.xlog.systems/posts/welcome-dehydrated/</loc>
+    <lastmod>2024-03-10T20:20:55&#43;09:00</lastmod>
+    
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
     
   </url>
   
@@ -60,12 +99,6 @@
   
   <url>
     <loc>https://www.xlog.systems/categories/signing/</loc>
-    <lastmod>2024-03-02T19:36:25&#43;09:00</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://www.xlog.systems/tags/</loc>
     <lastmod>2024-03-02T19:36:25&#43;09:00</lastmod>
     
   </url>

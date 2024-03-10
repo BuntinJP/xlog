@@ -5,6 +5,7 @@ date = "2024-03-08"
 author = "Buntin-Synthia"
 categories = ["SSL"]
 tags = ["SSL","Cloudflare","DNS"]
+keywords = ["dehydrated","Let's Encrypt","certbot","SSL","Cloudflare","証明書","更新","スクリプト"]
 toa = true
 +++
 

@@ -4,6 +4,7 @@ title = "ブログスタート"
 date = "2024-02-22"
 categories = ["テスト用"]
 series = ["xlog構築"]
+keywords = ["xlog","hugo","blog","start","ブログ","スタート"]
 toc =  true
 +++
 
