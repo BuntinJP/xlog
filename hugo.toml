@@ -74,7 +74,11 @@ Theme <a class=link href=https://github.com/BuntinJP/hugo-texify3 target=_blank 
 """
 keywords = ["ぶんちん", "buntin", "ブログ", "xlog", "Web", "エンジニア", "プログラマ", "Linux"]
 customCSS = []
-customJS = ["js/cloudflare_analytics.js", "js/discuss_button.js"]
+customJS = [
+  "js/cloudflare-analytics.js",
+  "js/discuss-button.js",
+  "js/google-ads.js",
+]
 dateFormat = "2006-01-02"
 emphasisWithDots = true
 toc = true
@@ -83,6 +87,23 @@ math = true
 enableDuckDuckGoSearchBox = true
 numberedSubtitles = true
 disableKinds = ['sitemap']
+
+[params.googleTagManager]
+code = """
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-T738F8FM');</script>
+<!-- End Google Tag Manager -->
+"""
+code2 = """
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T738F8FM"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+"""
 
 [params.commentEngine]
 code = """

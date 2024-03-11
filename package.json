@@ -8,7 +8,7 @@
     "build": "hugo -b http://localhost:3000",
     "build:prod" : "hugo -b https://www.xlog.systems && cp public/sitemap.xml static/sitemap.xml",
     "rhel:serve": "cd public && python3 -m http.server 3000",
-    "rhel:build": "hugo -b https://dev.buntin.xyz"
+    "rhel:build": "hugo -b https://dev.buntin.tech"
   },
   "dependencies": {
     "autoprefixer": "^10.4.17",
