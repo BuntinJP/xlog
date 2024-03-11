@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: http://www.xlog.systems/sitemap.xml
+Sitemap: https://www.xlog.systems/sitemap.xml

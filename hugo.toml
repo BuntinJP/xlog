@@ -105,6 +105,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 """
 
+[params.openGraph]
+code = """
+<script src="https://cdn.jsdelivr.net/npm/open-graph/index.min.js"></script>
+"""
+
 [params.commentEngine]
 code = """
 <script src="https://giscus.app/client.js"
