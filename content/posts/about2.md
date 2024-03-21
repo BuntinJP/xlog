@@ -13,8 +13,7 @@ tags = ["about"]
 
 個人的に何かプログラムで作るのが好きです。
 
-よく使う言語は、TypeScript,Python,Rustです。
-
+よく使う言語は、TypeScript,Python,Rust です。
 
 個人サーバーとして自分のサイトなどをホストしています。([xlog](https://www.xlog.systems/)は別)
 
@@ -22,23 +21,19 @@ tags = ["about"]
 
 ## About This Blog
 
-xlogは、適当に思いついた名前です。
-gitを利用して記事が管理されており、Hugoでサイトを生成しています。
+xlog は、適当に思いついた名前です。
+git を利用して記事が管理されており、Hugo でサイトを生成しています。
 
-インフラは、サーバーレス環境として、Cloudflare Pagesを利用しています。
-Cloudflare Pagesなので、無料です。
-DNSの精度もよく、Workersに色々おもちゃくれるしマジで大好き。
+インフラは、サーバーレス環境として、Cloudflare Pages を利用しています。
+Cloudflare Pages なので、無料です。
+DNS の精度もよく、Workers に色々おもちゃくれるしマジで大好き。
 
 このレイアウトもそうですが、古めかしい感じのサイトが好きです。
 
-![xlog](/images/buntin-logo.jpg)
+<img src="https://res.cloudinary.com/xlog/image/upload/v1/2024/02/22/buntin-logo?_a=BAMHUyJt0" alt="Cloudinary image<buntin-logo.jpg-2024/02/22/buntin-logo>" />
 
 ## Contact
 
 - [Twitter](https://twitter.com/LArchel_Liz)
 - [GitHub](https://github.com/BuntinJP)
 - [Email](mailto:mail@buntin.xyz)
-
-
-
-

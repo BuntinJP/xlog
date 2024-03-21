@@ -223,7 +223,7 @@ Processing example.com
 
 証明書の更新はこれで終わりです。
 
-{{< figure src="/images/welcome-dehydrated-info.png" title="新証明書" >}}
+<img src="https://res.cloudinary.com/xlog/image/upload/v1/2024/03/08/welcome-dehydrated-info?_a=BAMHUyJt0" alt="Cloudinary image<welcome-dehydrated-info.png-2024/03/08/welcome-dehydrated-info>" />
 
 唯々、神。以上です。(nginx への適用、リロードをお忘れなく)
 

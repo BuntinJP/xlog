@@ -3,6 +3,7 @@
     "Badcompany",
     "baseof",
     "certbot",
+    "cloudinary",
     "dartsass",
     "disqus",
     "EPEL",
@@ -12,6 +13,7 @@
     "hackernews",
     "keyid",
     "michaelneuper",
+    "neofetch",
     "octicon",
     "opengraph",
     "pinentry",
@@ -22,7 +24,5 @@
   ],
   "liveServer.settings.root": "./public",
   "liveServer.settings.useWebExt": true,
-  "liveServer.settings.CustomBrowser": "chrome",
-  "liveServer.settings.port": 3000,
-  "liveServer.settings.ChromeDebuggingAttachment": true
+  "liveServer.settings.port": 5500
 }

@@ -3,15 +3,21 @@
   "module": "src/bun_public_server.ts",
   "type": "module",
   "scripts": {
+    "help": "bun run src/builder.ts --helper",
     "start": "hugo serve -p 3000 -b http://localhost:3000",
-    "serve": "cd public && php -S localhost:3000",
-    "build": "hugo -b http://localhost:3000",
-    "build:prod" : "hugo -b https://www.xlog.systems && cp public/sitemap.xml static/sitemap.xml",
-    "rhel:serve": "cd public && python3 -m http.server 3000",
-    "rhel:build": "hugo -b https://dev.buntin.tech"
+    "build": "bun run src/builder.ts --development",
+    "build:rhel": "bun run src/builder.ts --rhel",
+    "build:writer": "bun run src/builder.ts --writer",
+    "build:lan": "bun run src/builder.ts --local",
+    "build:prod": "bun run src/builder.ts --production",
+    "serve": "cd public && php -S 127.0.0.1:3000",
+    "serve:rhel": "cd public && python3 -m http.server 3000",
+    "serve:writer": "cd public && php -S 127.0.0.1:5500",
+    "serve:lan": "cd public && php -S 192.168.1.13:3000"
   },
   "dependencies": {
     "autoprefixer": "^10.4.17",
+    "chalk": "^5.3.0",
     "postcss-cli": "^11.0.0",
     "postcss-import": "^16.0.1"
   },

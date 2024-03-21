@@ -101,4 +101,4 @@ git に ssh できる環境を作っておきましょう。これやってて�
 
 これで、コミット時に GPG 署名ができるようになります。
 
-{{< figure src="/images/github-gpg-signing-result.png" title="署名時" >}}
+<img src="https://res.cloudinary.com/xlog/image/upload/v1/2024/03/01/github-gpg-signing-result?_a=BAMHUyJt0" alt="Cloudinary image<github-gpg-signing-result.png-2024/03/01/github-gpg-signing-result>" />
