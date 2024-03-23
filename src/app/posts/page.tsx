@@ -3,9 +3,9 @@ import { PostsList } from '@/components/PostsList';
 import type { Metadata } from 'next';
 
 const Page = () => {
-  const posts = getPages().sort(
-    (a, b) => b.data.date.getTime() - a.data.date.getTime(),
-  );
+  const posts = getPages()
+    .filter((node) => node.data.title !== 'Index')
+    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
   return <PostsList posts={posts} />;
 };
 

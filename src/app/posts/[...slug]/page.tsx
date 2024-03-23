@@ -144,14 +144,16 @@ const Page = async ({
 export default Page;
 
 export const generateStaticParams = () => {
-  return getPages().map((page) => {
-    if (page.slugs.length === 0) {
-      new Error('index page is not supported');
-    }
-    return {
-      slug: page.slugs,
-    };
-  });
+  return getPages()
+    .map((page) => {
+      if (page.slugs.length === 0) {
+        return undefined;
+      }
+      return {
+        slug: page.slugs,
+      };
+    })
+    .filter((params): params is { slug: string[] } => params !== undefined);
 };
 
 export const generateMetadata = ({
