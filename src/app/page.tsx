@@ -1,10 +1,10 @@
-import { notFound } from 'next/navigation';
-import { DocsBody } from 'fumadocs-ui/page';
 import { Heading } from 'fumadocs-ui/components/heading';
+import { DocsBody } from 'fumadocs-ui/page';
+import { Shippori_Mincho } from 'next/font/google';
+import { notFound } from 'next/navigation';
 import { CategoriesList } from './_components/CategoriesList';
 import { TagsList } from './_components/TagsList';
 import { getPage } from './source';
-import { Shippori_Mincho } from 'next/font/google';
 
 const shipporiMincho = Shippori_Mincho({
   subsets: ['latin'],
