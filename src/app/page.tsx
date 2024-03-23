@@ -22,7 +22,7 @@ export default function HomePage() {
 
   return (
     <main className='sm:grid sm:grid-cols-4'>
-      <div className='sm:col-span-3'>
+      <div className='sm:col-span-3 mb-8 sm:mb-0'>
         <DocsBody
           className={`${shipporiMincho.className} text-[#fbf1c7] decoration-[#fbf1c7]`}
         >
