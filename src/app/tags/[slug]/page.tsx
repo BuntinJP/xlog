@@ -1,5 +1,6 @@
 import { tagsList, tagsWithPosts } from '@/app/source';
 import { PostsList } from '@/components/PostsList';
+import { Tag } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -14,7 +15,15 @@ const Page = ({ params }: { params: { slug: string } }) => {
     (a, b) => b.data.date.getTime() - a.data.date.getTime(),
   );
 
-  return <PostsList posts={sortedPosts} />;
+  return (
+    <div>
+      <h1 className='flex'>
+        <Tag className='my-auto mr-2' size={30} />
+        <span className='text-3xl'>{tag}</span>
+      </h1>
+      <PostsList posts={sortedPosts} />
+    </div>
+  );
 };
 
 export default Page;

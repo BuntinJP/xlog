@@ -1,5 +1,6 @@
 import { categoriesList, categoriesWithPosts } from '@/app/source';
 import { PostsList } from '@/components/PostsList';
+import { Folder } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -15,7 +16,15 @@ const Page = ({ params }: { params: { slug: string } }) => {
   const sortedPosts = posts.sort(
     (a, b) => b.data.date.getTime() - a.data.date.getTime(),
   );
-  return <PostsList posts={sortedPosts} />;
+  return (
+    <div>
+      <h1 className='flex'>
+        <Folder className='my-auto mr-2' size={30} />
+        <span className='text-3xl'>{category}</span>
+      </h1>
+      <PostsList posts={sortedPosts} />
+    </div>
+  );
 };
 
 export default Page;
