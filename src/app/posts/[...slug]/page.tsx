@@ -171,6 +171,7 @@ export const generateMetadata = ({
     ),
     title: title,
     description: description,
+    keywords: post.data.keywords,
     openGraph: {
       title: title,
       description: description,
