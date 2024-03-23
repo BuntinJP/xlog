@@ -4,6 +4,7 @@
     "katex",
     "lucide",
     "postbuild",
-    "rehype"
+    "rehype",
+    "xlog"
   ]
 }
