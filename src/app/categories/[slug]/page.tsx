@@ -1,0 +1,35 @@
+import { categoriesList, categoriesWithPosts } from '@/app/source';
+import { PostsList } from '@/components/PostsList';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+
+const Page = ({ params }: { params: { slug: string } }) => {
+  const category = decodeURIComponent(params.slug);
+  const posts =
+    categoriesWithPosts.find((t) => t.name === category)?.posts ?? [];
+
+  if (posts.length === 0) {
+    notFound();
+  }
+
+  const sortedPosts = posts.sort(
+    (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+  );
+  return <PostsList posts={sortedPosts} />;
+};
+
+export default Page;
+
+export const generateStaticParams = () => {
+  return categoriesList.map((category) => ({
+    slug: category,
+  }));
+};
+
+export const generateMetadata = ({ params }: { params: { slug: string } }) => {
+  const category = decodeURIComponent(params.slug);
+  return {
+    title: `${category} - xlog`,
+    description: `${category} category page of xlog`,
+  } satisfies Metadata;
+};

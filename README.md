@@ -1,18 +1,26 @@
 # xlog
 
-hugo
+This is a Next.js application generated with
+[Create Fumadocs](https://github.com/fuma-nama/fumadocs).
+
+Run development server:
 
 ```bash
-hugo -b https://www.xlog.systems
+npm run dev
+# or
+pnpm dev
+# or
+yarn dev
 ```
 
-To run:
+Open http://localhost:3000 with your browser to see the result.
 
-```bash
-hugo
-```
+## Learn More
 
-TODO
+To learn more about Next.js and Fumadocs, take a look at the following
+resources:
 
-scriptなどできるだけjsdeliverのみに。
-
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js
+  features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [Fumadocs](https://fumadocs.vercel.app) - learn about Fumadocs
