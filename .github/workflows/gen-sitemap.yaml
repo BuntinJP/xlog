@@ -2,9 +2,9 @@ name: Generate Sitemap
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
   pull_request:
-    branches: ['main']
+    branches: ["main"]
 
 jobs:
   eslint:
@@ -28,6 +28,9 @@ jobs:
 
       - name: Run build
         run: bun run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://www.xlog.systems
+
       - name: commit and push
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}

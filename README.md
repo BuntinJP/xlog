@@ -1,19 +1,27 @@
 # xlog
 
-This is a Next.js application generated with
-[Create Fumadocs](https://github.com/fuma-nama/fumadocs).
+## Workbench URLs
 
-Run development server:
+- **[www.xlog.systems](https://www.xlog.systems/)**
+- **[cloudinary-doc.zeabur.app](https://cloudinary-doc.zeabur.app/)**
+- **[localhost:3000](http://localhost:3000/)**
+- **[dev.buntin.tech](https://dev.buntin.tech/)**
+- **[xlog-lizcode.buntin.tech](https://lizcode.buntin.tech/?folder=/home/liz/gits/xlog)**
+- **[xlog-images-lizcode.buntin.tech](https://lizcode.buntin.tech/?folder=/home/liz/gits/xlog-images)**
+
+
+### Run development server:
 
 ```bash
-npm run dev
-# or
-pnpm dev
-# or
-yarn dev
+bun run dev
 ```
 
-Open http://localhost:3000 with your browser to see the result.
+### Build for production:
+
+```bash
+bun run build
+```
+
 
 ## Learn More
 
