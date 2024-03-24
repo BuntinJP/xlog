@@ -1,4 +1,3 @@
-import type { PageTree } from 'fumadocs-core/server';
 import { loader } from 'fumadocs-core/source';
 import { createMDXSource, defaultSchemas } from 'fumadocs-mdx';
 import { z } from 'zod';
@@ -28,24 +27,6 @@ export const { getPage, getPages, pageTree } = loader({
   baseUrl: '/posts',
   source: createMDXSource(map, { schema: { frontmatter: frontmatterSchema } }),
 });
-
-const getDate = (url: string) => {
-  const slugs = url.replace(/^\/posts\//, '').split('/');
-  const post = getPage(slugs);
-  if (post === undefined) return 0;
-  return post.data.date.getTime();
-};
-
-const isPageNode = (node: PageTree.Node): node is PageTree.Item => {
-  return node.type === 'page';
-};
-
-export const sortedByDatePageTree: PageTree.Root = {
-  name: 'Posts',
-  children: pageTree.children
-    .filter(isPageNode)
-    .sort((a, b) => getDate(b.url) - getDate(a.url)),
-};
 
 const posts = getPages();
 
