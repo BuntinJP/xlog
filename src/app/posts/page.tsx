@@ -4,7 +4,8 @@ import type { Metadata } from 'next';
 
 const Page = () => {
   const posts = getPages()
-    .filter((node) => node.data.title !== 'Index')
+    // remove index page
+    .filter((post) => post.slugs.length !== 0)
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
   return <PostsList posts={posts} />;
 };
