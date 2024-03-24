@@ -18,8 +18,8 @@ const Page = ({ params }: { params: { slug: string } }) => {
   return (
     <div>
       <h1 className='flex'>
-        <Tag className='my-auto mr-2' size={30} />
-        <span className='text-3xl'>{tag}</span>
+        <Tag className='my-auto mr-1' size={26} />
+        <span className='text-2xl'>{tag}</span>
       </h1>
       <PostsList posts={sortedPosts} />
     </div>

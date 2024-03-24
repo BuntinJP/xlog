@@ -19,8 +19,8 @@ const Page = ({ params }: { params: { slug: string } }) => {
   return (
     <div>
       <h1 className='flex'>
-        <Folder className='my-auto mr-2' size={30} />
-        <span className='text-3xl'>{category}</span>
+        <Folder className='my-auto mr-1' size={26} />
+        <span className='text-2xl'>{category}</span>
       </h1>
       <PostsList posts={sortedPosts} />
     </div>
