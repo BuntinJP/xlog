@@ -23,9 +23,12 @@ export const PostsList = ({ posts }: { posts: Posts }) => {
                 {year}年{month}月
               </div>
             )}
-            <div>
-              <Link href={post.url} className='hover:underline text-lg'>
-                ・
+            <div className='text-lg'>
+              ・
+              <Link
+                href={post.url}
+                className='text-blue-400 hover:text-blue-300 hover:underline'
+              >
                 <span className='text-blue-400 hover:text-blue-300'>
                   {post.data.title}
                 </span>

@@ -4,7 +4,13 @@ export const List = ({
   Title,
   url,
   items,
-}: { Title: React.FC; url: string; items: string[] }) => {
+  anotherItems = undefined,
+}: {
+  Title: React.FC;
+  url: string;
+  items: string[];
+  anotherItems?: string[] | undefined;
+}) => {
   return (
     <div>
       <div className='flex text-xl my-1'>
@@ -22,6 +28,19 @@ export const List = ({
             {item}
           </Link>
         ))}
+        {anotherItems !== undefined && (
+          <div className='mt-4 flex flex-col gap-1'>
+            {anotherItems.map((item) => (
+              <Link
+                href={`${url}/${item}`}
+                key={item}
+                className='mx-0 px-3 rounded hover:text-[#d5c4a1] hover:bg-accent'
+              >
+                {item}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

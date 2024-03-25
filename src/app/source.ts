@@ -1,3 +1,4 @@
+import config from 'config.json';
 import { loader } from 'fumadocs-core/source';
 import { createMDXSource, defaultSchemas } from 'fumadocs-mdx';
 import { z } from 'zod';
@@ -78,3 +79,28 @@ for (const category of categories) {
   categoriesWithPosts.push({ name: category, posts: filteredPosts });
 }
 categoriesWithPosts.sort((a, b) => a.name.localeCompare(b.name));
+
+export const myCategoriesList = config.myCategoriesList as string[];
+
+export const withoutMyCategoriesList = categoriesList.filter((category) => {
+  for (const myCategory of myCategoriesList) {
+    if (category === myCategory) {
+      return false;
+    }
+  }
+  return true;
+});
+
+export const myCategoriesWithPosts: typeof categoriesWithPosts = [];
+
+export const withoutMyCategoriesWithPosts = categoriesWithPosts.filter(
+  (category) => {
+    for (const myCategory of myCategoriesList) {
+      if (category.name === myCategory) {
+        myCategoriesWithPosts.push(category);
+        return false;
+      }
+    }
+    return true;
+  },
+);

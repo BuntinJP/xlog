@@ -1,5 +1,5 @@
 import { Folders } from 'lucide-react';
-import { categoriesList } from '../source';
+import { myCategoriesList, withoutMyCategoriesList } from '../source';
 import { List } from './List';
 
 const Title = () => {
@@ -12,5 +12,12 @@ const Title = () => {
 };
 
 export const CategoriesList = () => {
-  return <List Title={Title} url='/categories' items={categoriesList} />;
+  return (
+    <List
+      Title={Title}
+      url='/categories'
+      items={myCategoriesList}
+      anotherItems={withoutMyCategoriesList}
+    />
+  );
 };

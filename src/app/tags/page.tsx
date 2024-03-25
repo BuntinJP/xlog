@@ -1,21 +1,15 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { tagsWithPosts } from '../source';
+import { ItemList } from './_components/ItemList';
 
 const Page = () => {
   return (
-    <div className='flex flex-col gap-1'>
-      {tagsWithPosts.map((tag) => (
-        <div key={tag.name}>
-          <Link href={`/tags/${tag.name}`} className='hover:underline text-lg'>
-            ・
-            <span className='text-blue-400 hover:text-blue-300'>
-              {tag.name}
-            </span>
-            <span className='ml-2'>({tag.posts.length}件)</span>
-          </Link>
-        </div>
-      ))}
+    <div className='flex gap-2 flex-wrap'>
+      {tagsWithPosts
+        .sort((a, b) => b.posts.length - a.posts.length)
+        .map((tag) => (
+          <ItemList name={tag.name} numOfPosts={tag.posts.length} />
+        ))}
     </div>
   );
 };

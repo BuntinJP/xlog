@@ -15,9 +15,7 @@ export const ItemList = ({
       href={`${basePath}/${name}`}
       className='bg-[#32302f] rounded-lg flex px-2 no-underline hover:underline text-md'
     >
-      <span className='my-auto mr-1'>
-        <Icon size={18} />
-      </span>
+      <Icon size={18} className='my-auto mr-1' />
       <span className='text-blue-400 hover:text-blue-300'>{name}</span>
     </Link>
   );
