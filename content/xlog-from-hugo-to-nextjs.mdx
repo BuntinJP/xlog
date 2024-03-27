@@ -1,0 +1,116 @@
+---
+title: 'ブログ(運用数週間)をHugoからNext.jsに移行 | Hugo → Next.js'
+description: 'ブログの静的サイトジェネレーターとしてHugoを使ってましたが、Next.jsに変えました。'
+date: 2024-03-26
+tags: ['Cloudflare', 'zeabur', 'SSG', 'Next.js', 'Hugo']
+categories: ['工作', 'xlog関連']
+keywords: ['Cloudflare', 'zeabur', 'Bun', 'Next.js', 'Node.js', 'JavaScript', 'TypeScript', 'Hugo', 'Workers']
+---
+
+# Hugo 環境紹介
+
+[当ブログ(xlog.systems)](https://www.xlog.systems)は、一番最初は Hugo で作成していました。
+
+しかし、自分はプログラミング言語の Go がすごく嫌いで、Hugo は Go で書かれているのですごく嫌な気持ちでした。
+
+しかし、Hugo の theme を他からインポートして使える機能と共に、[hugo-texify3](https://themes.gohugo.io/themes/hugo-texify3/)というすごく好みなテーマのコンビで流石に言い訳できず Hugo でスタートしました。
+
+なのですが、やはり Next.js の方が構造的にも綺麗です。`TypeScript & Bun`という最強の環境で書けた方が間違いなくいい。
+Hugo と html,一部生 JavaScript ファイルなんかで、`{{ .Site.Params.title }}`とか書くのが嫌でした。しかも、hugo-texify3 は dart-sass に依存しているんですよね。これは非常に〜、ね？
+
+でも、一時期は最後までこれで行くくらいの勢いで気に入って整備していたので、git のレポジトリとかは理由なく残しておきます(GUI 範囲なので、)。
+
+残し方は、ブランチとして残します。切り替え前の最後のコミットから hugo というブランチ切っておきます[github](https://github.com/BuntinJP/xlog/tree/hugo)。
+
+## テーマ
+
+[hugo-texify3](https://themes.gohugo.io/themes/hugo-texify3/)というテーマを使っていました。
+
+一応ローカルの変更を戻せるように変更したいのと、git のサブモジュールとしてデプロイを自動化したかった(ジャムスタックプラットフォームを使用する予定だった)ので、[フォーク](https://github.com/BuntinJP/hugo-texify3)を作成してそれを利用する形にしていました。
+
+## インフラ
+
+Cloudflare Workers & Pages で運用していました。
+
+Hugo のビルドは Cloudflare がやってくれてました。
+そのため、CDN も自動的に Cloudflare になります。
+というかウチの CDN は基本 Cloudflare です。
+
+この時、Hugo のビルドで、Cloudflare 側とローカルの挙動が異なることが意外とあって、sitemap.xml なんかは生成で色々面倒なことをやりました。
+
+main が更新されるたびにビルドする設定にしていました。たまにいらないビルドなんかも発生するんですが、料金増えないので気にしません。
+
+# Next.js 環境紹介
+
+## 移行方法
+
+なんと、**友人**が書いてくれました。
+
+自分はほぼ口出ししただけですかね、、
+Next.js なんで何かあれば自分で変えちゃう可能性が高いので、これからは自分でちょいちょい変更していきます。
+
+## インフラ
+
+Cloudflare のサーバーレス環境もいいかなと思ったのですが、SSG とサーバーレスの組み合わせを自分で定義するのは結構面倒でした。
+そのため、vercel,zeabur,AWS lambda,オンプレの中から結構迷ったのち、zeabur を選択しました。
+
+## zeabur
+
+その友人から教えてもらった中華?台湾?系のサービスで、コンテナでもサーバーレスでもクレカ登録無しですぐデプロイできるようです。
+月 5 ドルプランがあったので、普通に入っちゃいました。
+
+どうやら、bun.lockb があれば bun で依存関係をインストールする(やると分かりますが、Bun はパッケージインストールが相当早いので、単純にビルド時間短縮に大きく貢献してます。)など、かなりイマドキな子みたいです。
+
+他のところで動いてる discord.js の Bot とか、Cloudflare Workers で動かしてるのとか、全部移行できそうですね。
+
+かなりパフォーマンスもいいと思うので、Bun & TypeScript & zeabur 構成はしばらく続くと思います。
+
+# (祝) Hello, Next.js!!
+
+ということで、Next.js に移行しました。
+
+hugo ブランチを追う様に違うサブドメインで参照できる様にしてみました。たまに古いのが見たくなるので。
+
+- [旧 xlog.systems](https://old.xlog.systems/)
+
+- [新 xlog.systems](https://www.xlog.systems/)
+
+## wappalyzer での見た目
+
+### 旧サイト
+
+<img src="https://res.cloudinary.com/xlog/image/upload/v1/2024/03/26/old-wappalyzer01?_a=BAMHUyJt0" alt="Cloudinary image<old-wappalyzer01.png-2024/03/26/old-wappalyzer01>" />
+
+### 新サイト
+
+<img src="https://res.cloudinary.com/xlog/image/upload/v1/2024/03/26/new-wappalyzer01?_a=BAMHUyJt0" alt="Cloudinary image<new-wappalyzer01.png-2024/03/26/new-wappalyzer01>" />
+
+<img src="https://res.cloudinary.com/xlog/image/upload/v1/2024/03/26/new-wappalyzer02?_a=BAMHUyJt0" alt="Cloudinary image<new-wappalyzer02.png-2024/03/26/new-wappalyzer02>" />
+
+結構ここに出る内容をカッコつけるのが好きなので、zeabur が出て気持ちいいですね〜。
+
+でも Cloudflare 関連がなくなったのが結構悲しいですね。zeabur のドキュメントに直接、「Cloudflare のプロキシはオフにしてください。必要ありません。」みたいなことが書いてありました。いや必要あるかないかは俺が決めるんだが、、というのが正直な感想ですが、結局１ユーザーは従うほかありません。
+
+また、切り替え時 1,2 時間ほどサイトが落ちました笑
+
+<img
+  src="https://res.cloudinary.com/xlog/image/upload/v1/2024/03/26/uptime-downtime-details-ss?_a=BAMHUyJt0"
+  alt="Cloudinary image<uptime-downtime-details-ss.png-2024/03/26/uptime-downtime-details-ss>"
+/>
+
+時間が経ったら治りましたが、何が起きたのかは謎のままでモヤモヤしています。
+
+Uptime で DNS 関連とエラーが出ているのはインシデント発生後自分が DNS 関連で操作したためです。
+
+どうやら zeabur のコンパネにドメイン関連の箇所があるのですが、そのドメイン関連の設定とサーバーの設定のリンクについて、新しく追加するのは早いのですが、すでにある設定を消すとなると非常に遅いようです。
+
+また、Cloudflare でのホスト時、TLSv1.3 を可能な限り使わせようと色々設定してたので、それが残ってしまっていたっていう線も考えられます。
+
+どっちにしろもう関係ない話ですので忘れることにします。
+
+Next.js , zeabur 環境今の所、デプロイできちゃえばなんの文句もなく使えています。しばらくはこのまま行くと思います。
+
+やっぱり、TypeScript 環境は神です。
+
+全ての Ruby,PHP,Java,CS 環境が、TypeScript に移行することを強く望みます。
+では。

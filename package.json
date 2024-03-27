@@ -15,6 +15,7 @@
   "dependencies": {
     "@next/third-parties": "^14.1.4",
     "@types/rss": "^0.0.32",
+    "biome": "^0.3.3",
     "fumadocs-core": "^10.0.5",
     "fumadocs-mdx": "^8.2.4",
     "fumadocs-ui": "^10.0.5",
