@@ -64,7 +64,7 @@ export default Page;
 
 export const generateMetadata = () => {
   return {
-    title: 'Tags - xlog',
-    description: 'Tags of xlog',
+    title: 'Categories - xlog',
+    description: 'Categories of xlog',
   } satisfies Metadata;
 };
