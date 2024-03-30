@@ -1,19 +1,8 @@
 {
-  "cSpell.words": [
-    "biomejs",
-    "cloudinary",
-    "fumadocs",
-    "katex",
-    "lizcode",
-    "lucide",
-    "postbuild",
-    "rehype",
-    "xlog",
-    "zeabur"
-  ],
+  "cSpell.words": ["biomejs", "cloudinary", "fumadocs", "katex", "lizcode", "lucide", "postbuild", "rehype", "xlog", "zeabur"],
   "editor.formatOnSave": true,
   "[javascript]": {
-    "editor.defaultFormatter": "biomejs.biome"
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[javascriptreact]": {
     "editor.defaultFormatter": "biomejs.biome"
