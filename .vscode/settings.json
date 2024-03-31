@@ -1,5 +1,16 @@
 {
-  "cSpell.words": ["biomejs", "cloudinary", "fumadocs", "katex", "lizcode", "lucide", "postbuild", "rehype", "xlog", "zeabur"],
+  "cSpell.words": [
+    "biomejs",
+    "cloudinary",
+    "fumadocs",
+    "katex",
+    "lizcode",
+    "lucide",
+    "postbuild",
+    "rehype",
+    "xlog",
+    "zeabur"
+  ],
   "editor.formatOnSave": true,
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
