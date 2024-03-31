@@ -1,5 +1,3 @@
-import { Heading } from 'fumadocs-ui/components/heading';
-import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
 import { DocsBody } from 'fumadocs-ui/page';
 import { Shippori_Mincho } from 'next/font/google';
 import { notFound } from 'next/navigation';
