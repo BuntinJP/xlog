@@ -40,7 +40,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {process.env.NODE_ENV === 'production' && (
         <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID ?? ''} />
       )}
-      <body className='bg-[#282828] flex h-screen flex-col'>
+      <body className='bg-[#282828] flex min-h-dvh flex-col'>
         <ThemeProvider attribute='class' defaultTheme='dark'>
           <NotificationBar />
           <div className='lg:grid lg:grid-cols-6'>
