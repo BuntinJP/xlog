@@ -102,3 +102,31 @@ git に ssh できる環境を作っておきましょう。これやってて�
   src='https://res.cloudinary.com/xlog/image/upload/v1/2024/03/01/github-gpg-signing-result?_a=BAMHUyJt0'
   alt='Cloudinary image<github-gpg-signing-result.png-2024/03/01/github-gpg-signing-result>'
 />
+
+# [2024/05/23 追記]
+
+パスフレーズ、パスワードの変更をしたくなった時の変更方法です。
+
+正確には GPG の使い方なのかもしれませんが、自分は GPG の使用機会はほぼこれだけなのでここに残しておきます。
+
+```
+liz@iMac-PC-0001.local::~ $ gpg --edit-key XXXXXXXXXXXXXXXX
+gpg (GnuPG) 2.4.5; Copyright (C) 2024 g10 Code GmbH
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+秘密鍵が利用できます。
+
+sec  rsa3072/XXXXXXXXXXXXXXXX
+     作成: 2024-03-27  有効期限: 無期限      利用法: SC
+     信用: 究極        有効性: 究極
+ssb  rsa3072/????????????
+     作成: 2024-03-27  有効期限: 無期限      利用法: E
+[  究極  ] (1). synthia.liz (github-buntinjp) <mail@buntin.xyz>
+
+gpg> passwd
+
+gpg> save
+鍵は無変更なので更新は不要です。
+liz@iMac-PC-0001.local::~ $
+```
