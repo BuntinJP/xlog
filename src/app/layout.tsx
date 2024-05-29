@@ -1,7 +1,7 @@
 import { BuyMeACoffee } from '@/components/BuyMeACoffee';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
-import { NotificationBar } from '@/components/NotificationBar';
+// import { NotificationBar } from '@/components/NotificationBar';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import 'katex/dist/katex.css';
 import type { Metadata } from 'next';
@@ -42,8 +42,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       )}
       <body className='bg-[#282828] flex min-h-dvh flex-col'>
         <ThemeProvider attribute='class' defaultTheme='dark'>
-          <NotificationBar />
-          <div className='lg:grid lg:grid-cols-6'>
+{/*           <NotificationBar />
+ */}          <div className='lg:grid lg:grid-cols-6'>
             <div className='hidden lg:block lg:col-span-1'>
               {/* ad here (pc only) */}
             </div>
