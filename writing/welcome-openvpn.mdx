@@ -1,0 +1,37 @@
+---
+title: 'OpenVPNサーバーをRHEL9にインストールし、休憩時間に会社からアクセス'
+description: 'NuroのONUが賢くなって、Cloudflaredじゃ騙せなくなりました。'
+date: 2024-03-26
+tags: ['RHEL']
+categories: ['工作']
+keywords: ['RHEL9', 'Red Hat', 'OpenVPN', '自宅サーバー']
+---
+
+# 自宅鯖に VPN 接続
+
+もう響きがいい感じです。いつかやりたいと思ってて、ずっと何でか先延ばしにしてきました。一番最初になんで VPN サーバーを建てたくなったかは昔過ぎて忘れました。
+
+ほんとは、RHEL,VPN といったらの Libreswan,IPsec を目標にしてました。
+しかし、インストール操作したとき会社にいたんですよね。
+
+腐っても自宅サーバーである我が RHEL9 ちゃんは、firewalld も動いていて(ないとは思うが、一応内部に何かがいた場合に備えて)、かつ ONU によるポート転送(ポート解放)によってやっと外部から通信を受け付けることができます。
+
+そして、その ONU の管理画面は「198.168.1.1」です。自己署名 https です。ここに、Cloudflared で通信を CF のプロキシを通じてリモートで繋げてたんですが、なぜか新しい ONU はこのリクエストを拒否します。だるすぎる。ヘッダーいじったり、専用の API なんかも作ろうとしましたが、どうしても無理で諦めました。
+
+「198.168.1.1」に外部からアクセスできなかった以上、そのとき空いているポートでどうにか繋げちゃう必要があったんですよね。一回だけでも。UDP なんて使わないんで、元から開いてなかったため、却下しました。
+
+よって、ここでは真似しないほうがいいと思いますが、nginx を止めて 80 番で VPN サーバーを建てました笑
+
+一旦ポート解放するまでの我慢です。AWS みたいに、コンパネからポチポチやるだけで SG でもプレフィックスリストでもいいですが、すぐにネットワーク操作できるのってなんだかんだ最強だな、って思いました。
+
+VPC は神。
+
+## OpenVPN インストール
+
+```bash
+sudo dnf copr enable dsommers/openvpn-release-2.6
+sudo dnf install openvpn
+wget https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
+chmod 700 ./openvpn-install.sh
+./openvpn-install.sh
+```
