@@ -2,8 +2,7 @@
 /node_modules
 
 # generated content
-.map.ts
-.contentlayer
+.source
 
 # test & build
 /coverage
