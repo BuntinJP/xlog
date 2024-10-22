@@ -1,10 +1,11 @@
-import { tagsList, tagsWithPosts } from '@/app/source';
 import { PostsList } from '@/components/PostsList';
+import { tagsList, tagsWithPosts } from '@/libs/source';
 import { Tag } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-const Page = ({ params }: { params: { slug: string } }) => {
+const Page = async (props: { params: Promise<{ slug: string }> }) => {
+  const params = await props.params;
   const tag = decodeURIComponent(params.slug);
   const posts = tagsWithPosts.find((t) => t.name === tag)?.posts ?? [];
 
@@ -34,7 +35,10 @@ export const generateStaticParams = () => {
   }));
 };
 
-export const generateMetadata = ({ params }: { params: { slug: string } }) => {
+export const generateMetadata = async (props: {
+  params: Promise<{ slug: string }>;
+}) => {
+  const params = await props.params;
   const tag = decodeURIComponent(params.slug);
   return {
     title: `${tag} - xlog`,

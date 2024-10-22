@@ -1,9 +1,0 @@
-# *
-User-agent: *
-Allow: /
-
-# Host
-Host: https://www.xlog.systems
-
-# Sitemaps
-Sitemap: https://www.xlog.systems/sitemap.xml

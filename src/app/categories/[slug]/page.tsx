@@ -1,10 +1,11 @@
-import { categoriesList, categoriesWithPosts } from '@/app/source';
 import { PostsList } from '@/components/PostsList';
+import { categoriesList, categoriesWithPosts } from '@/libs/source';
 import { Folder } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-const Page = ({ params }: { params: { slug: string } }) => {
+const Page = async (props: { params: Promise<{ slug: string }> }) => {
+  const params = await props.params;
   const category = decodeURIComponent(params.slug);
   const posts =
     categoriesWithPosts.find((t) => t.name === category)?.posts ?? [];
@@ -35,7 +36,10 @@ export const generateStaticParams = () => {
   }));
 };
 
-export const generateMetadata = ({ params }: { params: { slug: string } }) => {
+export const generateMetadata = async (props: {
+  params: Promise<{ slug: string }>;
+}) => {
+  const params = await props.params;
   const category = decodeURIComponent(params.slug);
   return {
     title: `${category} - xlog`,

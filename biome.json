@@ -4,7 +4,7 @@
     "enabled": true
   },
   "files": {
-    "ignore": ["node_modules", ".next", ".vscode"]
+    "ignore": ["node_modules", ".next", ".source", ".vscode"]
   },
   "formatter": {
     "enabled": true,
@@ -17,7 +17,6 @@
       "enabled": true,
       "quoteStyle": "single",
       "jsxQuoteStyle": "single",
-      "trailingComma": "all",
       "semicolons": "always"
     }
   },

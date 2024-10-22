@@ -63,7 +63,7 @@ export const Toc = ({
       {open && (
         <div className='bg-[#32302f] border border-[#a89984] border-dashed rounded sm:inline-block sm:whitespace-nowrap sm:min-w-96 mr-auto px-1 py-1 my-3'>
           {toc.map((item) => (
-            <p className='mx-1 my-0'>
+            <p className='mx-1 my-0' key={item.url}>
               <Item key={item.url} item={item} />
             </p>
           ))}

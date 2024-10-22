@@ -1,4 +1,4 @@
-import type { Posts } from '@/app/source';
+import type { Posts } from '@/libs/source';
 import Link from 'next/link';
 
 export const PostsList = ({ posts }: { posts: Posts }) => {
