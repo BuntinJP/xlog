@@ -1,5 +1,5 @@
+import { tagsWithPosts } from '@/libs/source';
 import type { Metadata } from 'next';
-import { tagsWithPosts } from '../source';
 import { ItemList } from './_components/ItemList';
 
 const Page = () => {

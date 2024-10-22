@@ -1,5 +1,5 @@
-import { getPage, getPages } from '@/app/source';
-import { Heading } from 'fumadocs-ui/components/heading';
+import { mdxComponents } from '@/libs/mdx-config';
+import { getPage, getPages } from '@/libs/source';
 import { DocsBody } from 'fumadocs-ui/page';
 import { Folder, Tag } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -13,11 +13,10 @@ const shipporiMincho = Shippori_Mincho({
   weight: '400',
 });
 
-const Page = async ({
-  params,
-}: {
-  params: { slug: string[] };
+const Page = async (props: {
+  params: Promise<{ slug: string[] }>;
 }) => {
+  const params = await props.params;
   const post = getPage(params.slug);
 
   if (post === undefined) {
@@ -28,7 +27,7 @@ const Page = async ({
     timeZone: 'Asia/Tokyo',
   });
 
-  const lastModified = post.data.exports.lastModified;
+  const lastModified = post.data.lastModified;
   let lastUpdateDate: string | undefined = undefined;
   if (lastModified !== undefined) {
     lastUpdateDate = new Date(lastModified).toLocaleDateString('ja-JP', {
@@ -36,7 +35,7 @@ const Page = async ({
     });
   }
 
-  const MDX = post.data.exports.default;
+  const MDX = post.data.body;
 
   const categories = (post.data.categories ?? []).map((category) => ({
     name: category,
@@ -50,7 +49,7 @@ const Page = async ({
   }));
   const items = [...categories, ...tags];
 
-  const toc = post.data.exports.toc;
+  const toc = post.data.toc;
 
   return (
     <div>
@@ -79,7 +78,7 @@ const Page = async ({
           {post.data.description}
         </p>
         <Toc toc={toc} className='mb-10' />
-        <MDX />
+        <MDX components={mdxComponents} />
       </DocsBody>
     </div>
   );
@@ -100,11 +99,12 @@ export const generateStaticParams = () => {
     .filter((params): params is { slug: string[] } => params !== undefined);
 };
 
-export const generateMetadata = ({
-  params,
-}: { params: { slug: string[] } }) => {
+export const generateMetadata = async (props: {
+  params: Promise<{ slug: string[] }>;
+}) => {
+  const params = await props.params;
   const post = getPage(params.slug);
-  if (post === undefined) return;
+  if (post === undefined) notFound();
 
   const title = post.data.title;
   const description = post.data.description;
@@ -121,13 +121,13 @@ export const generateMetadata = ({
     openGraph: {
       title: title,
       description: description,
-      images: `/api/og?${imageParams.toString()}`,
+      images: `/api/og?${imageParams}`,
       url: post.url,
     },
     twitter: {
       title: title,
       description: description,
-      images: `/api/og?${imageParams.toString()}`,
+      images: `/api/og?${imageParams}`,
     },
   } satisfies Metadata;
 };

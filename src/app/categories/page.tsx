@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
 import {
   type categoriesWithPosts,
   myCategoriesWithPosts,
   withoutMyCategoriesWithPosts,
-} from '../source';
+} from '@/libs/source';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 
 type Category = (typeof categoriesWithPosts)[number];
 

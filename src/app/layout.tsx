@@ -1,7 +1,6 @@
 import { BuyMeACoffee } from '@/components/BuyMeACoffee';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
-// import { NotificationBar } from '@/components/NotificationBar';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import 'katex/dist/katex.css';
 import type { Metadata } from 'next';
@@ -15,25 +14,6 @@ const shipporiMincho = Shippori_Mincho({
   weight: '400',
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
-  ),
-  title: 'xlog',
-  description: 'Buntin-BadCompany-Blog',
-  openGraph: {
-    title: 'xlog',
-    description: 'Buntin-BadCompany-Blog',
-    images: '/api/og',
-    url: '/',
-  },
-  twitter: {
-    title: 'xlog',
-    description: 'Buntin-BadCompany-Blog',
-    images: '/api/og',
-  },
-};
-
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang='ja' className={shipporiMincho.className}>
@@ -42,8 +22,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       )}
       <body className='bg-[#282828] flex min-h-dvh flex-col'>
         <ThemeProvider attribute='class' defaultTheme='dark'>
-{/*           <NotificationBar />
- */}          <div className='lg:grid lg:grid-cols-6'>
+          <div className='lg:grid lg:grid-cols-6'>
             <div className='hidden lg:block lg:col-span-1'>
               {/* ad here (pc only) */}
             </div>
@@ -63,3 +42,22 @@ export default function Layout({ children }: { children: ReactNode }) {
     </html>
   );
 }
+
+export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  ),
+  title: 'xlog',
+  description: 'Buntin-BadCompany-Blog',
+  openGraph: {
+    title: 'xlog',
+    description: 'Buntin-BadCompany-Blog',
+    images: '/api/og',
+    url: '/',
+  },
+  twitter: {
+    title: 'xlog',
+    description: 'Buntin-BadCompany-Blog',
+    images: '/api/og',
+  },
+};

@@ -1,32 +1,12 @@
 import config from 'config.json';
+import type { PageTree } from 'fumadocs-core/server';
 import { loader } from 'fumadocs-core/source';
-import { createMDXSource, defaultSchemas } from 'fumadocs-mdx';
-import { z } from 'zod';
-import { map } from '.map';
-
-const frontmatterSchema = defaultSchemas.frontmatter.extend({
-  date: z
-    .string()
-    .or(z.date())
-    .transform((value, context) => {
-      try {
-        return new Date(value);
-      } catch {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Invalid date',
-        });
-        return z.NEVER;
-      }
-    }),
-  tags: z.array(z.string()).optional(),
-  categories: z.array(z.string()).optional(),
-  keywords: z.array(z.string()).optional(),
-});
+import { createMDXSource } from 'fumadocs-mdx';
+import { blog } from '.source';
 
 export const { getPage, getPages, pageTree } = loader({
   baseUrl: '/posts',
-  source: createMDXSource(map, { schema: { frontmatter: frontmatterSchema } }),
+  source: createMDXSource(blog, []),
 });
 
 const posts = getPages();
@@ -42,7 +22,7 @@ for (const post of posts) {
   }
 }
 
-export const tagsList = Array.from(tags).sort();
+export const tagsList = Array.from(tags).toSorted();
 
 export const tagsWithPosts: {
   name: string;
@@ -65,7 +45,7 @@ for (const post of posts) {
   }
 }
 
-export const categoriesList = Array.from(categories).sort();
+export const categoriesList = Array.from(categories).toSorted();
 
 export const categoriesWithPosts: {
   name: string;

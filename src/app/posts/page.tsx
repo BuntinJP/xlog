@@ -1,5 +1,5 @@
-import { getPages } from '@/app/source';
 import { PostsList } from '@/components/PostsList';
+import { getPages } from '@/libs/source';
 import type { Metadata } from 'next';
 
 const Page = () => {
