@@ -1,12 +1,15 @@
+import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
 import { Heading } from 'fumadocs-ui/components/heading';
-import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
+import {
+  ImageZoom,
+  type ImageZoomProps,
+} from 'fumadocs-ui/components/image-zoom';
 import defaultComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 
 export const mdxComponents: MDXComponents = {
   ...defaultComponents,
-  // biome-ignore lint: apply any
-  img: (props: any) => <ImageZoom {...props} />,
+  img: (props: ImageZoomProps) => <ImageZoom {...props} />,
   a: (props) => (
     <a
       {...props}
@@ -59,5 +62,15 @@ export const mdxComponents: MDXComponents = {
       {...props}
       className='text-[#fbf1c7] font-thin text-lg sm:text-xl'
     />
+  ),
+  pre: ({ ref: _ref, ...props }) => (
+    <CodeBlock
+      {...props}
+      viewportProps={{
+        className: 'max-h-fit',
+      }}
+    >
+      <Pre>{props.children}</Pre>
+    </CodeBlock>
   ),
 };
