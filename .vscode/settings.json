@@ -1,17 +1,4 @@
 {
-  "cSpell.words": [
-    "biomejs",
-    "cloudinary",
-    "fumadocs",
-    "katex",
-    "lizcode",
-    "lucide",
-    "postbuild",
-    "rehype",
-    "shippori",
-    "xlog",
-    "zeabur"
-  ],
   "editor.formatOnSave": true,
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -31,5 +18,8 @@
   "editor.codeActionsOnSave": {
     "quickfix.biome": "always",
     "source.organizeImports.biome": "always"
+  },
+  "[mdx]": {
+    "editor.defaultFormatter": "unifiedjs.vscode-mdx"
   }
 }

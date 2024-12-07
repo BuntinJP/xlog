@@ -1,0 +1,565 @@
+---
+title: ArchLinuxにメールサーバー構築[バーチャルドメイン・ユーザー・LMTP]
+description: さくらのメールボックスから移行します。バーチャルドメイン・ユーザー&一部別メールボックス構成&LMTPでかなりゴテゴテしたサーバーを構築します。
+date: 2024-10-30
+tags: ['ArchLinux', 'メール', 'SendGrid']
+categories: ['備忘録', '構築', 'メール']
+keywords: ['postfix', 'dovecot', 'ArchLinux', 'メールサーバー', 'さくらのメールボックス', '移行', 'メール']
+---
+
+# 自宅サーバーでメールサーバーを構築する
+
+## はじめに
+
+自宅で結構長期間運用していた RedHat Enterprise Linux 9 サーバーが死に、 ArchLinux の強めのマシンに変わったため、メールサーバーをローカルに新規構築する計画を立てました。  
+というのも現在、特に理由なく自分が持っているドメインでメールを運用しています。
+
+一年で数百円程度の費用でさくらのメールボックスを使っていました。  
+費用的にも最強だと思っていますが、メールのみ外部に依存しているのは、メールだけ諦めたみたいな感じで嫌だったので、別に新しくメールサーバーを建てることにしました。
+
+一つ先に忠告しておくと、かなりキモい設定を入れ込みました。インフラ屋なので、簡単な postfix サーバーの立ち上げだと味気なくて記事を書くモチベが上がらなかったので、バーチャルドメインしつつ一部のドメインはメールボックスを分けてあります。  
+正直保守性的にもあり得ない構成なのですが、こういうのができるのこそ自宅サーバーなので、あまり参考にされると地獄というか虚無になる可能性があります。
+
+## 構築するサーバーについて
+
+自宅で運用しているサーバーがあり、そいつの中に構築していきます。  
+マイクラ運用もしている Intel の中古ゲーミングワークステーションの薄い版みたいなやつですね。Nuro の Onu 兼ルーターの直下から繋げてるので、回線だけ爆速です。
+友人がマイクラサーバーを構築して公開したいってことだったので、そいつが多めに金払ってメルカリでいい型落ちゲーミングを狙ってこっちに発送されてきました。  
+そいつと話し合った結果、インストールする OS は ArchLinux ということになりました。パッケージマネージャ(AUR ヘルパー)は paru を使ってます。
+
+タイミングもいいので、ArchLinux にメールサーバーを構築していきます。Linux で建てるのとは、postfix,dovecot のインストールくらいまでは違う手順になりますが、ほぼ一緒だと思います。
+
+また、一つ面倒なのが、ほとんどの家がそうだと思いますが、自宅回線なので、IP が動的というのと、OP25B の影響を受けます。
+IP が動的というのは、Cloudflare API でサーバーのデーモンがうまいこと設定してくれます。しかし、OP25B は結構厄介です。
+Outbound Port 25 Blocking の略ですが、読んで字の如く 25 ポートから出ていくトラフィックを ISP がブロックします。
+だるいですが、実際ないと多分迷惑メールがやばいことになるので許します。まあ迷惑メールがなくなったわけじゃないんで、悪影響しか受けない自分は普通に最悪の気分です。今の時代騙される奴なんて中々いないだろうに。
+
+### OP25B 回避策
+
+OP25B 対策として、メール送信サービスを利用します。具体的には SendGrid を使います。postfix からリレー先として指定するだけだと思うので、本当に神です。
+メールサーバーをローカル立ててるのにどういうこととは思いますが、確実に自宅の可用性よりクラウドのあっちの方が高いと思ってのことです笑
+
+正直にいうと、OP25B の回避策がそれしかないためです。自宅回線は Nuro なのですが、契約時届いた Nuro のメールサーバー設定のハガキを今も画像で保持しているのですが、いざ使おうとしたところアカウントが削除されてました。使用していないアカウントは 2024 年の最初あたりで消されてたらしいです。普通にゴミです。
+
+### メールボックス設定のキモい設定について
+
+冒頭でも触れましたがユーザー・メールボックス周りがかなり気色悪い設定になっています。
+以下にやったことをまとめますが、作業ベースなので漏れがあるかもしれません。その時は連絡ください。直します。
+
+現在運用中のさくらのメールボックスは、mydestination に複数ドメインを指定してあるだけみたいな環境です。例えば、mail@example.com,mail@example.netが宛先のメールは同じ mail のメールボックスに配送される、といった形です。  
+そして、ユーザーはコンパネから作成する必要があります。
+mail ユーザー以外もユーザーがあり、それら全てを Linux ユーザーとして作成するのは面倒だし `/home` が汚れて普通に嫌です
+
+これらとは別に、badcompany.tokyo というその ArchLinux を共同で管理している友人と所有しているドメインがあり、そのメールも捌きたいです。
+しかし、このメールが個人使用のドメインと同じメールボックスに配送されるのはかなり渋いです。したがって、badcompany.tokyo と自分の個人的なドメインは別メールボックスで管理します。
+
+具体的に何をするのかというと、dovecot2.X で使用可能な LMTP サーバー機能を利用します。  
+全てのメールボックス設定値をテキスト形式の設定ファイルで完全に管理する形をとります。というのも、配送先含めて dovecot のユーザー管理のみでそれら全てを定義できるようになるので、一部のドメインはメールボックスを共通にし、一部のドメインは別メールボックスになるようにユーザー定義を自分で行うことでそれらを実現します。
+かなり面倒ではありますが、テキストで管理するのは Linux のシステムユーザーを使った変な管理より安定していると感じるので、とりあえずその方向で頑張ってみます。  
+NixFlake リスペクトです。まあ LMTP を使うので dovecot の設定をうまく管理できるように頑張るだけです。
+
+- バーチャルユーザーを使用
+- バーチャルドメインで複数のドメインを同一のメールボックスで管理
+- 一部ドメインは別メールボックスで管理
+
+以上の設定を一つの dovecot 内で共存させます。
+
+### メールサーバー設定まとめ
+
+主なプログラム
+
+- postfix
+- dovecot
+- SendGrid
+
+今回のサーバーについては、セキュリティ的に弱いポートなどは基本的に外出ししない方針で行きます。
+受信のために 25 ポートを開ける必要はありますが。
+
+また、POP3 は使用しません。
+
+SMTP : 25,587
+IMAP : 993
+
+共に STARTTLS 使用予定  
+証明書は LetsEncrypt のものを使用。
+
+SASL 認証サーバーは、Dovecot を使用します。  
+送受信の認証を一本化できるからです。そのため Cyrus SASL は使用しません。
+
+自宅のサーバーが落ちた場合、メールが配達不可になってしまうため、念の為フェイルオーバーとして、さくらのメールボックスは契約し続けます。(?)
+
+メールサーバーの具体的な設定値は以下のとおりです。コマンドを参照する際に参考になれば。
+
+バーチャルユーザーのメール保存場所 : `/var/vmail/${DOMAIN}/${USERNAME}/mail` ※1  
+バーチャルユーザーのメール保存形式 : `Maildir`  
+バーチャルユーザーのパスワード保存形式 : `SHA512-CRYPT` ※2  
+
+※1 [dovecotドキュメント](https://doc.dovecot.org/2.3/configuration_manual/home_directories_for_virtual_users/#home-directories-for-virtual-users) によると、仮想ユーザー使用時の推奨らしいです。  
+※2 理由なく少しセキュアにしています。
+
+## フェーズ1
+
+作業フェーズ1では、postfix,dovecot,SendGrid周りと、仮想ユーザーがうまく動作することを確認するとこまで行います。
+
+### 1. プログラム類インストール
+
+postfix,dovecot をインストールします。
+
+```
+[buntin@badcompany ~]$ paru -S postfix dovecot
+resolving dependencies...
+looking for conflicting packages...
+warning: dependency cycle detected:
+warning: postfix-lmdb will be installed before its postfix dependency
+
+Packages (6) liburing-2.8-1  mariadb-libs-11.6.2-2  postfix-lmdb-3.9.0-4  postgresql-libs-16.3-4  dovecot-2.3.21.1-1  postfix-3.9.0-4
+
+Total Download Size:   12.06 MiB
+Total Installed Size:  47.35 MiB
+
+:: Proceed with installation? [Y/n]
+:: Retrieving packages...
+ mariadb-libs-11.6.2-2-x86_64                                                                                   5.4 MiB  17.2 MiB/s 00:00 [####################################################################################] 100%
+ dovecot-2.3.21.1-1-x86_64                                                                                      3.5 MiB  57.8 MiB/s 00:00 [####################################################################################] 100%
+ postgresql-libs-16.3-4-x86_64                                                                               1673.7 KiB  40.9 MiB/s 00:00 [####################################################################################] 100%
+ postfix-3.9.0-4-x86_64                                                                                      1371.4 KiB  33.5 MiB/s 00:00 [####################################################################################] 100%
+ liburing-2.8-1-x86_64                                                                                        189.4 KiB  6.85 MiB/s 00:00 [####################################################################################] 100%
+ postfix-lmdb-3.9.0-4-x86_64                                                                                   21.6 KiB   830 KiB/s 00:00 [####################################################################################] 100%
+ Total (6/6)                                                                                                   12.1 MiB  18.0 MiB/s 00:01 [####################################################################################] 100%
+(6/6) checking keys in keyring                                                                                                            [####################################################################################] 100%
+(6/6) checking package integrity                                                                                                          [####################################################################################] 100%
+(6/6) loading package files                                                                                                               [####################################################################################] 100%
+(6/6) checking for file conflicts                                                                                                         [####################################################################################] 100%
+(6/6) checking available disk space                                                                                                       [####################################################################################] 100%
+:: Processing package changes...
+(1/6) installing postfix-lmdb                                                                                                             [####################################################################################] 100%
+(2/6) installing postfix                                                                                                                  [####################################################################################] 100%
+Optional dependencies for postfix
+    perl: for postfix-collate.pl, postfix-tlstype.pl and qshape [installed]
+    postfix-cdb: for CDB integration
+    postfix-ldap: for LDAP integration
+    postfix-lmdb: for LMDB integration [installed]
+    postfix-mongodb: for MongoDB integration
+    postfix-mysql: for MySQL integration
+    postfix-pcre: for PCRE integration
+    postfix-pgsql: for PostgreSQL integration
+    postfix-sqlite: for SQLite integration
+(3/6) installing liburing                                                                                                                 [####################################################################################] 100%
+(4/6) installing mariadb-libs                                                                                                             [####################################################################################] 100%
+Optional dependencies for mariadb-libs
+    krb5: for gssapi authentication [installed]
+(5/6) installing postgresql-libs                                                                                                          [####################################################################################] 100%
+(6/6) installing dovecot                                                                                                                  [####################################################################################] 100%
+Optional dependencies for dovecot
+    libldap: ldap plugin [installed]
+    lua53: LUA auth and push support
+    clucene: alternative FTS indexer
+:: Running post-transaction hooks...
+(1/4) Creating system user accounts...
+Creating group 'postdrop' with GID 75.
+Creating group 'dovenull' with GID 74.
+Creating user 'dovenull' (Dovecot user for completely untrustworthy processes) with UID 74 and GID 74.
+Creating group 'dovecot' with GID 76.
+Creating user 'dovecot' (Dovecot user) with UID 76 and GID 76.
+Creating group 'postfix' with GID 73.
+Creating user 'postfix' (n/a) with UID 73 and GID 73.
+(2/4) Reloading system manager configuration...
+(3/4) Creating temporary files...
+(4/4) Arming ConditionNeedsUpdate...
+```
+
+### 2. dovecot の設定
+
+#### 2.1 /etc/dovecot の確認 & pop3の無効化
+
+LMTP を使用する関係上、dovecot から設定しました。どちらが先でも良いかと思います。
+
+ArchLinux なので、 `/etc/dovecot` が自動生成されません。  
+テンプレからコピーします。
+
+```
+root@badcompany /etc/dovecot                                                        [0:31:20]
+> # cp /usr/share/doc/dovecot/example-config/dovecot.conf /etc/dovecot
+root@badcompany /etc/dovecot                                                        [0:31:32]
+> # cp -r /usr/share/doc/dovecot/example-config/conf.d /etc/dovecot
+root@badcompany /etc/dovecot                                                        [0:31:38]
+> # ls -l
+total 12
+drwxr-xr-x 2 root root 4096 Dec  6 00:31 conf.d
+-rw-r--r-- 1 root root 4333 Dec  6 00:31 dovecot.conf
+root@badcompany /etc/dovecot                                                        [0:47:45]
+> # ls -l conf.d
+total 128
+-rw-r--r-- 1 root root  5248 Dec  6 00:31 10-auth.conf
+-rw-r--r-- 1 root root  1781 Dec  6 00:31 10-director.conf
+-rw-r--r-- 1 root root  3757 Dec  6 00:31 10-logging.conf
+-rw-r--r-- 1 root root 17770 Dec  6 00:31 10-mail.conf
+-rw-r--r-- 1 root root  3619 Dec  6 00:31 10-master.conf
+-rw-r--r-- 1 root root  1585 Dec  6 00:31 10-metrics.conf
+-rw-r--r-- 1 root root  3433 Dec  6 00:31 10-ssl.conf
+-rw-r--r-- 1 root root  1657 Dec  6 00:31 15-lda.conf
+-rw-r--r-- 1 root root  3111 Dec  6 00:31 15-mailboxes.conf
+-rw-r--r-- 1 root root  4520 Dec  6 00:31 20-imap.conf
+-rw-r--r-- 1 root root  1367 Dec  6 00:31 20-lmtp.conf
+-rw-r--r-- 1 root root  4066 Dec  6 00:31 20-pop3.conf
+-rw-r--r-- 1 root root  4299 Dec  6 00:31 20-submission.conf
+-rw-r--r-- 1 root root   676 Dec  6 00:31 90-acl.conf
+-rw-r--r-- 1 root root   292 Dec  6 00:31 90-plugin.conf
+-rw-r--r-- 1 root root  2596 Dec  6 00:31 90-quota.conf
+-rw-r--r-- 1 root root   499 Dec  6 00:31 auth-checkpassword.conf.ext
+-rw-r--r-- 1 root root   489 Dec  6 00:31 auth-deny.conf.ext
+-rw-r--r-- 1 root root   343 Dec  6 00:31 auth-dict.conf.ext
+-rw-r--r-- 1 root root   924 Dec  6 00:31 auth-ldap.conf.ext
+-rw-r--r-- 1 root root   561 Dec  6 00:31 auth-master.conf.ext
+-rw-r--r-- 1 root root   515 Dec  6 00:31 auth-passwdfile.conf.ext
+-rw-r--r-- 1 root root   788 Dec  6 00:31 auth-sql.conf.ext
+-rw-r--r-- 1 root root   611 Dec  6 00:31 auth-static.conf.ext
+-rw-r--r-- 1 root root  2182 Dec  6 00:31 auth-system.conf.ext
+root@badcompany /etc/dovecot                                                        [0:47:45]
+> # cp -p dovecot.conf{,.$(date "+%Y%m%d")} 
+root@badcompany /etc/dovecot                                                        [2:29:42]
+> # diff dovecot.conf.20241207 dovecot.conf                                                  
+24a25
+> protocols = imap lmtp
+```
+
+`dovecot.conf`の`protocols`の設定をコメントアウトをはずし、pop3,submissionを消しています。
+
+#### 2.2 仮想ユーザー使用の設定
+
+
+conf.d で、ファイルによるバーチャルユーザー管理を有効にします。  
+root と buntin ユーザーでプロンプトが違うのは共用のためです。
+
+```
+root@badcompany /etc/dovecot/conf.d                                                 [1:15:22]
+> # cp -p 10-auth.conf{,.$(date "+%Y%m%d")}
+root@badcompany /etc/dovecot/conf.d                                                 [1:17:06]
+> # vim 10-auth.conf
+root@badcompany /etc/dovecot/conf.d                                                 [1:25:05]
+> # diff 10-auth.conf.20241206 10-auth.conf                                                  
+10c10
+< #disable_plaintext_auth = yes
+---
+> disable_plaintext_auth = yes
+100c100
+< auth_mechanisms = plain
+---
+> auth_mechanisms = plain login
+122c122
+< !include auth-system.conf.ext
+---
+> #!include auth-system.conf.ext
+125c125
+< #!include auth-passwdfile.conf.ext
+---
+> !include auth-passwdfile.conf.ext
+```
+
+ここまでで、pam認証(システムユーザーを使った認証)の無効化とパスワードファイルを使用した仮想ユーザー認証の有効化を行っています。
+
+```
+root@badcompany /etc/dovecot/conf.d                                                                                                                                           [9:10:35]
+> # cp -p auth-passwdfile.conf.ext{,.$(date "+%Y%m%d")}                                                                                                                                
+root@badcompany /etc/dovecot/conf.d                                                                                                                                           [9:10:45]
+> # ll                                                                                                                                                                                 
+total 140K
+-rw-r--r-- 1 root root 5.2K Dec  6 01:25 10-auth.conf
+-rw-r--r-- 1 root root 5.2K Dec  6 00:31 10-auth.conf.20241206
+-rw-r--r-- 1 root root 1.8K Dec  6 00:31 10-director.conf
+-rw-r--r-- 1 root root 3.7K Dec  6 00:31 10-logging.conf
+-rw-r--r-- 1 root root  18K Dec  6 00:31 10-mail.conf
+-rw-r--r-- 1 root root 3.6K Dec  6 00:31 10-master.conf
+-rw-r--r-- 1 root root 1.6K Dec  6 00:31 10-metrics.conf
+-rw-r--r-- 1 root root 3.4K Dec  6 00:31 10-ssl.conf
+-rw-r--r-- 1 root root 1.7K Dec  6 00:31 15-lda.conf
+-rw-r--r-- 1 root root 3.1K Dec  6 00:31 15-mailboxes.conf
+-rw-r--r-- 1 root root 4.5K Dec  6 00:31 20-imap.conf
+-rw-r--r-- 1 root root 1.4K Dec  6 00:31 20-lmtp.conf
+-rw-r--r-- 1 root root 4.0K Dec  6 00:31 20-pop3.conf
+-rw-r--r-- 1 root root 4.2K Dec  6 00:31 20-submission.conf
+-rw-r--r-- 1 root root  676 Dec  6 00:31 90-acl.conf
+-rw-r--r-- 1 root root  292 Dec  6 00:31 90-plugin.conf
+-rw-r--r-- 1 root root 2.6K Dec  6 00:31 90-quota.conf
+-rw-r--r-- 1 root root  499 Dec  6 00:31 auth-checkpassword.conf.ext
+-rw-r--r-- 1 root root  489 Dec  6 00:31 auth-deny.conf.ext
+-rw-r--r-- 1 root root  343 Dec  6 00:31 auth-dict.conf.ext
+-rw-r--r-- 1 root root  924 Dec  6 00:31 auth-ldap.conf.ext
+-rw-r--r-- 1 root root  561 Dec  6 00:31 auth-master.conf.ext
+-rw-r--r-- 1 root root  515 Dec  6 00:31 auth-passwdfile.conf.ext
+-rw-r--r-- 1 root root  515 Dec  6 00:31 auth-passwdfile.conf.ext.20241206
+-rw-r--r-- 1 root root  788 Dec  6 00:31 auth-sql.conf.ext
+-rw-r--r-- 1 root root  611 Dec  6 00:31 auth-static.conf.ext
+-rw-r--r-- 1 root root 2.2K Dec  6 00:31 auth-system.conf.ext
+```
+
+#### 2.3 dovecot の仮想ユーザー設定
+
+LMTP を使用している以上、dovecot のユーザー設定が受信内容の定義にもなります。
+
+`auth-passwdfile.conf.ext` にあるpassdb,userdbの設定を行います。
+
+2.2の内容からも分かる通り、passwd-fileを使用した仮想ユーザーを構成します。
+
+```
+root@badcompany /etc/dovecot/conf.d                                                [21:37:34]
+> # vim auth-passwdfile.conf.ext                                                             
+root@badcompany /etc/dovecot/conf.d                                                [21:43:02]
+> # diff auth-passwdfile.conf.ext.20241206 auth-passwdfile.conf.ext                          
+16a17
+>   default_fields = uid=vmail gid=vmail
+root@badcompany /etc/dovecot/conf.d                                                [21:44:03]
+> # less auth-passwdfile.conf.ext                                                            
+root@badcompany /etc/dovecot/conf.d                                                [21:46:13]
+> # cat auth-passwdfile.conf.ext                                                             
+# Authentication for passwd-file users. Included from 10-auth.conf.
+#
+# passwd-like file with specified location.
+# <doc/wiki/AuthDatabase.PasswdFile.txt>
+
+passdb {
+  driver = passwd-file
+  args = scheme=CRYPT username_format=%u /etc/dovecot/users
+}
+
+userdb {
+  driver = passwd-file
+  args = username_format=%u /etc/dovecot/users
+
+  # Default fields that can be overridden by passwd-file
+  #default_fields = quota_rule=*:storage=1G
+  default_fields = uid=vmail gid=vmail
+
+  # Override fields from passwd-file
+  #override_fields = home=/home/virtual/%u
+}
+```
+
+`vmail`というユーザーを仮想ユーザーの使用ユーザーとして定義するデフォルト設定を入れただけです。  
+今回構築する構成では、全てのメールユーザーが仮想ユーザーとなりシステムユーザーは使用しません。
+そのため、全ての仮想ユーザーのためのシステムユーザーを作成する必要があります。今回は `vmail` ユーザーを作成します。
+
+```
+root@badcompany /etc/dovecot                                                       [21:29:59]
+> # groupadd -g 5000 vmail                                                                   
+root@badcompany /etc/dovecot                                                       [21:31:40]
+> # useradd -u 5000 -g 5000 -s /sbin/nologin -d /var/vmail vmail                             
+root@badcompany /etc/dovecot                                                       [21:32:05]
+> # grep "vmail" /etc/passwd                                                                 
+vmail:x:5000:5000::/var/vmail:/sbin/nologin
+```
+
+`10-mail.conf` の設定を変更し、各ホームディレクトリのmailディレクトリをメール保存ディレクトリとして使うように設定を変更。
+
+```
+root@badcompany /etc/dovecot/conf.d                                                [21:58:52]
+> # cp -p 10-mail.conf{,.$(date "+%Y%m%d")}                                                  
+root@badcompany /etc/dovecot/conf.d                                                [21:59:11]
+> # vim 10-mail.conf                                                                         
+root@badcompany /etc/dovecot/conf.d                                                [21:59:44]
+> # diff 10-mail.conf.20241207 10-mail.conf                                                  
+30c30
+< #mail_location = 
+---
+> mail_location = maildir:~/mail
+root@badcompany /etc/dovecot/conf.d                                                [22:03:15]
+> #  
+```
+
+#### 2.4 LMTPサーバー設定
+
+今回のメール構成のキモである、LMTPサーバー設定まわりです。LMTPとは、(Local Mail Transfer Protocl)の略です。ローカルの配送のためのプロトコルですが、今回はdovecotに何もかも任せるようにしてpostfixの設定をあまりしなくても良いようにするために使用します。  
+というのも、仮想ユーザー・仮想ドメインの使用環境で、一部同じメールボックス、一部別メールボックスにしつつ、送信ユーザーの認証はまた別にpostfixに設定するなどは、ダルすぎたためです。
+
+Dovecotをローカルの配送、認証の両方でpostfixから利用させることで、ユーザー管理を全てdovecotで行うことができます。  
+普通に神です。
+
+プロトコルが有効かどうか確認
+
+```
+root@badcompany /etc/dovecot/conf.d                                                 [2:41:53]
+> # doveconf -a | egrep "^protocols"                                                         
+protocols = imap lmtp
+```
+
+LMTPサーバーの有効化
+
+```
+root@badcompany /etc/dovecot/conf.d                                                [22:42:24]                                              [22:43:04]
+> # cp -p 10-master.conf{,.$(date "+%Y%m%d")}                                                
+root@badcompany /etc/dovecot/conf.d                                                [22:43:10]
+> # vim 10-master.conf                                                                       
+root@badcompany /etc/dovecot/conf.d                                                [23:55:40]
+> # diff 10-master.conf.20241207 10-master.conf                                              
+61a62,69
+>   user = vmail
+> 
+>   unix_listener /var/spool/postfix/private/dovecot-lmtp {
+>     group = postfix
+>     mode = 0600
+>     user = postfix
+>   }
+```
+
+LMTPサーバーは基本的にroot権限を必要としますが、今回利用する環境ではvmail以上のユーザー権限は必要ありません。
+このような場合LMTPサービス内の設定でvmailユーザーを指定しより制限されている環境にすることでセキュアに運用できるようです。
+
+また、LMTPサーバー接続用のUnixソケットはPostfixがアクセス可能な `/var/spool/postfix/private` 内に設置する必要があります。
+
+#### 2.5 Dovecot SASLの有効化
+
+DovecotのSASL認証をpostfixから利用できるようにする設定を行います。
+
+第一に、postfixがdovecotを使用した認証に対応しているか確認します。
+
+```
+> # postconf -a                                                                              
+cyrus
+dovecot
+```
+
+先ほど編集した`10-master.conf` のauthサービスの部分でそれっぽいところのコメントアウトを外します。
+
+```
+root@badcompany /etc/dovecot/conf.d                                                [3:36:57]
+> # vim 10-master.conf
+root@badcompany /etc/dovecot/conf.d                                                [3:37:41]
+> # diff 10-master.conf.20241207 10-master.conf                                             
+61a62,69
+>   user = vmail
+> 
+>   unix_listener /var/spool/postfix/private/dovecot-lmtp {
+>     group = postfix
+>     mode = 0600
+>     user = postfix
+>   }
+> 
+109,112c117,120
+<   # Postfix smtp-auth
+<   #unix_listener /var/spool/postfix/private/auth {
+<   #  mode = 0666
+<   #}
+---
+>   #Postfix smtp-auth
+>   unix_listener /var/spool/postfix/private/auth {
+>    mode = 0666
+>   }
+```
+
+
+### 3. postfixの設定
+
+postfixの基本設定、追加でdovecotのLMTP周りの設定と、SendGrid周りの設定を行います。
+
+#### 3.1 基本設定
+
+`master.cf` の設定をします。25,587ポートで各種接続を受け取るようにします。
+
+```
+root@badcompany /etc/postfix                                                       [4:43:32]
+> # diff master.cf.20241208 master.cf                                                       
+12a13
+>   -o smtpd_recipient_restrictions=reject_unverified_recipient,permit_mynetworks,reject_unauth_destination
+53a55,59
+> submission inet n       -       n       -       -       smtpd
+>   -o syslog_name=postfix/submission
+>   -o smtpd_sasl_auth_enable=yes
+>   -o smtpd_recipient_restrictions=permit_sasl_authenticated,reject_unauth_destination
+>   -o smtpd_tls_security_level=encrypt
+```
+
+#### 3.2 LMTP周りの設定
+
+`main.cf` を変更し、LMTPを使うように `virtual_transport`にdovecot-lmtpを指定します。
+
+```
+root@badcompany /etc/postfix                                                       [4:43:39]
+> # vim main.cf                                                                             
+root@badcompany /etc/postfix                                                       [4:46:40]
+> # diff main.cf.20241208 main.cf                                                           
+99a100
+> myhostname = mail.badcompany.tokyo
+497a499
+> virtual_transport = lmtp:unix:private/dovecot-lmtp
+580c582
+< #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+---
+> smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+```
+
+#### 3.3 Dovecot SASL周りの設定
+
+SASL周りの設定を入れます。
+
+```
+root@badcompany /etc/postfix                                                       [4:49:57]
+> # vim main.cf                                                                                            
+root@badcompany /etc/postfix                                                                      [4:57:21]
+> # diff main.cf.20241208 main.cf                                                                          
+99a100
+> myhostname = mail.badcompany.tokyo
+497a499
+> virtual_transport = lmtp:unix:private/dovecot-lmtp
+580c582,587
+< #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+---
+> smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+> 
+> smtpd_sasl_auth_enable = yes
+> smtpd_sasl_type = dovecot
+> smtpd_sasl_path = private/auth
+> smtpd_tls_auth_only = yes
+```
+
+#### 3.4 SendGrid関連設定
+
+SendGridをリレーとして使用する設定を入れ込みます。
+
+```
+root@badcompany /etc/postfix                                                                      [5:04:58]
+> # vim main.cf                                                                                            
+root@badcompany /etc/postfix                                                                      [5:05:30]
+> # diff main.cf.20241208 main.cf                                                                          
+99a100
+> myhostname = mail.badcompany.tokyo
+497a499
+> virtual_transport = lmtp:unix:private/dovecot-lmtp
+580c582,587
+< #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+---
+> smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+> 
+> smtpd_sasl_auth_enable = yes
+> smtpd_sasl_type = dovecot
+> smtpd_sasl_path = private/auth
+> smtpd_tls_auth_only = yes
+689a697,704
+> 
+> # SendGrid mail relay setting
+> relayhost = [smtp.sendgrid.net]:587
+> smtp_sasl_auth_enable = yes
+> smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+> smtp_sasl_security_options = noanonymous
+> smtp_use_tls = yes
+```
+
+ここで、`/etc/postfix/sasl_passwd` についてですが、こちらはSendGridの設定をしたら手に入る認証情報が必要になります。  
+4. SendGrid設定 が完了したらそれで手に入る認証情報をセットアップします。
+
+### ?. SendGrid 整備
+
+
+
+#### 参考
+
+
+[virtual_users|doc.dovecot.org](https://doc.dovecot.org/2.3/configuration_manual/virtual_users/#virtual-users)
+
+[user_databases_userdb|doc.dovecot.org](https://doc.dovecot.org/2.3/configuration_manual/authentication/user_databases_userdb/#authentication-user-database)
+
+LMTP RedHat
+https://docs.redhat.com/ja/documentation/red_hat_enterprise_linux/9/html/deploying_mail_servers/configuring-an-lmtp-socket-and-lmtps-listener_configuring-and-maintaining-a-dovecot-imap-and-pop3-server
+
+doc.dovecot.org
+lmtpserver
+https://doc.dovecot.org/2.3/configuration_manual/protocols/lmtp_server/#lmtp-server
