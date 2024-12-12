@@ -548,8 +548,19 @@ root@badcompany /etc/postfix                                                    
 
 ### 4. SendGrid 整備
 
+>Domain AuthenticationまたはSingle Sender Verificationが設定されていない場合、2024年4月1日以降はメール送信ができなくなります。
+
+最初は何を言っているのかよくわかりませんでしたが、簡単にいうとSendGridのインフラを使ってスパムを飛ばせないようにメールの送信者認証が厳格になったよ、ということらしいです。  
+逆に、今まではMailFromをSendGridのドメインにしてスパムを飛ばせまくれたんですかね。だとするとヤバすぎますが笑
+
 #### 4.1 アカウント登録
 
+SendGridの公式からGoogleアカウントで登録しました。  
+日本の構造計画研究所の方ではなく、公式の方からです。
+
+![2024/12/05/sendgrid-001](https://res.cloudinary.com/xlog/image/upload/v1733962285/2024/12/05/sendgrid-001.webp)
+
+![2024/12/05/sendgrid-002](https://res.cloudinary.com/xlog/image/upload/v1733962284/2024/12/05/sendgrid-002.webp)
 
 
 
