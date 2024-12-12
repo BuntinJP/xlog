@@ -9,7 +9,9 @@ import type { MDXComponents } from 'mdx/types';
 
 export const mdxComponents: MDXComponents = {
   ...defaultComponents,
-  img: (props: ImageZoomProps) => <ImageZoom {...props} />,
+  img: (props: ImageZoomProps) => (
+    <ImageZoom {...props} overrideSrc={props.src as string} />
+  ),
   a: (props) => (
     <a
       {...props}
