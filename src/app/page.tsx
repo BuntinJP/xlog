@@ -1,6 +1,7 @@
 import { mdxComponents } from '@/libs/mdx-config';
 import { getPage } from '@/libs/source';
 import { DocsBody } from 'fumadocs-ui/page';
+import type { Metadata } from 'next';
 import { Shippori_Mincho } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { CategoriesList } from './_components/CategoriesList';
@@ -36,3 +37,14 @@ export default function HomePage() {
     </main>
   );
 }
+
+export const generateMetadata = () => {
+  return {
+    alternates: {
+      canonical: '/',
+      types: {
+        'application/rss+xml': '/api/rss.xml',
+      },
+    },
+  } satisfies Metadata;
+};

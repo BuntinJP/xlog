@@ -3,6 +3,8 @@ import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import 'katex/dist/katex.css';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import { ThemeProvider } from 'next-themes';
 import { Shippori_Mincho } from 'next/font/google';
@@ -18,7 +20,11 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang='ja' className={shipporiMincho.className}>
       {process.env.NODE_ENV === 'production' && (
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID ?? ''} />
+        <>
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID ?? ''} />
+          <Analytics />
+          <SpeedInsights />
+        </>
       )}
       <body className='bg-[#282828] flex min-h-dvh flex-col'>
         <ThemeProvider attribute='class' defaultTheme='dark'>

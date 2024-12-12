@@ -63,8 +63,26 @@ const Page = () => {
 export default Page;
 
 export const generateMetadata = () => {
+  const title = 'Categories - xlog';
+  const description = 'Categories of xlog';
+
   return {
-    title: 'Categories - xlog',
-    description: 'Categories of xlog',
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: '/categories',
+    },
+    twitter: {
+      title,
+      description,
+    },
+    alternates: {
+      canonical: '/categories',
+      types: {
+        'application/rss+xml': '/api/rss.xml',
+      },
+    },
   } satisfies Metadata;
 };

@@ -41,8 +41,26 @@ export const generateMetadata = async (props: {
 }) => {
   const params = await props.params;
   const category = decodeURIComponent(params.slug);
+  const title = `${category} - xlog`;
+  const description = `${category} tag page of xlog`;
+
   return {
-    title: `${category} - xlog`,
-    description: `${category} category page of xlog`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `/categories/${category}`,
+    },
+    twitter: {
+      title,
+      description,
+    },
+    alternates: {
+      canonical: `/categories/${category}`,
+      types: {
+        'application/rss+xml': '/api/rss.xml',
+      },
+    },
   } satisfies Metadata;
 };
