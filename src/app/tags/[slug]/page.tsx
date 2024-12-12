@@ -40,8 +40,26 @@ export const generateMetadata = async (props: {
 }) => {
   const params = await props.params;
   const tag = decodeURIComponent(params.slug);
+  const title = `${tag} - xlog`;
+  const description = `${tag} tag page of xlog`;
+
   return {
-    title: `${tag} - xlog`,
-    description: `${tag} tag page of xlog`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `/tags/${tag}`,
+    },
+    twitter: {
+      title,
+      description,
+    },
+    alternates: {
+      canonical: `/tags/${tag}`,
+      types: {
+        'application/rss+xml': '/api/rss.xml',
+      },
+    },
   } satisfies Metadata;
 };

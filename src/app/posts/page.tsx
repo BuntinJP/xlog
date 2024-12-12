@@ -13,8 +13,26 @@ const Page = () => {
 export default Page;
 
 export const generateMetadata = () => {
+  const title = 'Posts - xlog';
+  const description = 'Posts of xlog';
+
   return {
-    title: 'Posts - xlog',
-    description: 'Posts of xlog',
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: '/posts',
+    },
+    twitter: {
+      title,
+      description,
+    },
+    alternates: {
+      canonical: '/posts',
+      types: {
+        'application/rss+xml': '/api/rss.xml',
+      },
+    },
   } satisfies Metadata;
 };

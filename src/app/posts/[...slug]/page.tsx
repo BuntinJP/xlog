@@ -112,22 +112,25 @@ export const generateMetadata = async (props: {
   imageParams.set('title', title);
   imageParams.set('description', description ?? '');
   return {
-    metadataBase: new URL(
-      process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
-    ),
-    title: title,
-    description: description,
+    title,
+    description,
     keywords: post.data.keywords,
     openGraph: {
-      title: title,
-      description: description,
+      title,
+      description,
       images: `/api/og?${imageParams}`,
       url: post.url,
     },
     twitter: {
-      title: title,
-      description: description,
+      title,
+      description,
       images: `/api/og?${imageParams}`,
+    },
+    alternates: {
+      canonical: post.url,
+      types: {
+        'application/rss+xml': '/api/rss.xml',
+      },
     },
   } satisfies Metadata;
 };
