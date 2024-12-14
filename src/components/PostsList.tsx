@@ -9,7 +9,7 @@ export const PostsList = ({ posts }: { posts: Posts }) => {
       {posts.map((post) => {
         let change = false;
         if (
-          month !== post.data.date.getMonth() + 1 &&
+          month !== post.data.date.getMonth() + 1 ||
           year !== post.data.date.getFullYear()
         ) {
           year = post.data.date.getFullYear();
@@ -23,6 +23,31 @@ export const PostsList = ({ posts }: { posts: Posts }) => {
                 {year}年{month}月
               </div>
             )}
+            <div className='text-lg'>
+              ・
+              <Link
+                href={post.url}
+                className='text-blue-400 hover:text-blue-300 hover:underline'
+              >
+                <span className='text-blue-400 hover:text-blue-300'>
+                  {post.data.title}
+                </span>
+              </Link>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+export const DraftPostList = ({ posts }: { posts: Posts }) => {
+  return (
+    <div className='flex flex-col gap-1'>
+      <div className='text-xl mt-4 mb-2'>Draft</div>
+      {posts.map((post) => {
+        return (
+          <div className='flex flex-col gap-1' key={post.url}>
             <div className='text-lg'>
               ・
               <Link

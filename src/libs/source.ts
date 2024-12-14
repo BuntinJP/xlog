@@ -8,7 +8,11 @@ export const { getPage, getPages, pageTree } = loader({
   source: createMDXSource(blog, []),
 });
 
-const posts = getPages();
+export const getDraftPages = () => getPages().filter((post) => post.data.draft);
+
+export const getProdPages = () => getPages().filter((post) => !post.data.draft);
+
+const posts = getProdPages();
 
 export type Posts = typeof posts;
 

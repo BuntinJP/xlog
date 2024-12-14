@@ -1,5 +1,5 @@
 import { mdxComponents } from '@/libs/mdx-config';
-import { getPage, getPages } from '@/libs/source';
+import { getPage, getProdPages } from '@/libs/source';
 import { DocsBody } from 'fumadocs-ui/page';
 import { Folder, Tag } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -87,7 +87,7 @@ const Page = async (props: {
 export default Page;
 
 export const generateStaticParams = () => {
-  return getPages()
+  return getProdPages()
     .map((page) => {
       if (page.slugs.length === 0) {
         return undefined;

@@ -1,4 +1,4 @@
-import { getPages } from '@/libs/source';
+import { getProdPages } from '@/libs/source';
 import { Feed } from 'feed';
 
 export const dynamic = 'force-static';
@@ -29,7 +29,7 @@ export const GET = () => {
     favicon: new URL('/favicon.ico', baseUrl).toString(),
   });
 
-  const posts = getPages();
+  const posts = getProdPages();
 
   for (const post of posts) {
     const imageParams = new URLSearchParams();

@@ -1,12 +1,20 @@
-import { PostsList } from '@/components/PostsList';
-import { getPages } from '@/libs/source';
+import { DraftPostList, PostsList } from '@/components/PostsList';
+import { getDraftPages, getProdPages } from '@/libs/source';
 import type { Metadata } from 'next';
 
 const Page = () => {
-  const posts = getPages()
+  const posts = getProdPages()
     // remove index page
     .filter((post) => post.slugs.length !== 0)
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+  if (process.env.NODE_ENV !== 'production') {
+    return (
+      <div className='flex flex-col gap-1'>
+        <DraftPostList posts={getDraftPages()} />
+        <PostsList posts={posts} />
+      </div>
+    );
+  }
   return <PostsList posts={posts} />;
 };
 

@@ -29,6 +29,7 @@ export const blog = defineCollections({
     tags: z.array(z.string()).optional(),
     categories: z.array(z.string()).optional(),
     keywords: z.array(z.string()).optional(),
+    draft: z.boolean().optional(),
   }),
   type: 'doc',
 });
