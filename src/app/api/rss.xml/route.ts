@@ -1,36 +1,69 @@
 import { getPages } from '@/libs/source';
-import RSS from 'rss';
+import { Feed } from 'feed';
 
-const baseUrl = new URL(
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
-);
+export const dynamic = 'force-static';
 
-export const revalidate = 86400; //60 * 60 * 24 * 1
+const escapeForXML = (str: string) => {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+};
 
 export const GET = () => {
-  const feed = new RSS({
+  const baseUrl = new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  );
+
+  const feed = new Feed({
     title: 'xlog',
     description: 'Buntin-BadCompany-Blog',
-    site_url: baseUrl.toString(),
-    feed_url: new URL('/api/rss.xml', baseUrl).toString(),
+    id: baseUrl.toString(),
+    copyright: 'xlog',
+    link: baseUrl.toString(),
+    feed: new URL('/api/rss.xml', baseUrl).toString(),
     language: 'ja',
+    updated: new Date(),
+    favicon: new URL('/favicon.ico', baseUrl).toString(),
   });
 
   const posts = getPages();
 
   for (const post of posts) {
-    feed.item({
+    const imageParams = new URLSearchParams();
+    imageParams.set('title', post.data.title);
+    imageParams.set('description', post.data.description ?? '');
+
+    feed.addItem({
       title: post.data.title,
-      description: post.data.description ?? '',
-      url: new URL(post.url, baseUrl).toString(),
+      description: post.data.description,
+      category: post.data.categories?.map((category) => {
+        return {
+          name: category,
+        };
+      }),
+      link: new URL(post.url, baseUrl).toString(),
+      image: {
+        title: post.data.title,
+        type: 'image/png',
+        url: escapeForXML(
+          new URL(`/api/og?${imageParams}`, baseUrl).toString(),
+        ),
+      },
       date: post.data.date,
+      author: [
+        {
+          name: 'Buntin',
+        },
+      ],
     });
   }
 
-  return new Response(feed.xml(), {
+  return new Response(feed.rss2(), {
     headers: {
       'Content-Type': 'application/xml',
-      'Cache-Control': `s-maxage=${revalidate}, stale-while-revalidate`,
     },
   });
 };
