@@ -1,7 +1,7 @@
 ---
 title: ArchLinuxにメールサーバー構築[バーチャルドメイン・ユーザー・LMTP]
 description: さくらのメールボックスから移行します。バーチャルドメイン・ユーザー&一部別メールボックス構成&LMTPでかなりゴテゴテしたサーバーを構築します。
-date: 2024-10-30
+date: 2024-12-14
 tags: ['ArchLinux', 'メール', 'SendGrid']
 categories: ['備忘録', '構築', 'メール']
 keywords: ['postfix', 'dovecot', 'ArchLinux', 'メールサーバー', 'さくらのメールボックス', '移行', 'メール']
@@ -91,11 +91,11 @@ SASL 認証サーバーは、Dovecot を使用します。
 メールサーバーの具体的な設定値は以下のとおりです。コマンドを参照する際に参考になれば。
 
 バーチャルユーザーのメール保存場所 : `/var/vmail/${DOMAIN}/${USERNAME}/mail` ※1  
-バーチャルユーザーのメール保存形式 : `Maildir`  
-バーチャルユーザーのパスワード保存形式 : `SHA512-CRYPT` ※2  
+バーチャルユーザーのメール保存形式 : `Maildir`
+バーチャルユーザーのパスワード保存形式 : `bcrypt` ※2  
 
 ※1 [dovecotドキュメント](https://doc.dovecot.org/2.3/configuration_manual/home_directories_for_virtual_users/#home-directories-for-virtual-users) によると、仮想ユーザー使用時の推奨らしいです。  
-※2 理由なく少しセキュアにしています。
+※2 システムのcrypt(1)を利用する設定にすることでハッシュアルゴリズムは自動的にこれになります。
 
 ## フェーズ1
 
@@ -227,7 +227,6 @@ root@badcompany /etc/dovecot                                                    
 
 #### 2.2 仮想ユーザー使用の設定
 
-
 conf.d で、ファイルによるバーチャルユーザー管理を有効にします。  
 root と buntin ユーザーでプロンプトが違うのは共用のためです。
 
@@ -295,7 +294,7 @@ total 140K
 
 #### 2.3 dovecot の仮想ユーザー設定
 
-LMTP を使用している以上、dovecot のユーザー設定が受信内容の定義にもなります。
+LMTP を使用している以上、dovecot のユーザー設定が受信ユーザーの定義そのものになります。
 
 `auth-passwdfile.conf.ext` にあるpassdb,userdbの設定を行います。
 
@@ -402,7 +401,7 @@ root@badcompany /etc/dovecot/conf.d                                             
 ```
 
 LMTPサーバーは基本的にroot権限を必要としますが、今回利用する環境ではvmail以上のユーザー権限は必要ありません。
-このような場合LMTPサービス内の設定でvmailユーザーを指定しより制限されている環境にすることでセキュアに運用できるようです。
+このような場合LMTPサービス内の設定でvmailユーザーを指定し、よりアクセスが制限されている環境にすることでセキュアに運用できるようです。
 
 また、LMTPサーバー接続用のUnixソケットはPostfixがアクセス可能な `/var/spool/postfix/private` 内に設置する必要があります。
 
@@ -445,6 +444,11 @@ root@badcompany /etc/dovecot/conf.d                                             
 >    mode = 0666
 >   }
 ```
+
+#### 2.6 dovecotのユーザーを作成
+
+フェーズ1では、テストのために1ユーザーのみ作成します。
+
 
 
 ### 3. postfixの設定
@@ -561,6 +565,7 @@ SendGridの公式からGoogleアカウントで登録しました。
 ![2024/12/05/sendgrid-001](https://res.cloudinary.com/xlog/image/upload/v1733962285/2024/12/05/sendgrid-001.webp)
 
 ![2024/12/05/sendgrid-002](https://res.cloudinary.com/xlog/image/upload/v1733962284/2024/12/05/sendgrid-002.webp)
+
 
 
 
