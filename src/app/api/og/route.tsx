@@ -95,7 +95,7 @@ export const GET = async (req: NextRequest) => {
             marginRight: '4rem',
           }}
         >
-          ブログのSSL証明書をより強固に自動更新したい
+          {title}
         </div>
         <div
           style={{
@@ -106,7 +106,7 @@ export const GET = async (req: NextRequest) => {
             marginRight: '4rem',
           }}
         >
-          SSL証明書をcertbotでcronするだけの脳死構成ではなく、ちゃんとCloudflareAPIを利用した堅牢な証明書自動更新環境を作成したい。
+          {description}
         </div>
         <p
           style={{
