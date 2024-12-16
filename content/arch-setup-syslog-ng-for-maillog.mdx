@@ -1,0 +1,106 @@
+---
+title: ArchLinuxでpostfix,dovecotのログをmaillogに出力する [syslog-ng]
+description: ログを見るだけでならjournalだけで十分みたいな口ぶりのドキュメントに腹立ったのでsyslog-ngで出力します
+date: 2024-12-16
+tags: ['ArchLinux', 'メール','syslog-ng']
+categories: ['備忘録', '構築', 'メール']
+keywords: ['postfix', 'dovecot', 'ArchLinux', 'メールサーバー', 'syslog-ng']
+---
+
+## はじめに
+
+ログ出力だけなら`rsyslog`で良いし仕事で使うのもそっちです。  
+しかし、rsyslogはAURしかなくしかもそれのビルドに失敗しました。終わりです。
+
+そのため、syslog-ngでシコシコメールログの設定を行います。最初はクソだるいと思いましたが、`/var/log`を汚さず欲しいログだけ設定を入れれば良いと思うとそこまで悪い気はしてないです。
+journalで十分なのはその通りなのですが、ファイルに出力されてローテートもlogrotateで行えるという点が重要だと思っています。
+maillogをpostfix,dovecotで同じものにしてそれをコマンド(awk,tcl,egrep)で舐めるという使い方に慣れてしまっている私は、journalでどこまで遡るかわからない状況でエラーを調査したりなどに不安が出ます。  
+クソな感性かもしれませんが、ローテートされてるタイムスタンプからどの期間のログか、などを自動的に認識してしまっているっぽいんですよね。
+
+したがって、作業する自分のための設定、という側面がかなり大きいですが、それこそ自宅鯖なので。
+
+## 作業
+
+### syslog-ngインストール
+
+作業ログをとっておくのを忘れました。すいません。
+
+```
+paru -S syslog-ng
+```
+
+paruで以上ようにコマンドを打った気がします。  
+AURではなくビルドされたものがあるので迷うことはないと思います。
+
+ここより詳しい説明は[こちら](https://wiki.archlinux.jp/index.php/Syslog-ng)にあります。
+
+### postfix,dovecotのログを出力する設定を有効にする
+
+syslog-ngは、ログのフィルターや出力先の調整などの表現力がめちゃくちゃ強いです。
+その代わり、設定は面倒です。自分としては、どうせ変更しまくるものではない以上表現力がある方が良いという思想ですが、CentOS6あたりでRedHatがrsyslogを選択してる感じだと世間はそうではないんですかね。
+
+といっても、やることはコメントアウトを外すだけです。 `/etc/syslog-ng/syslog-ng.conf` に、すでに構成済みのプリセット設定的なものが書いてあり、初期状態では全てコメントアウトされています。
+
+```
+root@badcompany /etc/syslog-ng                              [23:07:23]
+> # cp -p syslog-ng.conf{,.$(date "+%Y%m%d")}                         
+root@badcompany /etc/syslog-ng                              [23:07:40]
+> # ll                                                                
+total 24K
+drwxr-xr-x 2 root root 4.0K Nov 10 22:31 patterndb.d
+drwxr-xr-x 2 root root 4.0K Dec 15 04:20 python
+-rw-r--r-- 1 root root 4.7K Nov 10 22:31 syslog-ng.conf
+-rw-r--r-- 1 root root 4.7K Nov 10 22:31 syslog-ng.conf.20241216
+root@badcompany /etc/syslog-ng                              [23:07:41]
+> # vim syslog-ng.conf                                                
+root@badcompany /etc/syslog-ng                              [23:08:40]
+> # diff syslog-ng.conf.20241216 syslog-ng.conf                       
+224,225c224,225
+<       # filter(f_mail);
+<       # destination(d_mail);
+---
+>       filter(f_mail);
+>       destination(d_mail);
+```
+
+## (雑な)解説
+
+他のsyslog-ngで定義が書いていないことはないとは思いますが、やることが無さすぎるので、どのような形でsyslog-ngのログ設定を行っているのかをまとめておきます。
+
+```
+destination d_mail {
+        file("/var/log/mail.log");
+};
+```
+
+syslog-ngは、ログをファイルに送信します。読んで字の如くd_mailというdestinationを`/var/log/maillog`として定義しています。
+
+```
+filter f_mail {
+        facility(mail);
+};
+```
+
+syslog-ngの強みはフィルター、と主張する記事などが多くあります。その通りだと思います。
+
+facilityは、syslogでログを分類するためのタグの一種です。
+例えば、mailはメール関連のログ、authは認証関連のログ、kernはカーネル関連のログなど、一連の「何に関するログなのか」を示します。
+つまり、facilityは「ログがどの分野・カテゴリに属するか」を表す「ログの種類」のようなものです。
+
+今回はmailを選択しています。
+
+```
+log {
+        source(s_local);
+        filter(f_mail);
+        destination(d_mail);
+};
+```
+
+これがキモです。
+上記のlogセクションは、以下の3要素を組み合わせています。
+上記の設定からわかるように、facilityを使ったフィルターを活用すれば、膨大なログの中から特定の種類のログだけを抜き出して、それを任意の宛先（ファイル、リモートサーバ、FIFO、データベースなど）に送ることが可能です。
+
+上のほうのdiffから分かる通り、メール関連のコメントアウトされていたログのセクションを有効にすることで`/var/log/maillog`にmailファシリティ(postfix,dovecot)のログを出力するように設定することで、syslog-ngを利用したmaillogの設定を行えます。
+
+カス記事になってしまいましたが、では。

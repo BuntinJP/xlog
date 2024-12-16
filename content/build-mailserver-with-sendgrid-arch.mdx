@@ -96,7 +96,7 @@ SASL 認証サーバーは、Dovecot を使用します。
 バーチャルユーザーのパスワード保存形式 : `bcrypt` ※2  
 
 ※1 [dovecotドキュメント](https://doc.dovecot.org/2.3/configuration_manual/home_directories_for_virtual_users/#home-directories-for-virtual-users) によると、仮想ユーザー使用時の推奨らしいです。  
-※2 システムのcrypt(1)を利用する設定にすることでハッシュアルゴリズムは自動的にこれになります。
+※2 システムのcrypt(1)を利用する設定にすることでハッシュアルゴリズムは自動的にこれになります。SHA512-CRYPTより最強です。
 
 ## フェーズ1
 
@@ -450,6 +450,86 @@ root@badcompany /etc/dovecot/conf.d                                             
 
 フェーズ1では、テストのために1ユーザーのみ作成します。
 
+```
+root@badcompany /etc/dovecot                                [22:46:33]
+> # doveadm pw -s CRYPT -p 'testpass'                                 
+{CRYPT}$2y$05$IjkNQZ7PuJaku9qDTrPvveRqqNy5mnFGq9Tvz1YwpQf/DMPyR/s/6
+root@badcompany /etc/dovecot                                [22:47:41]
+> # vim users                                                         
+root@badcompany /etc/dovecot                                [22:48:52]
+> # cat users                                                         
+mail@badcompany.tokyo:{CRYPT}$2y$05$IjkNQZ7PuJaku9qDTrPvveRqqNy5mnFGq9Tvz1YwpQf/DMPyR/s/6::::/var/vmail/badcompany.tokyo/mail::
+```
+
+vmail:vmailで先ほど作成したユーザーのホームディレクトリを作成しておきます
+
+```
+root@badcompany /etc/dovecot                                [22:50:27]
+> # cd /var/                                                          
+root@badcompany /var                                        [22:50:34]
+> # ls -l                                                             
+total 48
+drwxr-xr-x  8 root root  4096 Oct  1 12:31 cache
+drwxr-xr-x  3 root root  4096 Sep  8 19:13 db
+drwxr-xr-x  2 root root  4096 Apr  8  2024 empty
+drwxrwxr-x  2 root games 4096 Apr  8  2024 games
+drwxr-xr-x 23 root root  4096 Dec  6 00:06 lib
+drwxr-xr-x  2 root root  4096 Apr  8  2024 local
+lrwxrwxrwx  1 root root    11 Nov 21 17:56 lock -> ../run/lock
+drwxr-xr-x  9 root root  4096 Sep 15 16:32 log
+lrwxrwxrwx  1 root root    10 Nov 21 17:56 mail -> spool/mail
+drwxrwx---  2 root named 4096 Dec 12 11:24 named
+drwxr-xr-x  2 root root  4096 Apr  8  2024 opt
+lrwxrwxrwx  1 root root     6 Nov 21 17:56 run -> ../run
+drwxr-xr-x  5 root root  4096 Dec  6 00:06 spool
+drwxrwxrwt  7 root root  4096 Dec 14 06:39 tmp
+drwxr-xr-x  3 root root  4096 Dec 14 22:50 vmail
+root@badcompany /var                                        [22:50:38]
+> # chown -R vmail: vmail                                             
+root@badcompany /var                                        [22:51:23]
+> # ll                                                                
+total 48K
+drwxr-xr-x  8 root  root  4.0K Oct  1 12:31 cache
+drwxr-xr-x  3 root  root  4.0K Sep  8 19:13 db
+drwxr-xr-x  2 root  root  4.0K Apr  8  2024 empty
+drwxrwxr-x  2 root  games 4.0K Apr  8  2024 games
+drwxr-xr-x 23 root  root  4.0K Dec  6 00:06 lib
+drwxr-xr-x  2 root  root  4.0K Apr  8  2024 local
+lrwxrwxrwx  1 root  root    11 Nov 21 17:56 lock -> ../run/lock
+drwxr-xr-x  9 root  root  4.0K Sep 15 16:32 log
+lrwxrwxrwx  1 root  root    10 Nov 21 17:56 mail -> spool/mail
+drwxrwx---  2 root  named 4.0K Dec 12 11:24 named
+drwxr-xr-x  2 root  root  4.0K Apr  8  2024 opt
+lrwxrwxrwx  1 root  root     6 Nov 21 17:56 run -> ../run
+drwxr-xr-x  5 root  root  4.0K Dec  6 00:06 spool
+drwxrwxrwt  7 root  root  4.0K Dec 14 06:39 tmp
+drwxr-xr-x  3 vmail vmail 4.0K Dec 14 22:50 vmail
+```
+
+#### 2.7 証明書の設定
+
+ここでは、LetsEncryptで取得した証明書を利用します。  
+取得にdehydratedというクライアントを使用しているため、証明書の位置は変ですがただ証明書を指定しているだけです。
+
+```
+root@badcompany /etc/dovecot/conf.d                          [1:21:19]
+> # cp -p 10-ssl.conf{,.$(date "+%Y%m%d")}                            
+root@badcompany /etc/dovecot/conf.d                          [1:21:30]
+> # vim 10-ssl.conf                                                   
+root@badcompany /etc/dovecot/conf.d                          [1:22:21]
+> # diff 10-ssl.conf.20241215 10-ssl.conf                             
+6c6
+< #ssl = yes
+---
+> ssl = required
+12,13c12,13
+< ssl_cert = </etc/ssl/certs/dovecot.pem
+< ssl_key = </etc/ssl/private/dovecot.pem
+---
+> ssl_cert = </opt/dehydrated/certs/badcompany.tokyo/fullchain.pem
+> ssl_key = </opt/dehydrated/certs/badcompany.tokyo/privkey.pem
+```
+
 ### 3. postfixの設定
 
 postfixの基本設定、追加でdovecotのLMTP周りの設定と、SendGrid周りの設定を行います。
@@ -514,7 +594,7 @@ root@badcompany /etc/postfix                                                    
 > smtpd_tls_auth_only = yes
 ```
 
-#### 3.4 SendGrid関連設定
+#### 3.4 SendGrid周り設定
 
 SendGridをリレーとして使用する設定を入れ込みます。
 
@@ -522,7 +602,7 @@ SendGridをリレーとして使用する設定を入れ込みます。
 root@badcompany /etc/postfix                                                                      [5:04:58]
 > # vim main.cf                                                                                            
 root@badcompany /etc/postfix                                                                      [5:05:30]
-> # diff main.cf.20241208 main.cf                                                                          
+> # diff main.cf.20241208 main.cf                                     
 99a100
 > myhostname = mail.badcompany.tokyo
 497a499
@@ -536,20 +616,58 @@ root@badcompany /etc/postfix                                                    
 > smtpd_sasl_type = dovecot
 > smtpd_sasl_path = private/auth
 > smtpd_tls_auth_only = yes
-689a697,704
+689a697,705
+> 
+> # SendGrid mail relay setting
+> relayhost = [smtp.sendgrid.net]:587
+> smtp_sasl_auth_enable = yes
+> smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd
+> smtp_sasl_security_options = noanonymous
+> smtp_tls_security_level = encrypt
+> smtp_tls_loglevel = 1
+>
+```
+
+ここで、`/etc/postfix/sasl_passwd` についてですが、こちらはSendGridの設定をしたら手に入る認証情報が必要になります。  
+4. SendGrid設定 が完了したらそれで手に入る認証情報をセットアップします。
+
+また、`smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd` の部分についてですが、ほとんどの記事などでは `lmdb` の部分が `hash` になっているかと思います。  
+正直、そちらで良いです。ArchLinuxのpostfixでは、
+#### 3.5 証明書の設定
+
+dovecotと同様に証明書の設定を行います。
+
+```
+root@badcompany /etc/postfix                                 [1:29:07]
+> # diff main.cf.20241208 main.cf                                     
+99a100
+> myhostname = mail.badcompany.tokyo
+497a499
+> virtual_transport = lmtp:unix:private/dovecot-lmtp
+580c582,589
+< #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+---
+> smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+> 
+> smtpd_sasl_auth_enable = yes
+> smtpd_sasl_type = dovecot
+> smtpd_sasl_path = private/auth
+> smtpd_tls_auth_only = yes
+> smtpd_tls_cert_file = /opt/dehydrated/certs/badcompany.tokyo/fullchain.pem
+> smtpd_tls_key_file = /opt/dehydrated/certs/badcompany.tokyo/privkey.pem
+689a699,707
 > 
 > # SendGrid mail relay setting
 > relayhost = [smtp.sendgrid.net]:587
 > smtp_sasl_auth_enable = yes
 > smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
 > smtp_sasl_security_options = noanonymous
-> smtp_use_tls = yes
+> smtp_tls_security_level = encrypt
+> smtp_tls_loglevel = 1
+> 
 ```
 
-ここで、`/etc/postfix/sasl_passwd` についてですが、こちらはSendGridの設定をしたら手に入る認証情報が必要になります。  
-4. SendGrid設定 が完了したらそれで手に入る認証情報をセットアップします。
-
-### 4. SendGrid 整備
+### 4. SendGrid 設定
 
 >Domain AuthenticationまたはSingle Sender Verificationが設定されていない場合、2024年4月1日以降はメール送信ができなくなります。
 
@@ -565,6 +683,157 @@ SendGridの公式からGoogleアカウントで登録しました。
 
 ![2024/12/05/sendgrid-002](https://res.cloudinary.com/xlog/image/upload/v1733962284/2024/12/05/sendgrid-002.webp)
 
+
+#### 4.2 送信ドメイン認証
+
+Setting > Sender Authentication > Domain Authentication  
+と進みます。
+
+
+
+
+![2024/12/05/sendgrid-03](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-03.webp)
+![2024/12/05/sendgrid-04](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-04.webp)
+
+Fromヘッダーのドメインを入力して進みます。
+
+![2024/12/05/sendgrid-05](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-05.webp)
+
+レジストラを選択する画面でCloudflareの選択肢があったので、自動でやってくれるのかと思ったのですが、手動なようです。
+言われるがままレコードをセットアップします。
+
+![2024/12/05/sendgrid-06](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-06.webp)
+
+CloudflareのDNSの速度はマジで世界最強ですな。  
+Route53が遅くて面倒な目に遭ったことがあるので、Route53に比べて最強に思えます。
+
+#### 4.3 APIキーの作成
+
+送信時のSMTP-AUTHのパスワードがAPI Keyとなっています。
+
+![2024/12/05/sendgrid-07](https://res.cloudinary.com/xlog/image/upload/v1734189453/2024/12/05/sendgrid-07.webp)
+
+![2024/12/05/sendgrid-09](https://res.cloudinary.com/xlog/image/upload/v1734189766/2024/12/05/sendgrid-09.webp)
+
+作成して保存しておきましょう。
+
+#### 4.5 postfixに認証情報を渡す
+
+postfixがリレーとしてSendGridを利用できるように、SendGridの認証情報をpostfixに渡す必要があります。
+
+3.4 にてリレーの設定と、その認証情報のパスは設定済みです。こちらに実際の情報を書いていきます。
+
+```
+root@badcompany /etc/postfix                                 [0:44:57]
+> # vim sasl_passwd                                                   
+root@badcompany /etc/postfix                                 [0:45:10]
+> # cat sasl_passwd                                                   
+[smtp.sendgrid.net]:587 apikey:yourSendGridApiKey
+root@badcompany /etc/postfix                                 [0:45:12]
+> # ll sasl_passwd                                                    
+-rw-r--r-- 1 root root 50 Dec 15 00:45 sasl_passwd
+root@badcompany /etc/postfix                                 [0:45:21]
+> # chmod 600 sasl_passwd                                             
+root@badcompany /etc/postfix                                 [0:45:28]
+> # ll sasl_passwd                                                    
+-rw------- 1 root root 50 Dec 15 00:45 sasl_passwd
+root@badcompany /etc/postfix                                 [0:45:32]
+> # postmap lmdb:/etc/postfix/sasl_passwd                                  
+root@badcompany /etc/postfix                                 [0:45:46]
+> # ll | grep sasl                                                    
+-rw------- 1 root root   50 Dec 15 00:45 sasl_passwd
+-rw------- 1 root root  12K Dec 15 00:45 sasl_passwd.lmdb
+root@badcompany /etc/postfix                                 [0:45:56]
+> #   
+```
+
+これでOKです。  
+当然ですが、`yourSendGridApiKey`は先ほど作成したAPIキーに差し替えてください。
+また、postmapの部分の`lmdb:`については、ArchLinux,AlpineLinuxの人はつけなくていいです。
+その二つについているpostfixがbtree,hashのテーブルを受け付けなくなったため仕方なくつけているだけなので。
+
+### 5. ドメイン 設定
+
+受信のためのドメイン設定を行います。
+
+```
+root@badcompany /etc/postfix                                 [0:47:47]
+> # dig badcompany.tokyo mx +short                                    
+10 mail.badcompany.tokyo.
+```
+
+### 6. 検証
+
+サーバー起動前に設定に異常がないかチェックします。
+
+```
+root@badcompany /etc/postfix                                 [1:11:16]
+> # postfix check                                                     
+root@badcompany /etc/postfix                                 [1:11:21]
+> # doveconf -n                                                       
+設定値が一覧表示される
+```
+
+必要に応じてポート解放します。
+自分は自宅サーバーなのでONUでポート解放の設定を入れます。
+解放する必要のあるポートは25,587,993のみです。
+
+
+```
+root@badcompany /etc/postfix                                 [1:28:43]
+> # systemctl start postfix                                           
+                                                                       
+root@badcompany /etc/postfix                                 [1:28:47]
+> # systemctl status dovecot                                          
+● dovecot.service - Dovecot IMAP/POP3 email server
+     Loaded: loaded (/usr/lib/systemd/system/dovecot.service; disabled>
+     Active: active (running) since Sun 2024-12-15 01:28:43 JST; 8s ago
+ Invocation: dce1eda83fb0448ca2c56af06cad1f78
+       Docs: man:dovecot(1)
+             https://doc.dovecot.org/
+   Main PID: 702362 (dovecot)
+     Status: "v2.3.21.1 (d492236fa0) running"
+      Tasks: 4 (limit: 57486)
+     Memory: 3.7M (peak: 4.5M)
+        CPU: 35ms
+     CGroup: /system.slice/dovecot.service
+             ├─702362 /usr/bin/dovecot -F
+             ├─702366 dovecot/anvil
+             ├─702367 dovecot/log
+             └─702368 dovecot/config
+
+Dec 15 01:28:43 badcompany.tokyo systemd[1]: Starting Dovecot IMAP/POP>
+Dec 15 01:28:43 badcompany.tokyo dovecot[702362]: master: Dovecot v2.3>
+Dec 15 01:28:43 badcompany.tokyo systemd[1]: Started Dovecot IMAP/POP3>
+                                                                       
+root@badcompany /etc/postfix                                 [1:28:57]
+> # systemctl start postfix                                           
+                                                                       
+root@badcompany /etc/postfix                                 [1:29:01]
+> # systemctl status postfix                                          
+● postfix.service - Postfix Mail Transport Agent
+     Loaded: loaded (/usr/lib/systemd/system/postfix.service; disabled>
+     Active: active (running) since Sun 2024-12-15 01:28:47 JST; 17s a>
+ Invocation: a702fdacd6274e7d819601fe0776b3ee
+    Process: 702396 ExecStart=/usr/bin/postfix start (code=exited, sta>
+   Main PID: 702463 (master)
+      Tasks: 3 (limit: 57486)
+     Memory: 2.8M (peak: 4.5M)
+        CPU: 335ms
+     CGroup: /system.slice/postfix.service
+             ├─702463 /usr/lib/postfix/bin/master -w
+             ├─702464 pickup -l -t unix -u
+             └─702465 qmgr -l -t unix -u
+
+Dec 15 01:28:47 badcompany.tokyo systemd[1]: Starting Postfix Mail Tra>
+Dec 15 01:28:47 badcompany.tokyo postfix[702461]: postfix/postlog: sta>
+Dec 15 01:28:47 badcompany.tokyo postfix/postfix-script[702461]: start>
+Dec 15 01:28:47 badcompany.tokyo postfix/master[702463]: daemon starte>
+Dec 15 01:28:47 badcompany.tokyo systemd[1]: Started Postfix Mail Tran>
+``` 
+
+デーモンをスタートさせます。
+
 #### 参考
 
 [virtual_users|doc.dovecot.org](https://doc.dovecot.org/2.3/configuration_manual/virtual_users/#virtual-users)
@@ -577,3 +846,6 @@ https://docs.redhat.com/ja/documentation/red_hat_enterprise_linux/9/html/deployi
 doc.dovecot.org
 lmtpserver
 https://doc.dovecot.org/2.3/configuration_manual/protocols/lmtp_server/#lmtp-server
+
+DNS MXレコード
+https://www.cloudflare.com/ja-jp/learning/dns/dns-records/dns-mx-record/
