@@ -15,7 +15,6 @@
     "check:fix": "biome check --write --unsafe ."
   },
   "dependencies": {
-    "@next/third-parties": "15.1.0",
     "@shikijs/transformers": "1.24.2",
     "@vercel/analytics": "^1.4.1",
     "@vercel/speed-insights": "1.1.0",
