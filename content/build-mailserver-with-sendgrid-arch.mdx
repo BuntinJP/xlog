@@ -1,6 +1,6 @@
 ---
 title: ArchLinuxにメールサーバー構築 [postfix,dovecot]
-description: さくらのメールボックスから移行します。ローカル隔離、バーチャルドメイン・ユーザー、一部別メールボックス構成、LMTPでかなりゴテゴテしたサーバーを構築します。設定のスパゲッティさでは世界一かもしれません。
+description: さくらのメールボックスから移行します。ローカル隔離、バーチャルドメイン・ユーザー、一部別メールボックス構成、LMTPでかなりゴテゴテしたサーバーを構築します。設定のキモさでは世界一かもしれません。
 date: 2024-12-14
 tags: ['ArchLinux', 'メール', 'SendGrid']
 categories: ['備忘録', '構築', 'メール']
@@ -55,7 +55,8 @@ mail ユーザー以外もユーザーがあり、それら全てを Linux ユ�
 しかし、このメールが個人使用のドメインと同じメールボックスに配送されるのはかなり渋いです。したがって、badcompany.tokyo と自分の個人的なドメインは別メールボックスで管理します。
 
 具体的に何をするのかというと、dovecot2.X で使用可能な LMTP サーバー機能を利用します。  
-全てのメールボックス設定値をテキスト形式の設定ファイルで完全に管理する形をとります。というのも、配送先含めて dovecot のユーザー管理のみでそれら全てを定義できるようになるので、一部のドメインはメールボックスを共通にし、一部のドメインは別メールボックスになるようにユーザー定義を自分で行うことでそれらを実現します。
+全てのメールボックス設定値をテキスト形式の設定ファイルで完全に管理する形をとります。
+というのも、配送先含めて dovecot のユーザー管理のみでそれら全てを定義できるようになるので、一部のドメインはメールボックスを共通にし、一部のドメインは別メールボックスになるようにユーザー定義を自分で行うことでそれらを実現します。
 かなり面倒ではありますが、テキストで管理するのは Linux のシステムユーザーを使った変な管理より安定していると感じるので、とりあえずその方向で頑張ってみます。  
 NixFlake リスペクトです。まあ LMTP を使うので dovecot の設定をうまく管理できるように頑張るだけです。
 
@@ -65,7 +66,9 @@ NixFlake リスペクトです。まあ LMTP を使うので dovecot の設定�
 
 以上の設定を一つの dovecot 内で共存させます。
 
-しかし、システムメールなどは飛ばしたいため、ローカル配送はpostfixにやらせます。そのためpostfixもフルでセットアップします。ｓ
+しかし、システムメールなどは飛ばしたいため、ローカル配送はpostfixにやらせます。そのためpostfixもフルでセットアップします。
+システムメールは、メインのドメインからmail.のサブドメインを切り、それをローカル配送のドメインにしようと思います。
+そのドメインの場合はpostfixでローカル配送させるようにします。
 
 ### メールサーバー設定まとめ
 
@@ -175,9 +178,11 @@ Creating user 'postfix' (n/a) with UID 73 and GID 73.
 
 ### 2. dovecot の設定
 
+LMTP を使用する関係上、dovecot から設定しました。どちらが先でも良いかと思います。
+Dovecotの役割としては、IMAPサーバー、LMTPサーバーとしてのバーチャルユーザーへのメール配送、SASL認証サーバーとしてpostfixのバーチャルユーザー認証を担当します。
+
 #### 2.1 /etc/dovecot の確認 & pop3の無効化
 
-LMTP を使用する関係上、dovecot から設定しました。どちらが先でも良いかと思います。
 
 ArchLinux なので、 `/etc/dovecot` が自動生成されません。  
 テンプレからコピーします。
@@ -266,35 +271,10 @@ root@badcompany /etc/dovecot/conf.d                                             
 root@badcompany /etc/dovecot/conf.d                                                                                                                                           [9:10:35]
 > # cp -p auth-passwdfile.conf.ext{,.$(date "+%Y%m%d")}                                                                                                                                
 root@badcompany /etc/dovecot/conf.d                                                                                                                                           [9:10:45]
-> # ll                                                                                                                                                                                 
+> # ll | grep auth-passwd                                                                                                                                                
 total 140K
--rw-r--r-- 1 root root 5.2K Dec  6 01:25 10-auth.conf
--rw-r--r-- 1 root root 5.2K Dec  6 00:31 10-auth.conf.20241206
--rw-r--r-- 1 root root 1.8K Dec  6 00:31 10-director.conf
--rw-r--r-- 1 root root 3.7K Dec  6 00:31 10-logging.conf
--rw-r--r-- 1 root root  18K Dec  6 00:31 10-mail.conf
--rw-r--r-- 1 root root 3.6K Dec  6 00:31 10-master.conf
--rw-r--r-- 1 root root 1.6K Dec  6 00:31 10-metrics.conf
--rw-r--r-- 1 root root 3.4K Dec  6 00:31 10-ssl.conf
--rw-r--r-- 1 root root 1.7K Dec  6 00:31 15-lda.conf
--rw-r--r-- 1 root root 3.1K Dec  6 00:31 15-mailboxes.conf
--rw-r--r-- 1 root root 4.5K Dec  6 00:31 20-imap.conf
--rw-r--r-- 1 root root 1.4K Dec  6 00:31 20-lmtp.conf
--rw-r--r-- 1 root root 4.0K Dec  6 00:31 20-pop3.conf
--rw-r--r-- 1 root root 4.2K Dec  6 00:31 20-submission.conf
--rw-r--r-- 1 root root  676 Dec  6 00:31 90-acl.conf
--rw-r--r-- 1 root root  292 Dec  6 00:31 90-plugin.conf
--rw-r--r-- 1 root root 2.6K Dec  6 00:31 90-quota.conf
--rw-r--r-- 1 root root  499 Dec  6 00:31 auth-checkpassword.conf.ext
--rw-r--r-- 1 root root  489 Dec  6 00:31 auth-deny.conf.ext
--rw-r--r-- 1 root root  343 Dec  6 00:31 auth-dict.conf.ext
--rw-r--r-- 1 root root  924 Dec  6 00:31 auth-ldap.conf.ext
--rw-r--r-- 1 root root  561 Dec  6 00:31 auth-master.conf.ext
 -rw-r--r-- 1 root root  515 Dec  6 00:31 auth-passwdfile.conf.ext
 -rw-r--r-- 1 root root  515 Dec  6 00:31 auth-passwdfile.conf.ext.20241206
--rw-r--r-- 1 root root  788 Dec  6 00:31 auth-sql.conf.ext
--rw-r--r-- 1 root root  611 Dec  6 00:31 auth-static.conf.ext
--rw-r--r-- 1 root root 2.2K Dec  6 00:31 auth-system.conf.ext
 ```
 
 #### 2.3 dovecot の仮想ユーザー設定
@@ -366,13 +346,12 @@ root@badcompany /etc/dovecot/conf.d                                             
 < #mail_location = 
 ---
 > mail_location = maildir:~/mail
-root@badcompany /etc/dovecot/conf.d                                                [22:03:15]
-> #  
 ```
 
 #### 2.4 LMTPサーバー設定
 
-今回のメール構成のキモである、LMTPサーバー設定まわりです。LMTPとは、(Local Mail Transfer Protocl)の略です。ローカルの配送のためのプロトコルですが、今回はdovecotに何もかも任せるようにしてpostfixの設定をあまりしなくても良いようにするために使用します。  
+今回のメール構成のキモである、LMTPサーバー設定まわりです。LMTPとは、(Local Mail Transfer Protocl)の略です。
+ローカルの配送のためのプロトコルですが、今回はdovecotに何もかも任せるようにしてpostfixでバーチャルユーザーの設定をほぼしなくても良いようにします。
 というのも、仮想ユーザー・仮想ドメインの使用環境で、一部同じメールボックス、一部別メールボックスにしつつ、送信ユーザーの認証はまた別にpostfixに設定するなどは、ダルすぎたためです。
 
 Dovecotをローカルの配送、認証の両方でpostfixから利用させることで、ユーザー管理を全てdovecotで行うことができます。  
@@ -538,11 +517,14 @@ root@badcompany /etc/dovecot/conf.d                          [1:22:21]
 
 postfixの基本設定、追加でdovecotのLMTP周りの設定と、SendGrid周りの設定を行います。
 
-ローカル配送はpostfixが行う多m、え
+postfixの今回の役割は、smtpサーバーとしてdovecotのLMTPの前段に構えることと、ローカル配送、SendGridにメールをリレーすることです。
 
 また、`smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd` などの部分についてですが、ほとんどの記事などでは `lmdb` の部分が `hash` になっているかと思います。  
 正直、そちらで良いです。ArchLinuxのpostfixでは、[こちら](https://bbs.archlinux.org/viewtopic.php?id=294782)のフォーラムにあるようにhashが使えなくなり、代わりにlmdbを使えとのことです。  
 ほとんどの人がレポジトリまで見に行かない中、そこのメッセージだけでそれを表現して伝わると思ってるところがキモいです普通に。SendGrid周りのデバッグでlmdb周りのwarningが出まくってたときは普通に殺意湧きました。
+
+また、postmapの部分の`lmdb:`については、ArchLinux,AlpineLinuxの人はつけなくていいです。
+その二つについているpostfixがbtree,hashのテーブルを受け付けなくなったため仕方なくつけているだけなので。
 
 #### 3.1 基本設定
 
@@ -569,11 +551,26 @@ root@badcompany /etc/postfix                                 [2:12:27]
 -rw-r--r-- 1 root root  11K Dec  6 06:30 aliases
 -rw-r--r-- 1 root root  20K Dec 17 02:12 aliases.lmdb
 ```
-aliasesをマップ化しておきます。
+
+aliasesをマップ化しておきます。これはnewaliasesコマンドだけで適切なフォーマットになるはずです。
 
 #### 3.2 LMTP周りの設定
 
-`main.cf` を変更し、LMTP設定をかけるように `transport_maps`に`/etc/postfix/transport`を指定します。
+`main.cf` を変更し、バーチャルドメインの設定を入れ込みます。
+
+```
+root@badcompany /etc/postfix                                                                                                                               [1:06:10]
+> # vim /etc/postfix/virtual_mailbox_domains                                                                                                                        
+root@badcompany /etc/postfix                                                                                                                               [1:06:15]
+> # cat /etc/postfix/virtual_mailbox_domains                                                                                                                        
+badcompany.tokyo OK
+
+root@badcompany /etc/postfix                                                                                                                               [1:06:18]
+> # postmap lmdb:/etc/postfix/virtual_mailbox_domains                                                                                                               root@badcompany /etc/postfix                                                                                                                               [1:06:40]
+```
+
+以上は、`virtual_mailbox_domains`という`mydestination`とは異なりバーチャルドメインを列挙する設定項目にテーブルを指定しています。  
+OKは、なんかそう入れるのがデフォらしいです。
 
 ```
 root@badcompany /etc/postfix                                                       [4:43:39]
@@ -590,54 +587,24 @@ root@badcompany /etc/postfix                                                    
 < #myorigin = $myhostname
 ---
 > myorigin = $myhostname
-391a393
-> transport_maps = lmdb:/etc/postfix/transport
-580c582
+183c184
+< #mydestination = $myhostname, localhost.$mydomain, localhost
+---
+> mydestination = $myhostname, localhost.$mydomain, localhost
+384a386,387
+> virtual_mailbox_domains = lmdb:/etc/postfix/virtual_mailbox_domains
+> 
+391a395
+> virtual_transport = lmtp:unix:private/dovecot-lmtp
+580c584,591
 < #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
 ---
 > smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
 ```
 
-`/etc/postfix/transport`ですが、こいつは結構重要なファイルになります。  
-dovecotのドキュメントの[postfix連携でのLMTP部分](https://doc.dovecot.org/2.3/configuration_manual/howto/postfix_dovecot_lmtp/)では、`virtual_transport`を利用するようになっています。  
+`virtual_transport`を利用するようになっています。  
 この場合DovecotのLMTPに転送されるメールの条件は`virtual_mailbox_domains`などで定義する必要があります。
-`main.cf`内でです。それだと設定がどうなっているのか分かりにくいです。特に今回のようにキモい設定を入れ込んでいる場合には特にです。  
-そのため、全て一元的に定義できる`/etc/postfix/transport`を使用します。
-
-
-```
-root@badcompany /etc/postfix                                                                                                                               [1:53:34]
-> # l | grep transport                                                                                                                                              
--rw-r--r--  1 root root  14K Dec  6 06:30 transport
-root@badcompany /etc/postfix                                                                                                                               [1:53:46]
-> # cp -p transport{,.$(date "+%Y%m%d")}                                                                                                                            
-root@badcompany /etc/postfix                                                                                                                               [1:53:57]
-> # echo "" > transport
-root@badcompany /etc/postfix                                                                                                                               [1:53:57]
-> # vim transport
-root@badcompany /etc/postfix                                                                                                                               [2:02:26]
-> # cat transport                                                                                                                                                   
-badcompany.tokyo           lmtp:unix:private/dovecot-lmtp
-
-mail.badcompany.tokyo      local:
-```
-
-ここで、`mail.badcompany.tokyo`は`$myhostname`、`$myorigin`です。
-ローカル配送はこのドメインでやります。
-
-フェーズ1のため単一ドメインのみ書きます。バーチャルドメイン設定などはややこしくなるのでフェーズ2で行います。
-
-```
-root@badcompany /etc/postfix                                 [2:09:21]
-> # postmap lmdb:/etc/postfix/transport                               
-root@badcompany /etc/postfix                                 [2:09:32]
-> # ll | grep transport                                               
--rw-r--r-- 1 root root   93 Dec 17 02:02 transport
--rw-r--r-- 1 root root  14K Dec  6 06:30 transport.20241217
--rw-r--r-- 1 root root  12K Dec 17 02:09 transport.lmdb
-```
-
-postmapを忘れずにやっときます。
+[postfix連携でのLMTP部分](https://doc.dovecot.org/2.3/configuration_manual/howto/postfix_dovecot_lmtp/)に沿った設定内容になっています。
 
 #### 3.3 Dovecot SASL周りの設定
 
@@ -658,9 +625,16 @@ root@badcompany /etc/postfix                                                    
 < #myorigin = $myhostname
 ---
 > myorigin = $myhostname
-391a393
-> transport_maps = lmdb:/etc/postfix/transport
-580c582,587
+183c184
+< #mydestination = $myhostname, localhost.$mydomain, localhost
+---
+> mydestination = $myhostname, localhost.$mydomain, localhost
+384a386,387
+> virtual_mailbox_domains = lmdb:/etc/postfix/virtual_mailbox_domains
+> 
+391a395
+> virtual_transport = lmtp:unix:private/dovecot-lmtp
+580c584,591
 < #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
 ---
 > smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
@@ -690,9 +664,16 @@ root@badcompany /etc/postfix                                                    
 < #myorigin = $myhostname
 ---
 > myorigin = $myhostname
-391a393
-> transport_maps = lmdb:/etc/postfix/transport
-580c582,587
+183c184
+< #mydestination = $myhostname, localhost.$mydomain, localhost
+---
+> mydestination = $myhostname, localhost.$mydomain, localhost
+384a386,387
+> virtual_mailbox_domains = lmdb:/etc/postfix/virtual_mailbox_domains
+> 
+391a395
+> virtual_transport = lmtp:unix:private/dovecot-lmtp
+580c584,591
 < #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
 ---
 > smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
@@ -733,9 +714,16 @@ root@badcompany /etc/postfix                                 [1:29:07]
 < #myorigin = $myhostname
 ---
 > myorigin = $myhostname
-391a393
-> transport_maps = lmdb:/etc/postfix/transport
-580c582,589
+183c184
+< #mydestination = $myhostname, localhost.$mydomain, localhost
+---
+> mydestination = $myhostname, localhost.$mydomain, localhost
+384a386,387
+> virtual_mailbox_domains = lmdb:/etc/postfix/virtual_mailbox_domains
+> 
+391a395
+> virtual_transport = lmtp:unix:private/dovecot-lmtp
+580c584,591
 < #smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
 ---
 > smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
@@ -760,6 +748,8 @@ root@badcompany /etc/postfix                                 [1:29:07]
 
 ### 4. SendGrid 設定
 
+SendGridのアカウント発行後以下のような警告が出ると思います。
+
 >Domain AuthenticationまたはSingle Sender Verificationが設定されていない場合、2024年4月1日以降はメール送信ができなくなります。
 
 最初は何を言っているのかよくわかりませんでしたが、簡単にいうとSendGridのインフラを使ってスパムを飛ばせないようにメールの送信者認証が厳格になったよ、ということらしいです。  
@@ -783,7 +773,7 @@ Setting > Sender Authentication > Domain Authentication
 ![2024/12/05/sendgrid-03](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-03.webp)
 ![2024/12/05/sendgrid-04](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-04.webp)
 
-Fromヘッダーのドメインを入力して進みます。
+Fromヘッダーのドメインを入力して進みます。これは、エンベロープFromではなく、Fromヘッダーのドメイン部分です。
 
 ![2024/12/05/sendgrid-05](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-05.webp)
 
@@ -831,14 +821,10 @@ root@badcompany /etc/postfix                                 [0:45:46]
 > # ll | grep sasl                                                    
 -rw------- 1 root root   50 Dec 15 00:45 sasl_passwd
 -rw------- 1 root root  12K Dec 15 00:45 sasl_passwd.lmdb
-root@badcompany /etc/postfix                                 [0:45:56]
-> #   
 ```
 
 これでOKです。  
 当然ですが、`yourSendGridApiKey`は先ほど作成したAPIキーに差し替えてください。
-また、postmapの部分の`lmdb:`については、ArchLinux,AlpineLinuxの人はつけなくていいです。
-その二つについているpostfixがbtree,hashのテーブルを受け付けなくなったため仕方なくつけているだけなので。
 
 ### 5. ドメイン 設定
 
@@ -870,7 +856,6 @@ root@badcompany /etc/postfix                                 [1:11:21]
 ```
 root@badcompany /etc/postfix                                 [1:28:43]
 > # systemctl start postfix                                           
-                                                                       
 root@badcompany /etc/postfix                                 [1:28:47]
 > # systemctl status dovecot                                          
 ● dovecot.service - Dovecot IMAP/POP3 email server
@@ -893,10 +878,8 @@ root@badcompany /etc/postfix                                 [1:28:47]
 Dec 15 01:28:43 badcompany.tokyo systemd[1]: Starting Dovecot IMAP/POP>
 Dec 15 01:28:43 badcompany.tokyo dovecot[702362]: master: Dovecot v2.3>
 Dec 15 01:28:43 badcompany.tokyo systemd[1]: Started Dovecot IMAP/POP3>
-                                                                       
 root@badcompany /etc/postfix                                 [1:28:57]
 > # systemctl start postfix                                           
-                                                                       
 root@badcompany /etc/postfix                                 [1:29:01]
 > # systemctl status postfix                                          
 ● postfix.service - Postfix Mail Transport Agent
