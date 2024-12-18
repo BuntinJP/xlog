@@ -760,10 +760,8 @@ SendGridのアカウント発行後以下のような警告が出ると思いま
 SendGridの公式からGoogleアカウントで登録しました。  
 日本の構造計画研究所の方ではなく、公式の方からです。
 
-![2024/12/05/sendgrid-001](https://res.cloudinary.com/xlog/image/upload/v1733962285/2024/12/05/sendgrid-001.webp)
-
-![2024/12/05/sendgrid-002](https://res.cloudinary.com/xlog/image/upload/v1733962284/2024/12/05/sendgrid-002.webp)
-
+![2024/12/05/sendgrid-01](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/sendgrid-01.webp)
+![2024/12/05/sendgrid-02](https://res.cloudinary.com/xlog/image/upload/v1734189766/2024/12/05/sendgrid-02.webp)
 
 #### 4.2 送信ドメイン認証
 
@@ -901,9 +899,32 @@ Dec 15 01:28:47 badcompany.tokyo postfix[702461]: postfix/postlog: sta>
 Dec 15 01:28:47 badcompany.tokyo postfix/postfix-script[702461]: start>
 Dec 15 01:28:47 badcompany.tokyo postfix/master[702463]: daemon starte>
 Dec 15 01:28:47 badcompany.tokyo systemd[1]: Started Postfix Mail Tran>
-``` 
+```
 
-デーモンをスタートさせます。
+デーモンをスタートさせます
+
+Thunderbirdで作成したユーザーにログインします
+
+![2024/12/05/test-01-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1734479970/2024/12/05/test-01-thunderbird.webp)
+
+なんかユーザー名がmailのままで認証成功したり、25のSTARTTLSが表示されたり色々Thunderbirdの挙動が謎でしたが、IMAPは993しか開けていないためSSL/TLS接続のみでした。
+
+Thunderbirdからメールを送信してみます。LMTPユーザーを使ったSASL認証に成功している段階でSendGrid周りがイカれてない限り送信できるはずです。
+
+![2024/12/05/test-02-thunderbird2gmail](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/test-02-thunderbird2gmail.webp)
+![2024/12/05/test-03-gmail](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/test-03-gmail.webp)
+
+gmailで受信が確認できたら、gmailからメールを送信し受信を検証します。
+
+![2024/12/05/test-04-gmail2thunderbird](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/test-04-gmail2thunderbird.webp)
+![2024/12/05/test-05-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/test-05-thunderbird.webp)
+
+完璧ですね。
+
+システムユーザーの配送が隔離されているか念のため確認しておきます。
+
+
+
 
 #### 参考
 
