@@ -83,10 +83,10 @@ NixFlake リスペクトです。まあ LMTP を使うので dovecot の設定�
 
 また、POP3 は使用しません。
 
-SMTP : 25,587
-IMAP : 993
+25 : smtp
+587 : smtp(starttls)
+993 : imap(ssl/tls)
 
-共に STARTTLS 使用予定  
 証明書は LetsEncrypt のものを使用。
 
 SASL 認証サーバーは、Dovecot を使用します。  
@@ -96,6 +96,8 @@ SASL 認証サーバーは、Dovecot を使用します。
 
 ローカル配送のシステムメールは潰したくないので、myhostnameをローカル配送のドメインとして使用しそれはDovecotLMTPではなくpostfixにシステムユーザーへ配送させます。
 
+ローカルメールは基本的にcronなどの配送先として使いたいだけなので、外部からの接続は不可能にしています。
+
 メールサーバーの具体的な設定値は以下のとおりです。コマンドを参照する際に参考になれば。
 
 バーチャルユーザーのメール保存場所 : `/var/vmail/${DOMAIN}/${USERNAME}/mail` ※1  
@@ -103,7 +105,7 @@ SASL 認証サーバーは、Dovecot を使用します。
 バーチャルユーザーのパスワード保存形式 : `bcrypt` ※2  
 
 ※1 [dovecotドキュメント](https://doc.dovecot.org/2.3/configuration_manual/home_directories_for_virtual_users/#home-directories-for-virtual-users) によると、仮想ユーザー使用時の推奨らしいです。  
-※2 システムのcrypt(1)を利用する設定にすることでハッシュアルゴリズムは自動的にこれになります。SHA512-CRYPTより最強です。
+※2 システムのcrypt(1)を利用する設定にすることでハッシュアルゴリズムは自動的にこれになります。SHA512-CRYPTより強いです。
 
 ## フェーズ1
 
@@ -923,7 +925,83 @@ gmailで受信が確認できたら、gmailからメールを送信し受信を�
 
 システムユーザーの配送が隔離されているか念のため確認しておきます。
 
+```
+buntin in 🌐 badcompany in xlog on  main [!] via  v23.4.0 
+❯ echo "test mail to root from buntin" | mail -s "testmail" root
+buntin in 🌐 badcompany in xlog on  main [!] via  v23.4.0 
+❯ sudo -i 
+root@badcompany ~                                                                                                                    [9:10:52]
+> # tail /var/log/mail.log                                                                                                                 
+Dec 19 09:04:50 badcompany.tokyo postfix/anvil[1152764]: statistics: max cache size 1 at Dec 19 09:01:29
+Dec 19 09:10:33 badcompany.tokyo postfix/postfix-script[1155436]: stopping the Postfix mail system
+Dec 19 09:10:33 badcompany.tokyo postfix/master[1069418]: terminating on signal 15
+Dec 19 09:10:33 badcompany.tokyo postfix/postfix-script[1155508]: starting the Postfix mail system
+Dec 19 09:10:33 badcompany.tokyo postfix/master[1155510]: daemon started -- version 3.9.1, configuration /etc/postfix
+Dec 19 09:10:48 badcompany.tokyo postfix/pickup[1155511]: 5A32516C6677: uid=1001 from=<buntin>
+Dec 19 09:10:48 badcompany.tokyo postfix/cleanup[1155660]: 5A32516C6677: message-id=<20241219001048.5A32516C6677@mail.badcompany.tokyo>
+Dec 19 09:10:48 badcompany.tokyo postfix/qmgr[1155512]: 5A32516C6677: from=<buntin@mail.badcompany.tokyo>, size=372, nrcpt=1 (queue active)
+Dec 19 09:10:48 badcompany.tokyo postfix/local[1155663]: 5A32516C6677: to=<root@mail.badcompany.tokyo>, orig_to=<root>, relay=local, delay=0.03, delays=0.02/0.01/0/0, dsn=2.0.0, status=sent (delivered to maildir)
+Dec 19 09:10:48 badcompany.tokyo postfix/qmgr[1155512]: 5A32516C6677: removed
+root@badcompany ~                                                                                                                    [9:11:07]
+> # mailx -f mail                                                                                                                             
+mail version v14.9.24.  Type `?' for help
+/root/mail: 1 message 1 new
+▸N  1 buntin@mail.badcom 2024-12-19 09:10   14/468   testmail                                                                                  
+? 
+[-- Message  1 -- 14 lines, 468 bytes --]:
+Date: Thu, 19 Dec 2024 09:10:48 +0900
+To: root@mail.badcompany.tokyo
+Subject: testmail
+Message-Id: <20241219001048.5A32516C6677@mail.badcompany.tokyo>
+From: buntin@mail.badcompany.tokyo
 
+test mail to root from buntin
+
+? exit
+```
+
+```
+root@badcompany ~                                                                                                                    [9:11:18]
+> # echo "test mail to buntin from root" | mail -s "testmail" buntin                                                                          
+root@badcompany ~                                                                                                                    [9:12:59]
+> # tail /var/log/mail.log                                                                                                                    
+Dec 19 09:10:48 badcompany.tokyo postfix/pickup[1155511]: 5A32516C6677: uid=1001 from=<buntin>
+Dec 19 09:10:48 badcompany.tokyo postfix/cleanup[1155660]: 5A32516C6677: message-id=<20241219001048.5A32516C6677@mail.badcompany.tokyo>
+Dec 19 09:10:48 badcompany.tokyo postfix/qmgr[1155512]: 5A32516C6677: from=<buntin@mail.badcompany.tokyo>, size=372, nrcpt=1 (queue active)
+Dec 19 09:10:48 badcompany.tokyo postfix/local[1155663]: 5A32516C6677: to=<root@mail.badcompany.tokyo>, orig_to=<root>, relay=local, delay=0.03, delays=0.02/0.01/0/0, dsn=2.0.0, status=sent (delivered to maildir)
+Dec 19 09:10:48 badcompany.tokyo postfix/qmgr[1155512]: 5A32516C6677: removed
+Dec 19 09:12:59 badcompany.tokyo postfix/pickup[1155511]: 4D6E516C6677: uid=0 from=<root>
+Dec 19 09:12:59 badcompany.tokyo postfix/cleanup[1156918]: 4D6E516C6677: message-id=<20241219001259.4D6E516C6677@mail.badcompany.tokyo>
+Dec 19 09:12:59 badcompany.tokyo postfix/qmgr[1155512]: 4D6E516C6677: from=<root@mail.badcompany.tokyo>, size=369, nrcpt=1 (queue active)
+Dec 19 09:12:59 badcompany.tokyo postfix/local[1156923]: 4D6E516C6677: to=<buntin@mail.badcompany.tokyo>, orig_to=<buntin>, relay=local, delay=0.02, delays=0.01/0/0/0, dsn=2.0.0, status=sent (delivered to maildir)
+Dec 19 09:12:59 badcompany.tokyo postfix/qmgr[1155512]: 4D6E516C6677: removed
+root@badcompany ~                                                                                                                    [9:13:06]
+> # exit                                                                                                                                      
+buntin in 🌐 badcompany in ~ via 🐍 v3.12.7 
+❯ ls
+buntin.p12  gits  liz  liz.p12  mail  Untitled.ipynb
+buntin in 🌐 badcompany in ~ via 🐍 v3.12.7 
+❯ mailx -f mail
+mail version v14.9.24.  Type `?' for help
+/home/buntin/mail: 1 message 1 new
+▸N  1 root@mail.badcompa 2024-12-19 09:12   14/467   testmail                                                                                  
+? 
+[-- Message  1 -- 14 lines, 467 bytes --]:
+Date: Thu, 19 Dec 2024 09:12:59 +0900
+To: buntin@mail.badcompany.tokyo
+Subject: testmail
+Message-Id: <20241219001259.4D6E516C6677@mail.badcompany.tokyo>
+From: root@mail.badcompany.tokyo
+
+test mail to buntin from root
+
+? q
+/home/buntin/mail updated.
+
+buntin in 🌐 badcomp
+```
+
+いい感じですね。
 
 
 #### 参考
