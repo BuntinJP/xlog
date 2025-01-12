@@ -1,0 +1,159 @@
+---
+title: ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
+description: test post
+date: 2023-02-10
+tags: []
+categories: ['テスト用']
+draft : true
+---
+# ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
+
+ArchLinuxのsyslog-ngにて出力している`/var/log/mail.log`をログローテートして圧縮か削除するスクリプトを作成したくなったので、一旦ログローテートの設定を整備します。
+
+
+`テスト用`
+
+ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
+
+ArchLinuxのPackageに`logrotate`というまんまのやつがあります。  
+まずはそいつを入れます。
+
+```
+                                                                          
+root@badcompany ~                                               [0:41:12]
+> # paru -S logrotate                                                    
+resolving dependencies...
+looking for conflicting packages...
+
+Packages (1) logrotate-3.22.0-1
+
+Total Installed Size:  0.10 MiB
+
+:: Proceed with installation? [Y/n] 
+(1/1) checking keys in keyring                     [################] 100%
+(1/1) checking package integrity                   [################] 100%
+(1/1) loading package files                        [################] 100%
+(1/1) checking for file conflicts                  [################] 100%
+(1/1) checking available disk space                [################] 100%
+:: Processing package changes...
+(1/1) installing logrotate                         [################] 100%
+:: Running post-transaction hooks...
+(1/2) Reloading system manager configuration...
+(2/2) Arming ConditionNeedsUpdate...
+                                                                          
+root@badcompany ~                                               [0:41:30]
+> # sudo systemctl status logrotate                                      
+○ logrotate.service - Rotate log files
+     Loaded: loaded (/usr/lib/systemd/system/logrotate.service; static)
+     Active: inactive (dead)
+TriggeredBy: ○ logrotate.timer
+       Docs: man:logrotate(8)
+             man:logrotate.conf(5)
+                                                                          
+root@badcompany ~                                               [0:42:01]
+> # cat /etc/logrotate.conf                                              
+# see "man logrotate" for details
+# rotate log files weekly
+weekly
+
+# keep 4 weeks worth of backlogs
+rotate 4
+
+# restrict maximum size of log files
+#size 20M
+
+# create new (empty) log files after rotating old ones
+create
+
+# uncomment this if you want your log files compressed
+#compress
+
+# Logs are moved into directory for rotation
+# olddir /var/log/archive
+
+# Ignore pacman saved files
+tabooext + .pacorig .pacnew .pacsave
+
+# Arch packages drop log rotation information into this directory
+include /etc/logrotate.d
+
+/var/log/wtmp {
+    monthly
+    create 0664 root utmp
+    minsize 1M
+    rotate 1
+}
+
+/var/log/btmp {
+    missingok
+    monthly
+    create 0600 root utmp
+    rotate 1
+}
+                                                                          
+root@badcompany ~                                               [0:42:40]
+> # cd /etc/logrotate.d                                                  
+                                                                          
+root@badcompany /etc/logrotate.d                                [0:43:50]
+> # nvim /etc/logrotate.conf                                             
+                                                                          
+root@badcompany /etc/logrotate.d                                [0:44:06]
+> # cp -p /etc/logrotate.conf{,.$(date "%Y%m%d")}                        
+date: invalid date ‘%Y%m%d’
+                                                                          
+root@badcompany /etc/logrotate.d                                [0:44:46]
+> # cp -p /etc/logrotate.conf{,.$(date "+%Y%m%d")}                       
+                                                                          
+root@badcompany /etc/logrotate.d       
+```
+
+```
+root@badcompany /etc/logrotate.d                                [0:50:25]
+> # cp -p /etc/logrotate.conf{,.$(date "+%Y%m%d")}                       
+root@badcompany /etc/logrotate.d                                [0:50:30]
+> # ls -lah /etc/ | grep "log"                                           
+-rw-r--r--  1 root    root      28 Sep 25 04:46 bash.bash_logout
+-rw-r--r--  1 root    root    7.5K Jul  2 20:16 login.defs
+-rw-r--r--  1 root    root     686 Jul  7 16:50 logrotate.conf
+-rw-r--r--  1 root    root     686 Jul  7 16:50 logrotate.conf.20241220
+drwxr-xr-x  2 root    root    4.0K Dec 15 04:20 logrotate.d
+-rw-r--r--  1 root    root    9.6K Nov 30 08:04 sudo_logsrvd.conf
+drwxr-xr-x  4 root    root    4.0K Dec 16 23:08 syslog-ng
+root@badcompany /etc/logrotate.d                                [0:50:33]
+> # vim /etc/logrotate.conf                                              
+```
+
+
+```
+
+```
+
+## Code Block
+
+```js title="index.ts"
+console.log('Hello World');
+```
+
+---
+
+## Math
+
+---
+
+
+### 正規表現とオートマトン
+
+$$
+L(R) = \{ w \mid w \text{ は正規表現 } R \text{ にマッチする } \}
+$$
+
+この式は、正規表現 $R$ にマッチする文字列の集合を $L(R)$ と表しています。
+
+---
+
+## Cards
+
+<Cards>
+  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
+  <Card title="Learn more about Fumadocs" href="https://fumadocs.vercel.app" />
+</Cards>

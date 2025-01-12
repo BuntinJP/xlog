@@ -1,11 +1,10 @@
 ---
 title: ArchLinuxにメールサーバー構築 [postfix,dovecot]
 description: さくらのメールボックスから移行します。ローカル隔離、バーチャルドメイン・ユーザー、一部別メールボックス構成、LMTPでかなりゴテゴテしたサーバーを構築します。設定のキモさでは世界一かもしれません。
-date: 2024-12-14
+date: 2025-01-12
 tags: ['ArchLinux', 'メール', 'SendGrid']
 categories: ['備忘録', '構築', 'メール']
 keywords: ['postfix', 'dovecot', 'ArchLinux', 'メールサーバー', 'さくらのメールボックス', '移行', 'メール']
-draft: true
 ---
 
 # 自宅サーバーでメールサーバーを構築する
@@ -21,10 +20,13 @@ draft: true
 一つ先に忠告しておくと、かなりキモい設定を入れ込みました。インフラ屋なので、簡単な postfix サーバーの立ち上げだと味気なくて記事を書くモチベが上がらなかったので、バーチャルドメインしつつ一部のドメインはメールボックスを分けてあります。  
 正直保守性的にもあり得ない構成なのですが、こういうのができるのこそ自宅サーバーなので、あまり参考にされると地獄というか虚無になる可能性があります。
 
+また、新年早々にセキュリティ的によろしくないことが起こったため、丸見えだったドメインを隠しました。
+domain.tldが自分の本番ドメインを思っていただけたらと思います。
+
 ## 構築するサーバーについて
 
 自宅で運用しているサーバーがあり、そいつの中に構築していきます。  
-マイクラ運用もしている Intel の中古ゲーミングワークステーションの薄い版みたいなやつですね。Nuro の Onu 兼ルーターの直下から繋げてるので、回線だけ爆速です。
+マイクラ鯖運用もしている Intel の中古ゲーミングワークステーションの薄い版みたいなやつですね。Nuro の Onu 兼ルーターの直下から繋げてるので、回線だけ爆速です。
 友人がマイクラサーバーを構築して公開したいってことだったので、そいつが多めに金払ってメルカリでいい型落ちゲーミングを狙ってこっちに発送されてきました。  
 そいつと話し合った結果、インストールする OS は ArchLinux ということになりました。パッケージマネージャ(AUR ヘルパー)は paru を使ってます。
 
@@ -40,7 +42,11 @@ Outbound Port 25 Blocking の略ですが、読んで字の如く 25 ポート�
 OP25B 対策として、メール送信サービスを利用します。具体的には SendGrid を使います。postfix からリレー先として指定するだけだと思うので、本当に神です。
 メールサーバーをローカル立ててるのにどういうこととは思いますが、確実に自宅の可用性よりクラウドのあっちの方が高いと思ってのことです笑
 
-正直にいうと、OP25B の回避策がそれしかないためです。自宅回線は Nuro なのですが、契約時届いた Nuro のメールサーバー設定のハガキを今も画像で保持しているのですが、いざ使おうとしたところアカウントが削除されてました。使用していないアカウントは 2024 年の最初あたりで消されてたらしいです。普通にゴミです。
+正直にいうと、OP25B の回避策がそれしかないためです。
+Nuroの契約時届いたメールサーバー設定のハガキを画像で保持していました。
+しかし、いざ使おうとしたところアカウントが削除されてました。
+使用していないアカウントは 2024 年の最初あたりで消されてたらしいです。
+普通にゴミです。
 
 ### メールボックス設定のキモい設定について
 
@@ -51,8 +57,8 @@ OP25B 対策として、メール送信サービスを利用します。具体�
 そして、ユーザーはコンパネから作成する必要があります。
 mail ユーザー以外もユーザーがあり、それら全てを Linux ユーザーとして作成するのは面倒だし `/home` が汚れて普通に嫌です
 
-これらとは別に、badcompany.tokyo というその ArchLinux を共同で管理している友人と所有しているドメインがあり、そのメールも捌きたいです。
-しかし、このメールが個人使用のドメインと同じメールボックスに配送されるのはかなり渋いです。したがって、badcompany.tokyo と自分の個人的なドメインは別メールボックスで管理します。
+これらとは別に、その ArchLinux を共同で管理している友人と所有しているドメインがあり、そのメールも捌きたいです。
+しかし、それらのメールが個人使用のドメインと同じメールボックスに配送されるのはかなり渋いです。したがって、domain.tld と自分の個人的なドメインは別メールボックスで管理します。
 
 具体的に何をするのかというと、dovecot2.X で使用可能な LMTP サーバー機能を利用します。  
 全てのメールボックス設定値をテキスト形式の設定ファイルで完全に管理する形をとります。
@@ -83,9 +89,9 @@ NixFlake リスペクトです。まあ LMTP を使うので dovecot の設定�
 
 また、POP3 は使用しません。
 
-25 : smtp
-587 : smtp(starttls)
-993 : imap(ssl/tls)
+25 : smtp  
+587 : submission(starttls)  
+993 : imap(ssl/tls)  
 
 証明書は LetsEncrypt のものを使用。
 
@@ -101,11 +107,13 @@ SASL 認証サーバーは、Dovecot を使用します。
 メールサーバーの具体的な設定値は以下のとおりです。コマンドを参照する際に参考になれば。
 
 バーチャルユーザーのメール保存場所 : `/var/vmail/${DOMAIN}/${USERNAME}/mail` ※1  
-バーチャルユーザーのメール保存形式 : `Maildir`
+バーチャルユーザーのメール保存形式 : `Maildir`  
 バーチャルユーザーのパスワード保存形式 : `bcrypt` ※2  
+システムユーザーのメール保存場所 : `~/mail` ※3  
 
 ※1 [dovecotドキュメント](https://doc.dovecot.org/2.3/configuration_manual/home_directories_for_virtual_users/#home-directories-for-virtual-users) によると、仮想ユーザー使用時の推奨らしいです。  
-※2 システムのcrypt(1)を利用する設定にすることでハッシュアルゴリズムは自動的にこれになります。SHA512-CRYPTより強いです。
+※2 システムのcrypt(1)を利用する設定にすることでハッシュアルゴリズムは自動的にこれになります。SHA512-CRYPTより強いです。  
+※3 バーチャルユーザーのものと揃えたかったためもあり一般的な`~/Maildir`とは設定を変化させました。特に問題はない認識です。    
 
 ## フェーズ1
 
@@ -240,7 +248,7 @@ root@badcompany /etc/dovecot                                                    
 #### 2.2 仮想ユーザー使用の設定
 
 conf.d で、ファイルによるバーチャルユーザー管理を有効にします。  
-root と buntin ユーザーでプロンプトが違うのは共用のためです。
+root と buntin ユーザーでプロンプトが違うのは共用アカウントのためです。
 
 ```
 root@badcompany /etc/dovecot/conf.d                                                 [1:15:22]
@@ -322,7 +330,7 @@ userdb {
 ```
 
 `vmail`というユーザーを仮想ユーザーの使用ユーザーとして定義するデフォルト設定を入れただけです。  
-今回構築する構成では、全てのメールユーザーが仮想ユーザーとなりシステムユーザーは使用しません。
+今回構築する構成では、Dovecotの全てのメールユーザーが仮想ユーザーとなりシステムユーザーは関わりません。
 そのため、全ての仮想ユーザーのためのシステムユーザーを作成する必要があります。今回は `vmail` ユーザーを作成します。
 
 ```
@@ -352,7 +360,7 @@ root@badcompany /etc/dovecot/conf.d                                             
 
 #### 2.4 LMTPサーバー設定
 
-今回のメール構成のキモである、LMTPサーバー設定まわりです。LMTPとは、(Local Mail Transfer Protocl)の略です。
+今回のメール構成のキモである、LMTPサーバー設定まわりです。LMTPとは、(Local Mail Transfer Protocol)の略です。
 ローカルの配送のためのプロトコルですが、今回はdovecotに何もかも任せるようにしてpostfixでバーチャルユーザーの設定をほぼしなくても良いようにします。
 というのも、仮想ユーザー・仮想ドメインの使用環境で、一部同じメールボックス、一部別メールボックスにしつつ、送信ユーザーの認証はまた別にpostfixに設定するなどは、ダルすぎたためです。
 
@@ -443,7 +451,7 @@ root@badcompany /etc/dovecot                                [22:47:41]
 > # vim users                                                         
 root@badcompany /etc/dovecot                                [22:48:52]
 > # cat users                                                         
-mail@badcompany.tokyo:{CRYPT}$2y$05$IjkNQZ7PuJaku9qDTrPvveRqqNy5mnFGq9Tvz1YwpQf/DMPyR/s/6::::/var/vmail/badcompany.tokyo/mail::
+mail@domain.tld:{CRYPT}$2y$05$IjkNQZ7PuJaku9qDTrPvveRqqNy5mnFGq9Tvz1YwpQf/DMPyR/s/6::::/var/vmail/domain.tld/mail::
 ```
 
 vmail:vmailで先ほど作成したユーザーのホームディレクトリを作成しておきます
@@ -511,8 +519,8 @@ root@badcompany /etc/dovecot/conf.d                          [1:22:21]
 < ssl_cert = </etc/ssl/certs/dovecot.pem
 < ssl_key = </etc/ssl/private/dovecot.pem
 ---
-> ssl_cert = </opt/dehydrated/certs/badcompany.tokyo/fullchain.pem
-> ssl_key = </opt/dehydrated/certs/badcompany.tokyo/privkey.pem
+> ssl_cert = </opt/dehydrated/certs/domain.tld/fullchain.pem
+> ssl_key = </opt/dehydrated/certs/domain.tld/privkey.pem
 ```
 
 ### 3. postfixの設定
@@ -522,11 +530,20 @@ postfixの基本設定、追加でdovecotのLMTP周りの設定と、SendGrid周
 postfixの今回の役割は、smtpサーバーとしてdovecotのLMTPの前段に構えることと、ローカル配送、SendGridにメールをリレーすることです。
 
 また、`smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd` などの部分についてですが、ほとんどの記事などでは `lmdb` の部分が `hash` になっているかと思います。  
-正直、そちらで良いです。ArchLinuxのpostfixでは、[こちら](https://bbs.archlinux.org/viewtopic.php?id=294782)のフォーラムにあるようにhashが使えなくなり、代わりにlmdbを使えとのことです。  
+ArchLinuxのpostfixでは、[こちら](https://bbs.archlinux.org/viewtopic.php?id=294782)のフォーラムにあるようにhashが使えなくなり、代わりにlmdbを使えとのことです。  
 ほとんどの人がレポジトリまで見に行かない中、そこのメッセージだけでそれを表現して伝わると思ってるところがキモいです普通に。SendGrid周りのデバッグでlmdb周りのwarningが出まくってたときは普通に殺意湧きました。
 
-また、postmapの部分の`lmdb:`については、ArchLinux,AlpineLinuxの人はつけなくていいです。
-その二つについているpostfixがbtree,hashのテーブルを受け付けなくなったため仕方なくつけているだけなので。
+postmapの部分の`lmdb:`については、ArchLinux,AlpineLinuxの人以外はつけなくていいです。
+その二つについているpostfixがbtree,hashのテーブルを受け付けなくなったため、上記のようにlmdb形式でマップにしなくてはならないためフォーマットを指定しています。
+
+参考までに以下のようなエラーが出ます。warningですが、デーモンが死なないだけで通信は普通にできないです。
+
+```
+warning: unsupported dictionary type: hash. Is the postfix-hash package installed?
+error: unsupported dictionary type: hash
+warning: hash:/etc/aliases is unavailable. unsupported dictionary type: hash
+warning: hash:/etc/aliases: lookup of 'myalias' failed
+```
 
 #### 3.1 基本設定
 
@@ -565,8 +582,7 @@ root@badcompany /etc/postfix                                                    
 > # vim /etc/postfix/virtual_mailbox_domains                                                                                                                        
 root@badcompany /etc/postfix                                                                                                                               [1:06:15]
 > # cat /etc/postfix/virtual_mailbox_domains                                                                                                                        
-badcompany.tokyo OK
-
+domain.tld OK
 root@badcompany /etc/postfix                                                                                                                               [1:06:18]
 > # postmap lmdb:/etc/postfix/virtual_mailbox_domains                                                                                                               root@badcompany /etc/postfix                                                                                                                               [1:06:40]
 ```
@@ -580,11 +596,11 @@ root@badcompany /etc/postfix                                                    
 root@badcompany /etc/postfix                                                       [4:46:40]
 > # diff main.cf.20241208 main.cf                                                                                                                                   
 99a100
-> myhostname = mail.badcompany.tokyo
+> myhostname = mail.domain.tld
 106c107
 < #mydomain = domain.tld
 ---
-> mydomain = badcompany.tokyo
+> mydomain = domain.tld
 121c122
 < #myorigin = $myhostname
 ---
@@ -618,11 +634,11 @@ root@badcompany /etc/postfix                                                    
 root@badcompany /etc/postfix                                                                      [4:57:21]
 > # diff main.cf.20241208 main.cf                                                                                                                                   
 99a100
-> myhostname = mail.badcompany.tokyo
+> myhostname = mail.domain.tld
 106c107
 < #mydomain = domain.tld
 ---
-> mydomain = badcompany.tokyo
+> mydomain = domain.tld
 121c122
 < #myorigin = $myhostname
 ---
@@ -657,11 +673,11 @@ root@badcompany /etc/postfix                                                    
 root@badcompany /etc/postfix                                                                      [5:05:30]
 > # diff main.cf.20241208 main.cf                                                                                                                                   
 99a100
-> myhostname = mail.badcompany.tokyo
+> myhostname = mail.domain.tld
 106c107
 < #mydomain = domain.tld
 ---
-> mydomain = badcompany.tokyo
+> mydomain = domain.tld
 121c122
 < #myorigin = $myhostname
 ---
@@ -707,11 +723,11 @@ dovecotと同様に証明書の設定を行います。
 root@badcompany /etc/postfix                                 [1:29:07]
 > # diff main.cf.20241208 main.cf                                                                                                                                   
 99a100
-> myhostname = mail.badcompany.tokyo
+> myhostname = mail.domain.tld
 106c107
 < #mydomain = domain.tld
 ---
-> mydomain = badcompany.tokyo
+> mydomain = domain.tld
 121c122
 < #myorigin = $myhostname
 ---
@@ -734,8 +750,8 @@ root@badcompany /etc/postfix                                 [1:29:07]
 > smtpd_sasl_type = dovecot
 > smtpd_sasl_path = private/auth
 > smtpd_tls_auth_only = yes
-> smtpd_tls_cert_file = /opt/dehydrated/certs/badcompany.tokyo/fullchain.pem
-> smtpd_tls_key_file = /opt/dehydrated/certs/badcompany.tokyo/privkey.pem
+> smtpd_tls_cert_file = /opt/dehydrated/certs/domain.tld/fullchain.pem
+> smtpd_tls_key_file = /opt/dehydrated/certs/domain.tld/privkey.pem
 689a699,707
 > 
 > # SendGrid mail relay setting
@@ -762,25 +778,25 @@ SendGridのアカウント発行後以下のような警告が出ると思いま
 SendGridの公式からGoogleアカウントで登録しました。  
 日本の構造計画研究所の方ではなく、公式の方からです。
 
-![2024/12/05/sendgrid-01](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/sendgrid-01.webp)
-![2024/12/05/sendgrid-02](https://res.cloudinary.com/xlog/image/upload/v1734189766/2024/12/05/sendgrid-02.webp)
-
+![2024/12/05/sendgrid-01](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/sendgrid-01.webp?_a=BAMHUyJu0)
+![2024/12/05/sendgrid-02](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/sendgrid-02.webp?_a=BAMHUyJu0)
 #### 4.2 送信ドメイン認証
 
 Setting > Sender Authentication > Domain Authentication  
 と進みます。
 
-![2024/12/05/sendgrid-03](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-03.webp)
-![2024/12/05/sendgrid-04](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-04.webp)
+![2024/12/05/sendgrid-03](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/sendgrid-03.webp?_a=BAMHUyJu0)
+![2024/12/05/sendgrid-04](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/sendgrid-04.webp?_a=BAMHUyJu0)
 
 Fromヘッダーのドメインを入力して進みます。これは、エンベロープFromではなく、Fromヘッダーのドメイン部分です。
 
-![2024/12/05/sendgrid-05](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-05.webp)
+![2024/12/05/sendgrid-05](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/sendgrid-05.webp?_a=BAMHUyJu0)
+
 
 レジストラを選択する画面でCloudflareの選択肢があったので、自動でやってくれるのかと思ったのですが、手動なようです。
 言われるがままレコードをセットアップします。
 
-![2024/12/05/sendgrid-06](https://res.cloudinary.com/xlog/image/upload/v1734187656/2024/12/05/sendgrid-06.webp)
+![2024/12/05/sendgrid-06](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/sendgrid-06.webp?_a=BAMHUyJu0)
 
 CloudflareのDNSの速度はマジで世界最強ですな。  
 Route53が遅くて面倒な目に遭ったことがあるので、Route53に比べて最強に思えます。
@@ -789,9 +805,9 @@ Route53が遅くて面倒な目に遭ったことがあるので、Route53に比
 
 送信時のSMTP-AUTHのパスワードがAPI Keyとなっています。
 
-![2024/12/05/sendgrid-07](https://res.cloudinary.com/xlog/image/upload/v1734189453/2024/12/05/sendgrid-07.webp)
+![2024/12/05/sendgrid-07](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/sendgrid-07.webp?_a=BAMHUyJu0)
 
-![2024/12/05/sendgrid-09](https://res.cloudinary.com/xlog/image/upload/v1734189766/2024/12/05/sendgrid-09.webp)
+![2024/12/05/sendgrid-09](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/sendgrid-09.webp?_a=BAMHUyJu0)
 
 作成して保存しておきましょう。
 
@@ -827,13 +843,13 @@ root@badcompany /etc/postfix                                 [0:45:46]
 当然ですが、`yourSendGridApiKey`は先ほど作成したAPIキーに差し替えてください。
 
 ### 5. ドメイン 設定
-
+ 
 受信のためのドメイン設定を行います。
 
 ```
 root@badcompany /etc/postfix                                 [0:47:47]
-> # dig badcompany.tokyo mx +short                                    
-10 mail.badcompany.tokyo.
+> # dig domain.tld mx +short                                    
+10 mail.domain.tld.
 ```
 
 ### 6. 検証
@@ -875,9 +891,9 @@ root@badcompany /etc/postfix                                 [1:28:47]
              ├─702367 dovecot/log
              └─702368 dovecot/config
 
-Dec 15 01:28:43 badcompany.tokyo systemd[1]: Starting Dovecot IMAP/POP>
-Dec 15 01:28:43 badcompany.tokyo dovecot[702362]: master: Dovecot v2.3>
-Dec 15 01:28:43 badcompany.tokyo systemd[1]: Started Dovecot IMAP/POP3>
+Dec 15 01:28:43 domain.tld systemd[1]: Starting Dovecot IMAP/POP>
+Dec 15 01:28:43 domain.tld dovecot[702362]: master: Dovecot v2.3>
+Dec 15 01:28:43 domain.tld systemd[1]: Started Dovecot IMAP/POP3>
 root@badcompany /etc/postfix                                 [1:28:57]
 > # systemctl start postfix                                           
 root@badcompany /etc/postfix                                 [1:29:01]
@@ -896,30 +912,31 @@ root@badcompany /etc/postfix                                 [1:29:01]
              ├─702464 pickup -l -t unix -u
              └─702465 qmgr -l -t unix -u
 
-Dec 15 01:28:47 badcompany.tokyo systemd[1]: Starting Postfix Mail Tra>
-Dec 15 01:28:47 badcompany.tokyo postfix[702461]: postfix/postlog: sta>
-Dec 15 01:28:47 badcompany.tokyo postfix/postfix-script[702461]: start>
-Dec 15 01:28:47 badcompany.tokyo postfix/master[702463]: daemon starte>
-Dec 15 01:28:47 badcompany.tokyo systemd[1]: Started Postfix Mail Tran>
+Dec 15 01:28:47 domain.tld systemd[1]: Starting Postfix Mail Tra>
+Dec 15 01:28:47 domain.tld postfix[702461]: postfix/postlog: sta>
+Dec 15 01:28:47 domain.tld postfix/postfix-script[702461]: start>
+Dec 15 01:28:47 domain.tld postfix/master[702463]: daemon starte>
+Dec 15 01:28:47 domain.tld systemd[1]: Started Postfix Mail Tran>
 ```
 
 デーモンをスタートさせます
 
 Thunderbirdで作成したユーザーにログインします
 
-![2024/12/05/test-01-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1734479970/2024/12/05/test-01-thunderbird.webp)
+![2024/12/05/test-01-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/test-01-thunderbird.webp?_a=BAMHUyJu0)
 
 なんかユーザー名がmailのままで認証成功したり、25のSTARTTLSが表示されたり色々Thunderbirdの挙動が謎でしたが、IMAPは993しか開けていないためSSL/TLS接続のみでした。
 
 Thunderbirdからメールを送信してみます。LMTPユーザーを使ったSASL認証に成功している段階でSendGrid周りがイカれてない限り送信できるはずです。
 
-![2024/12/05/test-02-thunderbird2gmail](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/test-02-thunderbird2gmail.webp)
-![2024/12/05/test-03-gmail](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/test-03-gmail.webp)
+![2024/12/05/test-02-thunderbird2gmail](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/test-02-thunderbird2gmail.webp?_a=BAMHUyJu0)
+
+![2024/12/05/test-03-gmail](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/test-03-gmail.webp?_a=BAMHUyJu0)
 
 gmailで受信が確認できたら、gmailからメールを送信し受信を検証します。
 
-![2024/12/05/test-04-gmail2thunderbird](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/test-04-gmail2thunderbird.webp)
-![2024/12/05/test-05-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1734480646/2024/12/05/test-05-thunderbird.webp)
+![2024/12/05/test-04-gmail2thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/test-04-gmail2thunderbird.webp?_a=BAMHUyJu0)
+![2024/12/05/test-05-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/test-05-thunderbird.webp?_a=BAMHUyJu0)
 
 完璧ですね。
 
@@ -932,16 +949,16 @@ buntin in 🌐 badcompany in xlog on  main [!] via  v23.4.0
 ❯ sudo -i 
 root@badcompany ~                                                                                                                    [9:10:52]
 > # tail /var/log/mail.log                                                                                                                 
-Dec 19 09:04:50 badcompany.tokyo postfix/anvil[1152764]: statistics: max cache size 1 at Dec 19 09:01:29
-Dec 19 09:10:33 badcompany.tokyo postfix/postfix-script[1155436]: stopping the Postfix mail system
-Dec 19 09:10:33 badcompany.tokyo postfix/master[1069418]: terminating on signal 15
-Dec 19 09:10:33 badcompany.tokyo postfix/postfix-script[1155508]: starting the Postfix mail system
-Dec 19 09:10:33 badcompany.tokyo postfix/master[1155510]: daemon started -- version 3.9.1, configuration /etc/postfix
-Dec 19 09:10:48 badcompany.tokyo postfix/pickup[1155511]: 5A32516C6677: uid=1001 from=<buntin>
-Dec 19 09:10:48 badcompany.tokyo postfix/cleanup[1155660]: 5A32516C6677: message-id=<20241219001048.5A32516C6677@mail.badcompany.tokyo>
-Dec 19 09:10:48 badcompany.tokyo postfix/qmgr[1155512]: 5A32516C6677: from=<buntin@mail.badcompany.tokyo>, size=372, nrcpt=1 (queue active)
-Dec 19 09:10:48 badcompany.tokyo postfix/local[1155663]: 5A32516C6677: to=<root@mail.badcompany.tokyo>, orig_to=<root>, relay=local, delay=0.03, delays=0.02/0.01/0/0, dsn=2.0.0, status=sent (delivered to maildir)
-Dec 19 09:10:48 badcompany.tokyo postfix/qmgr[1155512]: 5A32516C6677: removed
+Dec 19 09:04:50 domain.tld postfix/anvil[1152764]: statistics: max cache size 1 at Dec 19 09:01:29
+Dec 19 09:10:33 domain.tld postfix/postfix-script[1155436]: stopping the Postfix mail system
+Dec 19 09:10:33 domain.tld postfix/master[1069418]: terminating on signal 15
+Dec 19 09:10:33 domain.tld postfix/postfix-script[1155508]: starting the Postfix mail system
+Dec 19 09:10:33 domain.tld postfix/master[1155510]: daemon started -- version 3.9.1, configuration /etc/postfix
+Dec 19 09:10:48 domain.tld postfix/pickup[1155511]: 5A32516C6677: uid=1001 from=<buntin>
+Dec 19 09:10:48 domain.tld postfix/cleanup[1155660]: 5A32516C6677: message-id=<20241219001048.5A32516C6677@mail.domain.tld>
+Dec 19 09:10:48 domain.tld postfix/qmgr[1155512]: 5A32516C6677: from=<buntin@mail.domain.tld>, size=372, nrcpt=1 (queue active)
+Dec 19 09:10:48 domain.tld postfix/local[1155663]: 5A32516C6677: to=<root@mail.domain.tld>, orig_to=<root>, relay=local, delay=0.03, delays=0.02/0.01/0/0, dsn=2.0.0, status=sent (delivered to maildir)
+Dec 19 09:10:48 domain.tld postfix/qmgr[1155512]: 5A32516C6677: removed
 root@badcompany ~                                                                                                                    [9:11:07]
 > # mailx -f mail                                                                                                                             
 mail version v14.9.24.  Type `?' for help
@@ -950,10 +967,10 @@ mail version v14.9.24.  Type `?' for help
 ? 
 [-- Message  1 -- 14 lines, 468 bytes --]:
 Date: Thu, 19 Dec 2024 09:10:48 +0900
-To: root@mail.badcompany.tokyo
+To: root@mail.domain.tld
 Subject: testmail
-Message-Id: <20241219001048.5A32516C6677@mail.badcompany.tokyo>
-From: buntin@mail.badcompany.tokyo
+Message-Id: <20241219001048.5A32516C6677@mail.domain.tld>
+From: buntin@mail.domain.tld
 
 test mail to root from buntin
 
@@ -965,16 +982,16 @@ root@badcompany ~                                                               
 > # echo "test mail to buntin from root" | mail -s "testmail" buntin                                                                          
 root@badcompany ~                                                                                                                    [9:12:59]
 > # tail /var/log/mail.log                                                                                                                    
-Dec 19 09:10:48 badcompany.tokyo postfix/pickup[1155511]: 5A32516C6677: uid=1001 from=<buntin>
-Dec 19 09:10:48 badcompany.tokyo postfix/cleanup[1155660]: 5A32516C6677: message-id=<20241219001048.5A32516C6677@mail.badcompany.tokyo>
-Dec 19 09:10:48 badcompany.tokyo postfix/qmgr[1155512]: 5A32516C6677: from=<buntin@mail.badcompany.tokyo>, size=372, nrcpt=1 (queue active)
-Dec 19 09:10:48 badcompany.tokyo postfix/local[1155663]: 5A32516C6677: to=<root@mail.badcompany.tokyo>, orig_to=<root>, relay=local, delay=0.03, delays=0.02/0.01/0/0, dsn=2.0.0, status=sent (delivered to maildir)
-Dec 19 09:10:48 badcompany.tokyo postfix/qmgr[1155512]: 5A32516C6677: removed
-Dec 19 09:12:59 badcompany.tokyo postfix/pickup[1155511]: 4D6E516C6677: uid=0 from=<root>
-Dec 19 09:12:59 badcompany.tokyo postfix/cleanup[1156918]: 4D6E516C6677: message-id=<20241219001259.4D6E516C6677@mail.badcompany.tokyo>
-Dec 19 09:12:59 badcompany.tokyo postfix/qmgr[1155512]: 4D6E516C6677: from=<root@mail.badcompany.tokyo>, size=369, nrcpt=1 (queue active)
-Dec 19 09:12:59 badcompany.tokyo postfix/local[1156923]: 4D6E516C6677: to=<buntin@mail.badcompany.tokyo>, orig_to=<buntin>, relay=local, delay=0.02, delays=0.01/0/0/0, dsn=2.0.0, status=sent (delivered to maildir)
-Dec 19 09:12:59 badcompany.tokyo postfix/qmgr[1155512]: 4D6E516C6677: removed
+Dec 19 09:10:48 domain.tld postfix/pickup[1155511]: 5A32516C6677: uid=1001 from=<buntin>
+Dec 19 09:10:48 domain.tld postfix/cleanup[1155660]: 5A32516C6677: message-id=<20241219001048.5A32516C6677@mail.domain.tld>
+Dec 19 09:10:48 domain.tld postfix/qmgr[1155512]: 5A32516C6677: from=<buntin@mail.domain.tld>, size=372, nrcpt=1 (queue active)
+Dec 19 09:10:48 domain.tld postfix/local[1155663]: 5A32516C6677: to=<root@mail.domain.tld>, orig_to=<root>, relay=local, delay=0.03, delays=0.02/0.01/0/0, dsn=2.0.0, status=sent (delivered to maildir)
+Dec 19 09:10:48 domain.tld postfix/qmgr[1155512]: 5A32516C6677: removed
+Dec 19 09:12:59 domain.tld postfix/pickup[1155511]: 4D6E516C6677: uid=0 from=<root>
+Dec 19 09:12:59 domain.tld postfix/cleanup[1156918]: 4D6E516C6677: message-id=<20241219001259.4D6E516C6677@mail.domain.tld>
+Dec 19 09:12:59 domain.tld postfix/qmgr[1155512]: 4D6E516C6677: from=<root@mail.domain.tld>, size=369, nrcpt=1 (queue active)
+Dec 19 09:12:59 domain.tld postfix/local[1156923]: 4D6E516C6677: to=<buntin@mail.domain.tld>, orig_to=<buntin>, relay=local, delay=0.02, delays=0.01/0/0/0, dsn=2.0.0, status=sent (delivered to maildir)
+Dec 19 09:12:59 domain.tld postfix/qmgr[1155512]: 4D6E516C6677: removed
 root@badcompany ~                                                                                                                    [9:13:06]
 > # exit                                                                                                                                      
 buntin in 🌐 badcompany in ~ via 🐍 v3.12.7 
@@ -988,10 +1005,10 @@ mail version v14.9.24.  Type `?' for help
 ? 
 [-- Message  1 -- 14 lines, 467 bytes --]:
 Date: Thu, 19 Dec 2024 09:12:59 +0900
-To: buntin@mail.badcompany.tokyo
+To: buntin@mail.domain.tld
 Subject: testmail
-Message-Id: <20241219001259.4D6E516C6677@mail.badcompany.tokyo>
-From: root@mail.badcompany.tokyo
+Message-Id: <20241219001259.4D6E516C6677@mail.domain.tld>
+From: root@mail.domain.tld
 
 test mail to buntin from root
 
@@ -1010,21 +1027,185 @@ test mail to buntin from root
 同一メールボックスの複数ユーザーを定義できることを確認します。  
 基本的な設定は終わっているので、変更する場所は基本的にlmdbになってる奴らです。
 
+どのような形式でデータを定義することにするのか、という点で結構悩みました。
+最終的にバックアップもなくなったら作成者、エンジニアが手書きできなくてはならない、というのが私のLinuxをハックする上でのモットーです。
+しかし、流石に個数が多い分lmdbに変換するプロセスも忘れないようにしなくてはなりません。
+変換忘れみたいなことがだるいので、最初から最後までプログラムにすることで追加忘れや実行忘れを防ぎます。
 
+### 定義ファイル
 
+tomlで定義します。
 
-#### 参考
+```toml
+[[mailbox]]
+name = "buntin.com"
+users = [
+  { email = "mail@buntin.com", password = "PASSWORD" },
+]
 
-[virtual_users|doc.dovecot.org](https://doc.dovecot.org/2.3/configuration_manual/virtual_users/#virtual-users)
+[[mailbox]]
+name = "domain.tld"
+users = [
+  { email = "mail@domain.tld", password = "PASSWORD" },
+  { email = "contact@domain.tld", password = "PASSWORD" },
+  { email = "bc@buntin.com", password = "PASSWORD" },
+]
 
-[user_databases_userdb|doc.dovecot.org](https://doc.dovecot.org/2.3/configuration_manual/authentication/user_databases_userdb/#authentication-user-database)
+[[mailbox]]
+name = "postmaster"
+users = [
+  { email = "postmaster@domain.tld", password = "PASSWORD" },
+  { email = "postmaster@buntin.com", password = "PASSWORD" },
+]
+```
 
-LMTP RedHat
-https://docs.redhat.com/ja/documentation/red_hat_enterprise_linux/9/html/deploying_mail_servers/configuring-an-lmtp-socket-and-lmtps-listener_configuring-and-maintaining-a-dovecot-imap-and-pop3-server
+以上はサンプルです。ガチの設定はこれ以上に記述してあります。
 
-doc.dovecot.org
-lmtpserver
-https://doc.dovecot.org/2.3/configuration_manual/protocols/lmtp_server/#lmtp-server
+### Denoスクリプト
 
-DNS MXレコード
-https://www.cloudflare.com/ja-jp/learning/dns/dns-records/dns-mx-record/
+定義したユーザーデータは、以下のDenoスクリプトで自動的にpostfix達に認識させます
+
+```ts title="mail-user-sync.ts"
+#!/usr/bin/env -S deno run -A
+
+import $ from "jsr:@david/dax";
+import { parse } from "jsr:@std/toml";
+
+const MailUserConfigPath = "/var/vmail/users.toml";
+// const MailUserConfigPath = "users.toml";
+
+const virtualMailboxDomainsPath = "/etc/postfix/virtual_mailbox_domains";
+// const virtualMailboxDomainsPath = "virtual_mailbox_domains";
+
+const dovecotUsersPath = "/etc/dovecot/users";
+// const dovecotUsersPath = "users";
+
+type MailUserConfig = {
+  mailbox: {
+    name: string;
+    users: {
+      email: string;
+      password: string;
+    }[];
+  }[];
+};
+
+const userConfig = parse(
+  Deno.readTextFileSync(MailUserConfigPath),
+) as MailUserConfig;
+
+const generateVirtualMailboxDomains = (config: MailUserConfig) =>
+  Array.from(
+    new Set(
+      config.mailbox.flatMap((mb) =>
+        mb.users.map((user) => splitEmail(user.email)[1])
+      ),
+    ),
+  )
+    .map((domain) => `${domain} OK`)
+    .join("\n");
+
+const splitEmail = (email: string) => {
+  const [username, domain] = email.split("@");
+  if (!username || !domain) {
+    throw new Error(
+      `不正なメールアドレス形式(${email})
+      }`,
+    );
+  }
+  return [username, domain];
+};
+
+const generateDovecotUserEntry = async (
+  email: string,
+  password: string,
+  homeDir: string,
+) => {
+  const hashedResult = await $`doveadm pw -s CRYPT -p '${password}'`.text();
+  const line = `${email}:${hashedResult}::::${homeDir}::`;
+  return line;
+};
+
+const generateDovecotUsers = async (
+  config: MailUserConfig,
+) => {
+  const lines: string[] = [];
+  for (const mb of config.mailbox) {
+    const homeDir = `/var/vmail/${splitEmail(mb.users[0].email)[1]}/${splitEmail(mb.users[0].email)[0]
+      }`;
+    for (const user of mb.users) {
+      lines.push(
+        await generateDovecotUserEntry(user.email, user.password, homeDir),
+      );
+    }
+  }
+  return lines.join("\n");
+};
+
+const generateMailboxHomeDirs = (config: MailUserConfig) =>
+  config.mailbox.map((mb) => {
+    const [username, domain] = splitEmail(mb.users[0].email);
+    return `/var/vmail/${domain}/${username}`;
+  });
+
+const virtualDomains = generateVirtualMailboxDomains(userConfig);
+Deno.writeFileSync(
+  virtualMailboxDomainsPath,
+  new TextEncoder().encode(virtualDomains),
+);
+await $`postmap ${virtualMailboxDomainsPath}`;
+
+const dovecotUsers = await generateDovecotUsers(userConfig);
+Deno.writeFileSync(dovecotUsersPath, new TextEncoder().encode(dovecotUsers));
+
+for (const dir of generateMailboxHomeDirs(userConfig)) {
+  await $`mkdir -p ${dir}`;
+  await $`chown vmail: ${dir}`;
+}
+
+await $`systemctl restart dovecot`;
+await $`systemctl restart postfix`;
+
+```
+
+BunShellを使わない縛りを最近自分に課しているので、仕方なくDenoのdaxで簡単なスクリプトを組みましたが
+
+<code>await $\`postmap lmdb:path/to/file\`</code>
+
+といったコードがキモくてちょっと気に入ってないです。そのうち書き直します。
+
+### バーチャルドメイン・バーチャルユーザー・同一メールボックスの検証
+
+以上のように複数ユーザーを、複数のドメインで定義しました。  
+送信については、dovecotのsasl認証が成功した時点で、sendgridに登録があれば送信は必ずできます。したがって先ほどの検証で十分です。
+
+問題は、複数のユーザー、ドメインで一つのメールボックスを共有する設定が有効に働くか、という点です。
+こちらも、先ほどの単一メールアドレスで受信が成功した時点で、ユーザーの設定ファイルが適切に認識されれば問題なく動作するはずです。
+
+しかし、わざわざDovecotのLMTPを使用している理由はそのユーザー情報の定義の仕方によってマルチユーザーの同一メールボックスも簡単に実現できるためなので、それは検証しておきたいです。
+先ほどの定義ファイルのbadcompanyメールボックスが全てのユーザーで同じメールボックスで受信できるかどうかを確認します。
+
+先ほどの例のtomlの一部に、マルチドメイン、マルチユーザーで共有しているメールボックスがあるので、それが機能するかどうかで確認します。
+
+![2024/12/05/result-virtual-domain](https://res.cloudinary.com/xlog/image/upload/v1/2024/12/05/result-virtual-domain.webp?_a=BAMHUyJu0)
+
+OKですね。
+とりあえずDenoの例のスクリプト以外は満足できる構成になったのかなと思います。
+
+記事が長くなりすぎたので分けますが、SpamAssassin・fail2ban・ClamAVらへんを導入しようかなと考えています。最近セキュリティ的にあまりよろしくない事件があったので、そこらへんちょっとヒスってます。
+
+とりあえず構成を完成させるところまでは終わったので、この辺でこの記事は締めます。では！
+
+## 参考
+
+[documentation | postfix.org](https://www.postfix.org/documentation.html)
+
+[メールサーバーのデプロイ > 1.6. LMTP ソケットと LMTPS リスナーの設定 | docs.redhat.com](https://docs.redhat.com/ja/documentation/red_hat_enterprise_linux/9/html/deploying_mail_servers/configuring-an-lmtp-socket-and-lmtps-listener_configuring-and-maintaining-a-dovecot-imap-and-pop3-server)
+
+[lmtp_server | doc.dovecot.org](https://doc.dovecot.org/2.3/configuration_manual/protocols/lmtp_server/#lmtp-server)
+
+[virtual_users | doc.dovecot.org](https://doc.dovecot.org/2.3/configuration_manual/virtual_users/#virtual-users)
+
+[user_databases_userdb | doc.dovecot.org](https://doc.dovecot.org/2.3/configuration_manual/authentication/user_databases_userdb/#authentication-user-database)
+
+[dns-mx-record | cloudflare.com](https://www.cloudflare.com/ja-jp/learning/dns/dns-records/dns-mx-record/)
