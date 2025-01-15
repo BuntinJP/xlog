@@ -14,5 +14,99 @@ draft: true
 
 そのためのツールとして、[isync(mbsync)](https://wiki.archlinux.jp/index.php/Isync)を使います。
 
+[レポジトリ | sourceforge.net](https://sourceforge.net/p/isync/isync/ci/master/tree/)
+
+isync(mbsync)は、IMAPでメールサーバーに接続しローカルにそのメールボックスを同期したりするためのツールです。
+意外と昔からあるんですが、最近でもちゃんと更新がかかっているような神プロジェクトです。
+
+メールはよく枯れた技術などと言われますが、結局絶対に手放せないgmailも同様のSMTPプロトコルで他のメールサーバーと通信するように、いつまで経っても消えないものと勝手に思っています。  
+その辺の理解を深めるために始めたメールサーバーが変なところまで来てしまった感じです。
+
+## 現状・方針
+
+### 現状
+
+一旦現状をまとめます。
+postfix, Dovecot, SendGridを組み合わせたメールサーバーがあります。
+
+メールサーバーの設定により、外部からのメールをバーチャルユーザーが受信します。
+そのための転送経路としては、以下のようになっています。
+
+```
+Internet =[smtp]=> postfix =[lmtp]=> Dovecot => バーチャルユーザーのメールボックス
+```
+
+わざわざDovecotのLMTPを使用している理由は、ユーザーの認証まわりをpostfix,dovecotのそれぞれで全バーチャルユーザー分を設定するのは馬鹿らしいので、どちらかに機能を寄せたかったため、より多機能なDovecotに認証もローカル配送も任せている形です。
+
+### 作業方針
+
+以上のメールサーバーについて、バーチャルユーザーのメールボックスと、外部の同期対象のメールボックスのどれかが対応しており、それらをisync(mbsync)を使って同期するのが目標です。
+
+そのために、以下の手順で進めます。
+
+1. isync(mbsync)インストール
+2. テストで同期
+3. さくらのメールボックスをフェイルオーバーとして使うための同期設定の模索
+4. デーモン化
+
+## 手順
+
+### 1. isync(mbsync)インストール
+
+まずはこれがないと始まりません。
+
+```
+buntin in 🌐 badcompany in ~ via 🐍 v3.13.1 
+❯ paru -S isync  
+resolving dependencies...
+looking for conflicting packages...
+
+Packages (1) isync-1.5.0-2
+
+Total Download Size:   0.19 MiB
+Total Installed Size:  0.55 MiB
+
+:: Proceed with installation? [Y/n] 
+:: Retrieving packages...
+ isync-1.5.0-2-x86_64  199.5 KiB  1216 KiB/s 00:00 [##########################] 100%
+(1/1) checking keys in keyring                     [##########################] 100%
+(1/1) checking package integrity                   [##########################] 100%
+(1/1) loading package files                        [##########################] 100%
+(1/1) checking for file conflicts                  [##########################] 100%
+(1/1) checking available disk space                [##########################] 100%
+:: Processing package changes...
+(1/1) installing isync                             [##########################] 100%
+:: Running post-transaction hooks...
+(1/1) Arming ConditionNeedsUpdate...
+buntin in 🌐 badcompany in ~ via 🐍 v3.13.1 took 2s 
+❯ paru -Qi isync 
+Name            : isync
+Version         : 1.5.0-2
+Description     : IMAP and MailDir mailbox synchronizer
+Architecture    : x86_64
+URL             : https://isync.sourceforge.io/
+Licenses        : GPL2
+Groups          : None
+Provides        : None
+Depends On      : libsasl  zlib
+Optional Deps   : None
+Required By     : None
+Optional For    : None
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 564.10 KiB
+Packager        : Jonathan Steel <jsteel@archlinux.org>
+Build Date      : Sat 19 Oct 2024 10:52:23 PM JST
+Install Date    : Tue 14 Jan 2025 08:55:13 AM JST
+Install Reason  : Explicitly installed
+Install Script  : No
+Validated By    : Signature
+buntin in 🌐 badcompany in xlog on  main [!] via 🥟 v1.1.39 via  v23.4.0 
+❯ mbsync --version
+isync 1.5.0
+```
+
+
+
 
 
