@@ -1,0 +1,54 @@
+[[mailbox]]
+name = "mail@"
+users = [
+  { email = "mail@buntin.xyz", password = "synthia2687" },
+  { email = "mail@synthia-liz.com", password = "synthia2687" },
+  { email = "mail@synthia-emma.net", password = "synthia2687" },
+]
+
+[[mailbox]]
+name = "email@"
+users = [
+  { email = "email@buntin.xyz", password = "synthia2687" },
+  { email = "email@synthia-liz.com", password = "synthia2687" },
+  { email = "email@synthia-emma.net", password = "synthia2687" },
+]
+
+[[mailbox]]
+name = "emma@"
+users = [
+  { email = "emma@buntin.xyz", password = "synthia2687" },
+  { email = "emma@synthia-liz.com", password = "synthia2687" },
+  { email = "emma@synthia-emma.net", password = "synthia2687" },
+]
+
+[[mailbox]]
+name = "takumi.aoki@"
+users = [
+  { email = "takumi.aoki@buntin.xyz", password = "synthia2687" },
+  { email = "takumi.aoki@synthia-liz.com", password = "synthia2687" },
+  { email = "takumi.aoki@synthia-emma.net", password = "synthia2687" },
+]
+
+[[mailbox]]
+name = "buntin.app"
+users = [{ email = "mail@buntin.app", password = "synthia2687" }]
+
+[[mailbox]]
+name = "badcompany.tokyo"
+users = [
+  { email = "mail@badcompany.tokyo", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+  { email = "contact@badcompany.tokyo", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+  { email = "bc@buntin.app", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+]
+
+[[mailbox]]
+name = "postmaster"
+users = [
+  { email = "postmaster@badcompany.tokyo", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+  { email = "postmaster@buntin.xyz", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+  { email = "postmaster@synthia-emma.net", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+  { email = "postmaster@synthia-liz.com", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+  { email = "postmaster@buntin.tech", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+  { email = "postmaster@buntin.app", password = "0fNAT17KE6X9RoRO_cutarMkHjcU_R" },
+]

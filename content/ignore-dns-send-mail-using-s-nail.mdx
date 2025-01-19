@@ -1,0 +1,42 @@
+---
+title: s-nailでDNS(MX)を無視して任意のホストにメールを送信する
+description: 本番設定でDNS設定がされているメールアドレスへのメールをlocalhostに送信したかったのです
+date: 2025-01-19
+tags: ['ArchLinux','s-nail']
+categories: ['備忘録','メール']
+keywords: ['s-nail','MXレコード','無視']
+---
+
+# s-nailでDNS(MX)を無視して任意のホストにメールを送信する
+
+s-nailで、すでにメールサーバー周りの設定が完了しているメールがあります。DNSレコードをテストのために変更できないので、localhostにメールアドレスを指定して送る必要があります。
+メールのヘッダーに組み込む方法もあるようですが、再利用性が低そうだったのでs-nailの純正の機能でlocalhostにアドレス指定で送付する設定を確認しました。
+
+TELNETを使えばいい話なのですが、面倒なのとあくまでMUAから送信したかったので。
+
+## 手順
+
+```sh
+echo "TEST MAIL" | mail -s "Test Subject" -S mta=smtp://localhost:25 -S smtp-auth=none -S v15-compat=yes  user@domain.tld
+```
+
+これだけです。
+
+mailコマンドの使い方の解説になってしまいますが、`echo "TEST MAIL"`の部分が本文で、`-s "Test Subject"`が件名です。  
+オプション類の部分で、`-S v15-compat=yes`については、以下のような警告がうざいので消すためにつけています。
+
+```
+mail: Obsoletion warning: Use of old-style credentials, which will vanish in v15!
+mail:   Please read the manual section "On URL syntax and credential lookup"
+```
+
+25番ポートに直接接続して、暗号化・認証なしにメールを送りつけることができます。
+
+
+## 参考
+
+[S-nail | wiki.archlinux.jp](https://wiki.archlinux.jp/index.php/S-nail)
+
+[s-nail warning about old style | bbs.archlinux.org](https://bbs.archlinux.org/viewtopic.php?id=252939)
+
+[Ubuntu Manpage: S-nail [v14.9.6] | doc.dovecot.org](https://manpages.ubuntu.com/manpages/bionic/man1/s-nail.1.html)

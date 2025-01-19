@@ -3,14 +3,14 @@ title: Arch Linuxでisync(mbsync)を使い、クラウドのメールボック�
 description: さくらのメールボックスからローカルに建てたメールサーバーのメールボックスに同期します。そのためisync(mbsync)を使用します。
 date: 2025-01-13
 tags: ['ArchLinux','isync(mbsync)']
-categories: ['備忘録', '構築', 'メール']
+categories: ['備忘録', 'サーバー', 'メール']
 draft: true
 ---
 
 # Arch Linuxでisync(mbsync)を使い、クラウドのメールボックスをローカルに同期する
 
-[以前構築したメールサーバー](/posts/build-mailserver-with-sendgrid-arch)について、さくらのメールボックスから移行を考えています。
-そのため、現在さくらのメールボックスにあるメールを、ローカルのバーチャルユーザーに同期する必要があります。
+[以前構築したメールサーバー](/posts/build-mailserver-with-sendgrid-arch)について、さくらのメールボックスから移行を進めています。
+設定などの入れ込みは完了しましたが、最も大事なタスクとして、現在さくらのメールボックスにあるメールを、ローカルのバーチャルユーザーに同期する必要があります。
 
 そのためのツールとして、[isync(mbsync)](https://wiki.archlinux.jp/index.php/Isync)を使います。
 
@@ -19,7 +19,10 @@ draft: true
 isync(mbsync)は、IMAPでメールサーバーに接続しローカルにそのメールボックスを同期したりするためのツールです。
 意外と昔からあるんですが、最近でもちゃんと更新がかかっているような神プロジェクトです。
 
-メールはよく枯れた技術などと言われますが、結局絶対に手放せないgmailも同様のSMTPプロトコルで他のメールサーバーと通信するように、いつまで経っても消えないものと勝手に思っています。  
+さくらのメールボックスの基本情報は[こちら](https://help.sakura.ad.jp/rs/2250/)です。
+余談ですが、さくらのメールボックスは、自分が勤める会社でメールサービスをコーポサイトホストのEC2で受信したい、みたいなことを言い出したお客さんに紹介しているサービスでもあります。
+
+メールはよく枯れた技術などと言われますが、結局絶対に手放せないgmailもiCloudも、Sendmail,Postfix同様SMTPプロトコルで他のメールサーバーと通信します。つまるところいつまで経っても消えないものと勝手に思っています。  
 その辺の理解を深めるために始めたメールサーバーが変なところまで来てしまった感じです。
 
 ## 現状・方針
@@ -33,7 +36,7 @@ postfix, Dovecot, SendGridを組み合わせたメールサーバーがありま
 そのための転送経路としては、以下のようになっています。
 
 ```
-Internet =[smtp]=> postfix =[lmtp]=> Dovecot => バーチャルユーザーのメールボックス
+Internet =[smtp]=> postfix =[lmtp]=> Dovecot(LMTP) => バーチャルユーザーのメールボックス
 ```
 
 わざわざDovecotのLMTPを使用している理由は、ユーザーの認証まわりをpostfix,dovecotのそれぞれで全バーチャルユーザー分を設定するのは馬鹿らしいので、どちらかに機能を寄せたかったため、より多機能なDovecotに認証もローカル配送も任せている形です。
@@ -45,7 +48,7 @@ Internet =[smtp]=> postfix =[lmtp]=> Dovecot => バーチャルユーザーの�
 そのために、以下の手順で進めます。
 
 1. isync(mbsync)インストール
-2. テストで同期
+2. とりあえず同期してみる
 3. さくらのメールボックスをフェイルオーバーとして使うための同期設定の模索
 4. デーモン化
 
@@ -106,7 +109,155 @@ buntin in 🌐 badcompany in xlog on  main [!] via 🥟 v1.1.39 via  v23.4
 isync 1.5.0
 ```
 
+### 2. とりあえず同期してみる
 
+なんでこんな舐めた章タイトルなのかというと、使い方が全くわからなかったからです。思った以上に複雑でした。
+
+使い方
+
+#### 1. 設定ファイルを設置
+
+```
+[vmail@badcompany ~]$ mkdir .config
+[vmail@badcompany ~]$ cp /usr/share/doc/isync/examples/mbsyncrc.sample .config/isyncrc
+```
+
+```ini title="mbsyncrc.sample"
+# Global configuration section
+#   Values here are used as defaults for any following Channel section that
+#   doesn't specify them.
+Expunge None
+Create Both
+
+# More sections follow
+#
+# !!!! Note that empty lines delimit sections !!!!
+
+MaildirStore local
+Path ~/Mail/
+Trash Trash
+
+
+IMAPStore work
+Host work.host.com
+User tehuser
+Pass xxxxxxxx
+# Fetch password from gnome-keyring:
+#PassCmd "gnome-keyring-query get mail_pw"
+# Fetch password from .netrc:
+#PassCmd "sed -n -e 's,^machine work\\.host\\.com login tehuser password \\(.*\\),\\1,p' < $HOME/.netrc"
+# Fetch password from a gpg-encrypted file:
+#PassCmd "gpg --quiet --for-your-eyes-only --decrypt $HOME/imappassword.gpg"
+# Fetch password from pwmd (http://pwmd.sourceforge.net/):
+#PassCmd "echo -ne 'GET myIsp\\tpassword' | pwmc datafile"
+
+Channel work
+Far :work:
+Near :local:work
+Expunge Near
+Sync PullNew Push
+
+
+IMAPStore personal
+Host host.play.com
+Port 6789
+TLSType None
+
+Channel personal
+Far :personal:
+Near :local:personal
+Expunge Both
+MaxMessages 150
+MaxSize 200k
+
+IMAPStore remote
+Tunnel "ssh -q host.remote.com /usr/sbin/imapd"
+
+Channel remote
+Far :remote:
+Near :local:remote
+
+
+Group boxes
+Channels work personal remote
+
+
+# Due to the divergent Path suffixes, it's possible to have
+# multiple Stores homed in the same directory.
+# You could even put them all directly into $HOME.
+
+MaildirStore local-personal
+Path ~/Mail/personal-
+Inbox ~/Mail/personal-INBOX
+
+MaildirStore local-work
+Path ~/Mail/work-
+# Just because.
+Inbox ~/Mail/w0rk_InBoX
+
+Channel personal-joined
+Far :personal:
+Near :local-personal:
+Paterns *
+
+Channel work-joined
+Far :work:
+Near :local-work:
+Paterns *
+
+Group joined personal-joined work-joined
+
+
+IMAPStore st1
+Host st1.domain.com
+AuthMech CRAM-MD5
+# Omit if you want to use the system certificate store.
+CertificateFile ~/.st1-certificate.crt
+
+IMAPStore st2
+Host imap.another-domain.com
+Path non-standard/
+TLSVersions -1.2
+
+Channel rst
+Far :st1:somebox
+Near :st2:
+
+
+IMAPAccount server
+Host imaps:foo.bar.com
+# Omit if you want to use the system certificate store.
+CertificateFile ~/.server-certificate.crt
+
+IMAPStore server
+Account server
+MapInbox inbox
+Trash ~/trash
+TrashRemoteNew yes
+
+MaildirStore mirror
+Path ~/Maildir/
+SubFolders Verbatim
+
+Channel o2o
+Far :server:
+Near :mirror:
+Patterns %
+
+Group partial o2o:inbox,sent-mail,foobar
+
+# INBOX => server, INBOX.foo => server.foo, etc.
+Channel inbox
+Far :server:INBOX
+Near :mirror:server
+Patterns *
+```
+
+何やら説明のためにかなりの設定が書かれていますが、設定は大きく以下の4つに分かれています。
+
+1. ストア(Store)
+
+ストアは、メールボックスのことです。1メールユーザーのための認証情報、という理解で問題ないかと思います。
 
 
 

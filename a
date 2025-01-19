@@ -1,0 +1,64 @@
+Expunge None
+Create Both
+
+IMAPStore buntin_mail
+Host buntin.sakura.ne.jp
+User mail@buntin.xyz
+Pass synthia2687
+
+IMAPStore buntin_email
+Host buntin.sakura.ne.jp
+User email@buntin.xyz
+Pass synthia2687
+
+IMAPStore buntin_emma
+Host buntin.sakura.ne.jp
+User emma@buntin.xyz
+Pass synthia2687
+
+IMAPStore buntin_takumi.aoki
+Host buntin.sakura.ne.jp
+User takumi.aoki@buntin.xyz
+Pass synthia2687
+
+MaildirStore local
+Path ~/Mail/   # ローカルのメール保存先を指定
+Trash Trash    # ローカルの削除済みメールボックスを Trash に指定
+
+Channel buntin_
+Far :buntin_:        # リモートの IMAP ストアを指定
+Near :local:buntin_  # ローカルの Maildir ストアを指定
+Expunge Near      # ローカルで削除したメールをリモートから削除
+Sync PullNew Push # 新しいメールの受信 (PullNew) と送信 (Push) を行う
+
+IMAPStore personal
+Host host.play.com
+Port 6789            # IMAPサーバーのポート番号
+TLSType None         # TLS を無効化
+
+Channel personal
+Far :personal:       # リモートの IMAP ストアを指定
+Near :local:personal # ローカルの Maildir ストアを指定
+Expunge Both         # ローカルとリモートの両方から削除
+MaxMessages 150      # 同期する最大メール数
+MaxSize 200k         # 同期する最大サイズ
+
+IMAPStore remote
+Tunnel "ssh -q host.remote.com /usr/sbin/imapd"  # SSH トンネル経由で IMAP サーバーに接続
+
+Channel remote
+Far :remote:       # リモートの IMAP ストアを指定
+Near :local:remote # ローカルの Maildir ストアを指定
+
+Group boxes
+Channels buntin_ personal remote  # 複数のチャンネルをまとめたグループを作成
+
+IMAPAccount server
+Host imaps:foo.bar.com          # IMAP サーバーのホスト名
+CertificateFile ~/.server-certificate.crt # 証明書を指定
+
+IMAPStore server
+Account server                  # アカウント名
+MapInbox inbox                  # INBOX を指定
+Trash ~/trash                   # ローカルの Trash フォルダを指定
+TrashRemoteNew yes              # リモート側でも新しい Trash メールボックスを作成
