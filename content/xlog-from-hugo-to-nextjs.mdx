@@ -7,7 +7,7 @@ categories: ['工作', 'xlog関連']
 keywords: ['Cloudflare', 'zeabur', 'Bun', 'Next.js', 'Node.js', 'JavaScript', 'TypeScript', 'Hugo', 'Workers']
 ---
 
-# Hugo 環境紹介
+## Hugo 環境紹介
 
 [当ブログ(xlog.systems)](https://www.xlog.systems)は、一番最初は Hugo で作成していました。
 
@@ -22,13 +22,13 @@ Hugo と html,一部生 JavaScript ファイルなんかで、`{{ .Site.Params.t
 
 残し方は、ブランチとして残します。切り替え前の最後のコミットから hugo というブランチ切っておきます[github](https://github.com/BuntinJP/xlog/tree/hugo)。
 
-## テーマ
+### テーマ
 
 [hugo-texify3](https://themes.gohugo.io/themes/hugo-texify3/)というテーマを使っていました。
 
 一応ローカルの変更を戻せるように変更したいのと、git のサブモジュールとしてデプロイを自動化したかった(ジャムスタックプラットフォームを使用する予定だった)ので、[フォーク](https://github.com/BuntinJP/hugo-texify3)を作成してそれを利用する形にしていました。
 
-## インフラ
+### インフラ
 
 Cloudflare Workers & Pages で運用していました。
 
@@ -40,21 +40,21 @@ Hugo のビルドは Cloudflare がやってくれてました。
 
 main が更新されるたびにビルドする設定にしていました。たまにいらないビルドなんかも発生するんですが、料金増えないので気にしません。
 
-# Next.js 環境紹介
+## Next.js 環境紹介
 
-## 移行方法
+### 移行方法
 
 なんと、**友人**が書いてくれました。
 
 自分はほぼ口出ししただけですかね、、
 Next.js なんで何かあれば自分で変えちゃう可能性が高いので、これからは自分でちょいちょい変更していきます。
 
-## インフラ
+### インフラ
 
 Cloudflare のサーバーレス環境もいいかなと思ったのですが、SSG とサーバーレスの組み合わせを自分で定義するのは結構面倒でした。
 そのため、vercel,zeabur,AWS lambda,オンプレの中から結構迷ったのち、zeabur を選択しました。
 
-## zeabur
+### zeabur
 
 その友人から教えてもらった中華?台湾?系のサービスで、コンテナでもサーバーレスでもクレカ登録無しですぐデプロイできるようです。
 月 5 ドルプランがあったので、普通に入っちゃいました。
@@ -65,7 +65,7 @@ Cloudflare のサーバーレス環境もいいかなと思ったのですが、
 
 かなりパフォーマンスもいいと思うので、Bun & TypeScript & zeabur 構成はしばらく続くと思います。
 
-# (祝) Hello, Next.js!!
+## (祝) Hello, Next.js!!
 
 ということで、Next.js に移行しました。
 
@@ -74,13 +74,13 @@ hugo ブランチを追う様に違うサブドメインで参照できる様に
 - [旧 xlog.systems](https://old.xlog.systems/)
 - [新 xlog.systems](https://www.xlog.systems/)
 
-## wappalyzer での見た目
+### wappalyzer での見た目
 
-### 旧サイト
+#### 旧サイト
 
 ![xlog-from-hugo-to-nextjs/old-wappalyzer01](https://res.cloudinary.com/xlog/image/upload/v1/xlog-from-hugo-to-nextjs/old-wappalyzer01.webp?_a=BAMHUyJu0)
 
-### 新サイト
+#### 新サイト
 
 ![xlog-from-hugo-to-nextjs/new-wappalyzer01](https://res.cloudinary.com/xlog/image/upload/v1/xlog-from-hugo-to-nextjs/new-wappalyzer01.webp?_a=BAMHUyJu0)
 

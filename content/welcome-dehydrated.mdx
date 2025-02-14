@@ -7,7 +7,7 @@ categories: ['工作', 'SSL']
 keywords: ['dehydrated', "Let's Encrypt", 'certbot', 'SSL', 'Cloudflare', '証明書', '更新', 'スクリプト']
 ---
 
-# より強固に？？
+## より強固に？？
 
 なんて言った？
 
@@ -27,7 +27,7 @@ keywords: ['dehydrated', "Let's Encrypt", 'certbot', 'SSL', 'Cloudflare', '証�
 
 あ、「より強固に」を「より権威的な CA からの無料証明書の入手する」と空見した方はお帰りください。そのような方法は知りません。
 
-# 環境
+## 環境
 
 **自宅 LAN 内**
 
@@ -48,7 +48,7 @@ RHEL に強い CPU が乗っているため、ほぼそれがメインです。
 これも別記事になると思いますが、Cloudflare は神です。
 ですので、DNS,CDN,SSL,DDoS 対策など、私のインフラはだいぶ Cloudflare 依存気味ですので、真似はあまりお勧めしません。。
 
-# 現状解説・今までの証明書更新
+## 現状解説・今までの証明書更新
 
 説明に自宅ドメインを使うのも変なので、ここでは `example.com`と言うドメインを利用している前提とします。
 
@@ -79,7 +79,7 @@ Nuro を導入して早 5 年ほど経ちますが、今の所一度しか変化
 
 以上が現状まとめ、となります。
 
-# 今後の証明書更新
+## 今後の証明書更新
 
 要件は以下のようになります。自宅用の自己満構成なのでかなり緩めです。
 
@@ -102,7 +102,7 @@ Nuro を導入して早 5 年ほど経ちますが、今の所一度しか変化
 
 レゴで自分が欲しいところだけ組んだような感じですね。自分としてはこれらを見つけたとき結構本気で運命感じました。
 
-## dehydrated とは
+### dehydrated とは
 
 *dehydrated*は certbot と同じく ACME プロトコルに対応するクライアントです。ShellScript で書かれた単純なスクリプトです。
 
@@ -118,9 +118,9 @@ certbot と違い、証明書の取得のみを行います。証明書の設定
 自分が更新かけなければ、ソフトウェアのバージョンは変わりません。が、自分は趣味サーバーで重いサービスをホストしてるわけでもないので、頻繁に `refresh-dnf`コマンドを実行します。このコマンドは自作です笑。commands というレポジトリにあり、以下のコピーを見てみてください。
 
 ```bash title="refresh-dnf.sh"
-#!/bin/bash
+##!/bin/bash
 
-# Refresh DNF
+## Refresh DNF
 sudo dnf check-update
 sudo dnf update -y
 sudo dnf upgrade -y
@@ -141,7 +141,7 @@ sudo dnf makecache
 
 ンンンンンｎｎｎｎ、[dehydrated](https://github.com/dehydrated-io/dehydrated/commits/master/)はどうかな？？ 、、`3 month ago`、、微妙ですが、一応 certbot よりは古いです。というか、こっちは構造上自動的にアップデートされません(企画倒れではある)。でもドキュメントは 5 年前より変わってない様なので許してください。
 
-## letsencrypt-cloudflare-hook とは
+### letsencrypt-cloudflare-hook とは
 
 *letsencrypt-cloudflare-hook*は、dehydrated のプラグイン的なものです。レポジトリ名に dehydrated が含まれていないので分かりづらいですが。
 
@@ -157,7 +157,7 @@ dehydrated は、hooks という形で API のようなものを提供してい�
 そして、TXT 検証で dehydrated が特別な通信なしに証明書発行までこぎ着けます。
 CloudflareAPI 経由なのがなんとも素晴らしいです本当に。
 
-## 設定内容
+### 設定内容
 
 これを見に来ている方には使い方がわかっているツールの説明などいらないかと思うので割愛します。[こちら](https://github.com/dehydrated-io/dehydrated)をどうぞ。
 
@@ -175,11 +175,11 @@ ubcode.example.com
 example.com
 ```
 
-# 結果
+## 結果
 
 ```
 [::] buntin@example.com:/opt/dehydrated (master %) $ ./dehydrated -c -t dns-01 -k 'hooks/cloudflare/hook.py'
-# INFO: Using main config file /opt/dehydrated/config
+## INFO: Using main config file /opt/dehydrated/config
  + CloudFlare hook executing: startup_hook
  + Creating chain cache directory /opt/dehydrated/chains
 Processing code.example.com
@@ -295,7 +295,7 @@ Cloudflare 関連の Web 通信系の心配は全くないんですが、証明�
 
 では！
 
-# 改訂履歴
+## 改訂履歴
 
 - 2024/03/08 初稿
 - 2024/03/26 (追記) 記事内容がスカスカすぎたため追記。さらに追記内容があるが暇な時間待ち。

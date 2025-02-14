@@ -7,9 +7,9 @@ categories: ['備忘録', 'git・github']
 keywords: ['git', 'github', 'GPG', '署名', '設定', 'コミット', 'commit', 'signing', 'verified']
 ---
 
-# クライアント(User)側の設定
+## クライアント(User)側の設定
 
-## GPG 鍵を作成
+### GPG 鍵を作成
 
 ```bash
 gpg --full-generate-key
@@ -17,7 +17,7 @@ gpg --full-generate-key
 
 このとき、メールは Github に登録済みのメールを使用してください。
 
-## GPG 鍵の ID を取得
+### GPG 鍵の ID を取得
 
 ```txt
 pub   rsa3072/OOOOOOOOOOOOOO 2024-03-01 [SC]
@@ -34,7 +34,7 @@ sub   rsa3072/TTTTTTTT 2024-03-01 [E]
 gpg --list-keys --keyid-format LONG | grep pub | awk '{print $2}' | cut -d'/' -f2;
 ```
 
-## GPG 公開鍵の出力
+### GPG 公開鍵の出力
 
 ID がわかったら、以下のコマンドを実際の ID に差し替えて実行してください。
 
@@ -53,7 +53,7 @@ gpg --armor --export OOOOOOOOOOOOOO
 -----END PGP PUBLIC KEY BLOCK-----
 ```
 
-## pinentry の設定
+### pinentry の設定
 
 正確な定義はわかりませんが、コミット時署名のためのパスワードを打つための専用の TUI ソフトウェア的なやつです。
 
@@ -64,7 +64,7 @@ sudo apt install pinentry-curses; # Debian系 CUI
 sudo dnf install pinentry;        # RHEL系(EPEL必要かも)
 ```
 
-## Git の設定
+### Git の設定
 
 ```bash
 git config --global user.signingkey OOOOOOOOOOOOOO # GPG鍵のID
@@ -72,7 +72,7 @@ git config --global commit.gpgsign true
 git config --global gpg.program gpg
 ```
 
-## 環境変数 GPG_TTY の設定
+### 環境変数 GPG_TTY の設定
 
 .zshrc,.bashrc に、１行追加するだけです。
 
@@ -82,26 +82,26 @@ git config --global gpg.program gpg
 export GPG_TTY=$(tty)
 ```
 
-## クライアント側終わり
+### クライアント側終わり
 
 git に ssh できる環境を作っておきましょう。これやっててできないことはないと思いますが。
 
-# Github 側の設定
+## Github 側の設定
 
-## Github に鍵を追加する。
+### Github に鍵を追加する。
 
 `設定 -> SSH and GPG keys -> New GPG keys`
 
 から追加可能。ID と公開鍵を入力する。
 
-# 完了!
+## 完了!
 
 これで、コミット時に GPG 署名ができるようになります。
 
 ![github-gpg-signing/github-gpg-signing-result](https://res.cloudinary.com/xlog/image/upload/v1/github-gpg-signing/github-gpg-signing-result.webp?_a=BAMHUyJu0)
 
 
-# [2024/05/23 追記]
+## [2024/05/23 追記]
 
 パスフレーズ、パスワードの変更をしたくなった時の変更方法です。
 

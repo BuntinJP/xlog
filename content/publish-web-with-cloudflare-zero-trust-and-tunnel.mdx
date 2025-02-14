@@ -1,0 +1,27 @@
+---
+title: Cloudflare Zero Trust, Tunnel で、Webコンテンツをセキュアに配信する
+description: Cloudflare Tunnelで公開したドメインを、Cloudflare Zero Trustでの認証により使えるようにします。
+date: 2025-02-13
+tags: ['Zero Trust','Cloudflare']
+categories: ['工作', 'サーバー']
+draft: true
+---
+
+## はじめに
+
+rawというサブドメインで、外にいるときや、鍵を持ってきていない端末に鍵や公開したいファイルなどを、自分や友人のためだけに公開したいです。
+
+また、80,443がすでに複数のドメインのバーチャルホストとして使っているため、不正アクセスを防ぐために、ポートごと分けて運用します。
+
+## 対応方針
+
+以下のシナリオで行きます。
+
+1. `/var/www/raw` を公開するバーチャルホストを、20001ポートで公開
+2. 20001ポートをCloudflare Tunnelで公開
+3. Cloudflare Tunnelで公開したドメインを、Clouflare Zero Trustで保護
+4. Zero Trustにて、対象のドメイン(アプリケーション)をGithubのアカウント認証などから利用できるようにする
+
+## 作業内容
+
+
