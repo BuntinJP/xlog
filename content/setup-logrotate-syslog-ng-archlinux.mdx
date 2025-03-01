@@ -137,5 +137,21 @@ Nginxのログ用に以下のようなやつも設定してみました。
 
 tailscale経由のみでしかアクセスできないようにすることも検討したんですが、流石に不便すぎるし、そのうち出ると噂のiOS版Thunderbirdに待機するためにも、例に漏れずキショ構造となっていますが、誰かの琴線に触れれば幸いです。
 
-では。
+また、以下のように、logrotateのログ保持設定を一年巻にしました。
 
+```
+root@badcompany /etc                             [4:07:22]
+> # cp -p logrotate.conf{,.$(date "+%Y%m%d")}             
+root@badcompany /etc                             [4:07:39]
+> # vim logrotate.conf                                    
+root@badcompany /etc                             [4:08:06]
+> # diff logrotate.conf.20250302 logrotate.cof            
+diff: logrotate.cof: No such file or directory
+```
+
+これによりログについては、しばらくは時間稼ぎできました。
+S3へのrcloneによる同期設定にするか、ローカルのバックアップサーバーにアップロードするかなど、これらのファイル(ほぼ確実に利用機会はありません)を、どう保存してやるかを考えているところです。
+
+logrotateについての設定ほぼ完了したので、一旦この記事はここまでとします。
+
+では！
