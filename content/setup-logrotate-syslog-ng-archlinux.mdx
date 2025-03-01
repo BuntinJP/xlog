@@ -2,24 +2,20 @@
 title: ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
 description: test post
 date: 2023-02-10
-tags: []
-categories: ['テスト用']
+tags: ['Zero Trust','Cloudflare']
+categories: ['備忘録', 'サーバー','ミドルウェア']
 draft : true
 ---
 # ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
 
 ArchLinuxのsyslog-ngにて出力している`/var/log/mail.log`をログローテートして圧縮か削除するスクリプトを作成したくなったので、一旦ログローテートの設定を整備します。
 
-
-`テスト用`
-
 ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
 
 ArchLinuxのPackageに`logrotate`というまんまのやつがあります。  
-まずはそいつを入れます。
+そいつでセットアップします。
 
 ```
-                                                                          
 root@badcompany ~                                               [0:41:12]
 > # paru -S logrotate                                                    
 resolving dependencies...
@@ -93,67 +89,53 @@ include /etc/logrotate.d
                                                                           
 root@badcompany ~                                               [0:42:40]
 > # cd /etc/logrotate.d                                                  
-                                                                          
-root@badcompany /etc/logrotate.d                                [0:43:50]
-> # nvim /etc/logrotate.conf                                             
-                                                                          
-root@badcompany /etc/logrotate.d                                [0:44:06]
-> # cp -p /etc/logrotate.conf{,.$(date "%Y%m%d")}                        
-date: invalid date ‘%Y%m%d’
-                                                                          
 root@badcompany /etc/logrotate.d                                [0:44:46]
 > # cp -p /etc/logrotate.conf{,.$(date "+%Y%m%d")}                       
-                                                                          
-root@badcompany /etc/logrotate.d       
+root@badcompany /etc/logrotate.d                                [0:43:50]
+> # nvim /etc/logrotate.conf                                             
 ```
 
-```
-root@badcompany /etc/logrotate.d                                [0:50:25]
-> # cp -p /etc/logrotate.conf{,.$(date "+%Y%m%d")}                       
-root@badcompany /etc/logrotate.d                                [0:50:30]
-> # ls -lah /etc/ | grep "log"                                           
--rw-r--r--  1 root    root      28 Sep 25 04:46 bash.bash_logout
--rw-r--r--  1 root    root    7.5K Jul  2 20:16 login.defs
--rw-r--r--  1 root    root     686 Jul  7 16:50 logrotate.conf
--rw-r--r--  1 root    root     686 Jul  7 16:50 logrotate.conf.20241220
-drwxr-xr-x  2 root    root    4.0K Dec 15 04:20 logrotate.d
--rw-r--r--  1 root    root    9.6K Nov 30 08:04 sudo_logsrvd.conf
-drwxr-xr-x  4 root    root    4.0K Dec 16 23:08 syslog-ng
-root@badcompany /etc/logrotate.d                                [0:50:33]
-> # vim /etc/logrotate.conf                                              
-```
+各種ライブラリの導入段階で、それぞれ必要なファイルが生成されています。
 
+今回の場合、syslog-ngのもののため、`/etc/logrotate.d/syslog-ng`というファイルを探します。
 
 ```
-
+root@badcompany /etc/logrotate.d                [15:22:05]
+> # cat syslog-ng                                         
+/var/log/messages.log /var/log/auth.log /var/log/mail.log /var/log/kernel.log /var/log/errors.log /var/log/daemon.log /var/log/user.log /var/log/iptables.log /var/log/everything.log /var/log/syslog.log /var/log/acpid.log /var/log/crond.log /var/log/lpr.log /var/log/uucp.log /var/log/news.log /var/log/ppp.log /var/log/debug.log {
+        missingok
+        sharedscripts
+        postrotate
+                /bin/kill -HUP $(cat /run/syslog-ng.pid 2>/dev/null) 2>/dev/null || true
+        endscript
+}
 ```
 
-## Code Block
+これらにより、logrotateに対する設定が自動的に行われています。
+設定内容は、sharedscriptsを使ってまとめて終わった後にsyslog-ngをリスタートしたり色々しています。正直言って自分は全く使いこなせていませんが、複雑な機構などもプロの方などは使いこなしているのでしょう。 `man logrotate` などで詳しく内容を読めますので、興味がある方は見てみると面白いかもですね。
 
-```js title="index.ts"
-console.log('Hello World');
+以下、余談です。
+
+Nginxのログ用に以下のようなやつも設定してみました。
+
+```
+> # cat nginx                                             
+/var/log/nginx/*log {
+        missingok
+        notifempty
+        create 640 http root
+        sharedscripts
+        compress
+        postrotate
+                test ! -r /run/nginx.pid || kill -USR1 `cat /run/nginx.pid`
+        endscript
+}
 ```
 
----
+と言っても、ほとんどテンプレの丸写しです。
+今までほぼローカルはのアクセスと思われていた接続についてはログを入れていなかったのですが、念の為撮るようにしました。
 
-## Math
+tailscale経由のみでしかアクセスできないようにすることも検討したんですが、流石に不便すぎるし、そのうち出ると噂のiOS版Thunderbirdに待機するためにも、例に漏れずキショ構造となっていますが、誰かの琴線に触れれば幸いです。
 
----
+では。
 
-
-### 正規表現とオートマトン
-
-$$
-L(R) = \{ w \mid w \text{ は正規表現 } R \text{ にマッチする } \}
-$$
-
-この式は、正規表現 $R$ にマッチする文字列の集合を $L(R)$ と表しています。
-
----
-
-## Cards
-
-<Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.vercel.app" />
-</Cards>
