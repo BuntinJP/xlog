@@ -4,7 +4,6 @@ description: test post
 date: 2023-02-10
 tags: ['Zero Trust','Cloudflare']
 categories: ['備忘録', 'サーバー','ミドルウェア']
-draft : true
 ---
 # ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
 
@@ -145,8 +144,248 @@ root@badcompany /etc                             [4:07:22]
 root@badcompany /etc                             [4:07:39]
 > # vim logrotate.conf                                    
 root@badcompany /etc                             [4:08:06]
-> # diff logrotate.conf.20250302 logrotate.cof            
-diff: logrotate.cof: No such file or directory
+root@badcompany /etc                                                                                                                 [4:31:10]
+> # diff logrotate.conf.20250302 logrotate.conf                                                                                               
+6c6
+< rotate 4
+---
+> rotate 53
+ 
+```
+
+```
+root@badcompany ~                                                                                                                    [4:28:24]
+> # logrotate --debug /etc/logrotate.d/nginx                                                                                                  
+warning: logrotate in debug mode does nothing except printing debug messages!  Consider using verbose mode (-v) instead if this is not what you want.
+
+reading config file /etc/logrotate.d/nginx
+Reading state from file: /var/lib/logrotate.status
+state file /var/lib/logrotate.status does not exist
+Allocating hash table for state file, size 64 entries
+
+Handling 1 logs
+
+rotating pattern: /var/log/nginx/*log 1048576 bytes empty log files are not rotated, no old logs will be kept
+considering log /var/log/nginx/access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log needs rotating
+considering log /var/log/nginx/domain.tld_access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log needs rotating
+considering log /var/log/nginx/domain.tld_error.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/buntin.code.domain.tld_access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/buntin.code.domain.tld_error.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/code.domain.tld_access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/code.domain.tld_error.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/dash.domain.tld_access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/dash.domain.tld_error.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/jupyterlab.domain.tld_access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/jupyterlab.domain.tld_error.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/kuma.domain.tld_access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/kuma.domain.tld_error.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/raw.domain.tld_access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/raw.domain.tld_error.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/secret.domain.tld_access.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+considering log /var/log/nginx/secret.domain.tld_error.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log does not need rotating (log size is below the 'size' threshold)
+rotating log /var/log/nginx/access.log, log->rotateCount is 0
+dateext suffix '-20250302'
+glob pattern '-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+renaming /var/log/nginx/access.log.1.gz to /var/log/nginx/access.log.2.gz (rotatecount 1, logstart 1, i 1), 
+log /var/log/nginx/access.log.2.gz doesn't exist -- won't try to dispose of it
+rotating log /var/log/nginx/domain.tld_access.log, log->rotateCount is 0
+dateext suffix '-20250302'
+glob pattern '-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+renaming /var/log/nginx/domain.tld_access.log.1.gz to /var/log/nginx/domain.tld_access.log.2.gz (rotatecount 1, logstart 1, i 1), 
+log /var/log/nginx/domain.tld_access.log.2.gz doesn't exist -- won't try to dispose of it
+renaming /var/log/nginx/access.log to /var/log/nginx/access.log.1
+disposeName will be /var/log/nginx/access.log.1.gz
+creating new /var/log/nginx/access.log mode = 0640 uid = 33 gid = 0
+renaming /var/log/nginx/domain.tld_access.log to /var/log/nginx/domain.tld_access.log.1
+disposeName will be /var/log/nginx/domain.tld_access.log.1.gz
+creating new /var/log/nginx/domain.tld_access.log mode = 0640 uid = 33 gid = 0
+running postrotate script
+running script with args /var/log/nginx/*log : "
+                test ! -r /run/nginx.pid || kill -USR1 `cat /run/nginx.pid`
+"
+compressing log with: /usr/bin/gzip
+removing old log /var/log/nginx/access.log.1.gz
+compressing log with: /usr/bin/gzip
+removing old log /var/log/nginx/domain.tld_access.log.1.gz                                                                                                                                             
+root@badcompany ~                                                                                                                    [4:28:40]
+> # logrotate --debug /etc/logrotate.d/syslog-ng                                                                                              
+warning: logrotate in debug mode does nothing except printing debug messages!  Consider using verbose mode (-v) instead if this is not what you want.
+
+reading config file /etc/logrotate.d/syslog-ng
+Reading state from file: /var/lib/logrotate.status
+state file /var/lib/logrotate.status does not exist
+Allocating hash table for state file, size 64 entries
+
+Handling 1 logs
+
+rotating pattern: /var/log/messages.log /var/log/auth.log /var/log/mail.log /var/log/kernel.log /var/log/errors.log /var/log/daemon.log /var/log/user.log /var/log/iptables.log /var/log/everything.log /var/log/syslog.log /var/log/acpid.log /var/log/crond.log /var/log/lpr.log /var/log/uucp.log /var/log/news.log /var/log/ppp.log /var/log/debug.log 1048576 bytes empty log files are rotated, no old logs will be kept
+considering log /var/log/messages.log
+  log /var/log/messages.log does not exist -- skipping
+Creating new state
+considering log /var/log/auth.log
+  log /var/log/auth.log does not exist -- skipping
+Creating new state
+considering log /var/log/mail.log
+Creating new state
+  Now: 2025-03-02 04:28
+  Last rotated at 2025-03-02 04:00
+  log needs rotating
+considering log /var/log/kernel.log
+  log /var/log/kernel.log does not exist -- skipping
+Creating new state
+considering log /var/log/errors.log
+  log /var/log/errors.log does not exist -- skipping
+Creating new state
+considering log /var/log/daemon.log
+  log /var/log/daemon.log does not exist -- skipping
+Creating new state
+considering log /var/log/user.log
+  log /var/log/user.log does not exist -- skipping
+Creating new state
+considering log /var/log/iptables.log
+  log /var/log/iptables.log does not exist -- skipping
+Creating new state
+considering log /var/log/everything.log
+  log /var/log/everything.log does not exist -- skipping
+Creating new state
+considering log /var/log/syslog.log
+  log /var/log/syslog.log does not exist -- skipping
+Creating new state
+considering log /var/log/acpid.log
+  log /var/log/acpid.log does not exist -- skipping
+Creating new state
+considering log /var/log/crond.log
+  log /var/log/crond.log does not exist -- skipping
+Creating new state
+considering log /var/log/lpr.log
+  log /var/log/lpr.log does not exist -- skipping
+Creating new state
+considering log /var/log/uucp.log
+  log /var/log/uucp.log does not exist -- skipping
+Creating new state
+considering log /var/log/news.log
+  log /var/log/news.log does not exist -- skipping
+Creating new state
+considering log /var/log/ppp.log
+  log /var/log/ppp.log does not exist -- skipping
+Creating new state
+considering log /var/log/debug.log
+  log /var/log/debug.log does not exist -- skipping
+Creating new state
+rotating log /var/log/mail.log, log->rotateCount is 0
+dateext suffix '-20250302'
+glob pattern '-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+renaming /var/log/mail.log.1 to /var/log/mail.log.2 (rotatecount 1, logstart 1, i 1), 
+log /var/log/mail.log.2 doesn't exist -- won't try to dispose of it
+renaming /var/log/mail.log to /var/log/mail.log.1
+disposeName will be /var/log/mail.log.1
+running postrotate script
+running script with args /var/log/messages.log /var/log/auth.log /var/log/mail.log /var/log/kernel.log /var/log/errors.log /var/log/daemon.log /var/log/user.log /var/log/iptables.log /var/log/everything.log /var/log/syslog.log /var/log/acpid.log /var/log/crond.log /var/log/lpr.log /var/log/uucp.log /var/log/news.log /var/log/ppp.log /var/log/debug.log : "
+                /bin/kill -HUP $(cat /run/syslog-ng.pid 2>/dev/null) 2>/dev/null || true
+"
+removing old log /var/log/mail.log.1
+root@badcompany ~                                                                                                                    [4:29:02]
+> # logrotate --debug /etc/logrotate.d/postgresql                                                                                             
+warning: logrotate in debug mode does nothing except printing debug messages!  Consider using verbose mode (-v) instead if this is not what you want.
+
+reading config file /etc/logrotate.d/postgresql
+Reading state from file: /var/lib/logrotate.status
+state file /var/lib/logrotate.status does not exist
+Allocating hash table for state file, size 64 entries
+
+Handling 1 logs
+
+rotating pattern: /var/log/postgresql.log 1048576 bytes empty log files are rotated, no old logs will be kept
+considering log /var/log/postgresql.log
+  log /var/log/postgresql.log does not exist -- skipping
+Creating new state
+```
+
+OKそうですね。ということで起動していきます。
+
+```
+root@badcompany ~                                [4:49:40]
+> # systemctl start logrotate.timer                       
+                                                           
+root@badcompany ~                                [4:49:53]
+> # systemctl status logrotate.timer                      
+● logrotate.timer - Daily rotation of log files
+     Loaded: loaded (/usr/lib/systemd/system/logrotate.tim>
+     Active: active (waiting) since Sun 2025-03-02 04:49:5>
+ Invocation: 1b09dcc5f05942f1a133c06291ac5685
+    Trigger: Mon 2025-03-03 00:35:26 JST; 19h left
+   Triggers: ● logrotate.service
+       Docs: man:logrotate(8)
+             man:logrotate.conf(5)
+Mar 02 04:49:53 badcompany.tokyo systemd[1]: Started Daily>
 ```
 
 これによりログについては、しばらくは時間稼ぎできました。

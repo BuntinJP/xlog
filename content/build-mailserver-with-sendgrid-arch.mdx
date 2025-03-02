@@ -776,26 +776,26 @@ SendGridのアカウント発行後以下のような警告が出ると思いま
 SendGridの公式からGoogleアカウントで登録しました。  
 日本の構造計画研究所の方ではなく、公式の方からです。
 
-![build-mailserver-with-sendgrid-arch/sendgrid-01](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/sendgrid-01.webp?_a=BAMHUyJu0)
-![build-mailserver-with-sendgrid-arch/sendgrid-02](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/sendgrid-02.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/sendgrid-01](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/sendgrid-01.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/sendgrid-02](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/sendgrid-02.webp?_a=BAMHUyJu0)
 
 #### 4.2 送信ドメイン認証
 
 Setting > Sender Authentication > Domain Authentication  
 と進みます。
 
-![build-mailserver-with-sendgrid-arch/sendgrid-03](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/sendgrid-03.webp?_a=BAMHUyJu0)
-![build-mailserver-with-sendgrid-arch/sendgrid-04](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/sendgrid-04.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/sendgrid-03](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/sendgrid-03.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/sendgrid-04](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/sendgrid-04.webp?_a=BAMHUyJu0)
 
 Fromヘッダーのドメインを入力して進みます。これは、エンベロープFromではなく、Fromヘッダーのドメイン部分です。
 
-![build-mailserver-with-sendgrid-arch/sendgrid-05](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/sendgrid-05.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/sendgrid-05](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/sendgrid-05.webp?_a=BAMHUyJu0)
 
 
 レジストラを選択する画面でCloudflareの選択肢があったので、自動でやってくれるのかと思ったのですが、手動なようです。
 言われるがままレコードをセットアップします。
 
-![build-mailserver-with-sendgrid-arch/sendgrid-06](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/sendgrid-06.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/sendgrid-06](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/sendgrid-06.webp?_a=BAMHUyJu0)
 
 CloudflareのDNSの速度はマジで世界最強ですな。  
 Route53が遅くて面倒な目に遭ったことがあるので、Route53に比べて最強に思えます。
@@ -804,9 +804,9 @@ Route53が遅くて面倒な目に遭ったことがあるので、Route53に比
 
 送信時のSMTP-AUTHのパスワードがAPI Keyとなっています。
 
-![build-mailserver-with-sendgrid-arch/sendgrid-07](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/sendgrid-07.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/sendgrid-07](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/sendgrid-07.webp?_a=BAMHUyJu0)
 
-![build-mailserver-with-sendgrid-arch/sendgrid-09](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/sendgrid-09.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/sendgrid-09](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/sendgrid-09.webp?_a=BAMHUyJu0)
 
 作成して保存しておきましょう。
 
@@ -922,20 +922,20 @@ Dec 15 01:28:47 domain.tld systemd[1]: Started Postfix Mail Tran>
 
 Thunderbirdで作成したユーザーにログインします
 
-![build-mailserver-with-sendgrid-arch/test-01-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/test-01-thunderbird.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/test-01-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/test-01-thunderbird.webp?_a=BAMHUyJu0)
 
 なんかユーザー名がmailのままで認証成功したり、25のSTARTTLSが表示されたり色々Thunderbirdの挙動が謎でしたが、IMAPは993しか開けていないためSSL/TLS接続のみでした。
 
 Thunderbirdからメールを送信してみます。LMTPユーザーを使ったSASL認証に成功している段階でSendGrid周りがイカれてない限り送信できるはずです。
 
-![build-mailserver-with-sendgrid-arch/test-02-thunderbird2gmail](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/test-02-thunderbird2gmail.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/test-02-thunderbird2gmail](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/test-02-thunderbird2gmail.webp?_a=BAMHUyJu0)
 
-![build-mailserver-with-sendgrid-arch/test-03-gmail](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/test-03-gmail.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/test-03-gmail](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/test-03-gmail.webp?_a=BAMHUyJu0)
 
 gmailで受信が確認できたら、gmailからメールを送信し受信を検証します。
 
-![build-mailserver-with-sendgrid-arch/test-04-gmail2thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/test-04-gmail2thunderbird.webp?_a=BAMHUyJu0)
-![build-mailserver-with-sendgrid-arch/test-05-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/test-05-thunderbird.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/test-04-gmail2thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/test-04-gmail2thunderbird.webp?_a=BAMHUyJu0)
+![05_build-mailserver-with-sendgrid-arch/test-05-thunderbird](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/test-05-thunderbird.webp?_a=BAMHUyJu0)
 
 完璧ですね。
 
@@ -1186,8 +1186,7 @@ BunShellを使わない縛りを最近自分に課しているので、仕方な
 
 先ほどの例のtomlの一部に、マルチドメイン、マルチユーザーで共有しているメールボックスがあるので、それが機能するかどうかで確認します。
 
-![build-mailserver-with-sendgrid-arch/result-virtual-domain](https://res.cloudinary.com/xlog/image/upload/v1/build-mailserver-with-sendgrid-arch/result-virtual-domain.webp?_a=BAMHUyJu0)
-
+![05_build-mailserver-with-sendgrid-arch/result-virtual-domain](https://res.cloudinary.com/xlog/image/upload/v1/05_build-mailserver-with-sendgrid-arch/result-virtual-domain.webp?_a=BAMHUyJu0)
 OKですね。
 とりあえずDenoの例のスクリプト以外は満足できる構成になったのかなと思います。
 
