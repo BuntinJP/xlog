@@ -26,7 +26,7 @@ raw.domain.tld          公開用
 
 としようと思います。
 
-`raw.` の方については、
+`secret.raw.` の方については、
 また、80,443がすでに複数のドメインのバーチャルホストとして使われているため、不正アクセスを防ぐために、ポートごと分けて運用します。
 
 ## 対応方針
@@ -203,6 +203,8 @@ Feb 15 18:35:43 badcompany.tokyo systemd[1]: Reloaded nginx web server.
 ![06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test.webp?_a=BAMHUyJu0)
 
 OKそうですね。
+
+これにより、`raw.`, `secret.raw.`の両方の準備が整いました。
 
 rawディレクトリにファイルを追加していき、ここからファイルをダウンロードする想定です。ポートを分けているため、まだ外部からアクセスできません。
 
