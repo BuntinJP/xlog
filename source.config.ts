@@ -10,6 +10,7 @@ import remarkMath from 'remark-math';
 import { z } from 'zod';
 
 export const blog = defineCollections({
+  type: 'doc',
   dir: 'content',
   schema: frontmatterSchema.extend({
     date: z
@@ -31,7 +32,6 @@ export const blog = defineCollections({
     keywords: z.array(z.string()).optional(),
     draft: z.boolean().optional(),
   }),
-  type: 'doc',
 });
 
 export default defineConfig({
