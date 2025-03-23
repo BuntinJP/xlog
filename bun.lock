@@ -4,8 +4,7 @@
     "": {
       "name": "xlog",
       "dependencies": {
-        "@shikijs/transformers": "3.2.1",
-        "@tailwindcss/postcss": "^4.0.15",
+        "@shikijs/transformers": "^3.2.1",
         "@vercel/analytics": "1.5.0",
         "@vercel/speed-insights": "1.2.0",
         "feed": "4.2.2",
@@ -25,7 +24,8 @@
       },
       "devDependencies": {
         "@biomejs/biome": "1.9.4",
-        "@fumadocs/cli": "^0.0.8",
+        "@fumadocs/cli": "0.0.8",
+        "@tailwindcss/postcss": "4.0.15",
         "@types/mdx": "2.0.13",
         "@types/node": "22.13.11",
         "@types/react": "19.0.12",
