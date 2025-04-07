@@ -3,37 +3,47 @@ title: Cloudflare Zero Trust, Tunnel で、コンテンツをセキュアに配�
 description: Cloudflare Tunnelで公開したドメインを、Cloudflare Zero Trustでの認証により使えるようにします。
 date: 2025-02-13
 tags: ['Zero Trust','Cloudflare']
-categories: ['工作', 'サーバー','ミドルウェア']
-draft: true
+categories: ['工作', 'サーバー','SOHO']
 ---
 
 ## はじめに
 
-以前死んだOracleLinux,RHEL9サーバーについては、`raw.` という差分ドメインを使い、画像や、公開鍵ファイル、CMS用のコンテンツなどを配信していました。
-そいつらが死んでから、しばらくの間放置状態だったのですが、最近ちょっとそいつらが欲しい理由ができたため、復活させます。
+#### !注意! Cloudflareにネームサーバーを移している前提の内容となります ※1
 
-また、`secret.raw` というサブドメインを使い、外にいるときや、鍵を持ってきていない端末で、p12ファイルなどをダウンロードできるようにします。
-当然ですが、秘密情報は自分や友人のためだけに公開したいです。
+
+以前死んだOracleLinux,RHEL9サーバーで、`raw.` というサブドメインを使い、画像や、公開鍵ファイル、CMS用のコンテンツなどを配信していました。
+それが死んでから、しばらくの間放置状態だったのですが、最近ちょっとその機能が欲しくなったため、復活させます。
+
+また、`secret-raw` というサブドメインを使い、外にいるときや、鍵を持ってきていない端末で、p12ファイルなどの秘密情報をダウンロードできるようにします。
+当然ですが、秘密情報は認証を通じて自分や友人のためだけに公開したいです。なんなら、githubのオーガナイゼーションを利用してメンバーや内部のACLによるアクセス制限を行うなんてことも考えられます。
+一旦はgithubなどのアカウント認証を使うを目標とします。
 
 例: 外出先のスマートフォンから、mTLSで保護されているURLにアクセスしたい
 
 そのため、2つのドメインを使って、それぞれ公開用・秘密用で分けたいと思います。
 
 ```
-secret.raw.domain.tld   秘密(認証必須)用
+secret-raw.domain.tld   秘密(認証必須)用
 raw.domain.tld          公開用
 ```
 
 としようと思います。
 
-`secret.raw.` の方については、
+`secret-raw.` の方については、
 また、80,443がすでに複数のドメインのバーチャルホストとして使われているため、不正アクセスを防ぐために、ポートごと分けて運用します。
+
+余談ですが、本来は、`secret-raw.domain.tld` は、 `secret.raw.domain.tld` とする予定でした。しかし、.で区切るとワイルドカード証明書が使えなくなり、トンネルの証明書検証が内部で失敗することでブラウザから接続不可能になります。
+
+最近、SOHOというワードを知りました。気に入って自分にも当てはまるため、今回からSOHO計画と名付けて自分のSmartOffice兼しょぼHomelabの整備を日記として残します。
+そのため、これはSOHO計画01です。
+
+※1 作業内容2
 
 ## 対応方針
 
 以下のシナリオで行きます。
 
-1. `/var/www/raw.secret` を公開するバーチャルホスト(secret.raw)を、20001ポートで公開
+1. `/var/www/secret-raw` を公開するバーチャルホスト(secret-raw)を、20001ポートで公開
 2. 20001ポートをCloudflare Tunnelで公開
 3. `/var/www/raw`を公開するバーチャルホスト(raw)を80,443ポートで公開
 4. Cloudflare Tunnelで公開したドメインを、Clouflare Zero Trustで保護
@@ -82,45 +92,44 @@ https://???.cloudflareaccess.com/#/Launcher などのURLから、それぞれの
 ```
 root@badcompany ~                                                                                 [18:27:55]
 > # cd /etc/nginx/conf.d                                                                                    
-root@badcompany /etc/nginx/conf.d                                                                 [18:27:59]
 root@badcompany /etc/nginx/conf.d                                                                                     [17:12:09]
 > # ls -lah                                                                                                                     
 total 56K
 drwxr-xr-x 3 root root 4.0K Feb 28 17:05 .
 drwxr-xr-x 3 root root 4.0K Feb 24 15:39 ..
--rw-r--r-- 1 root root 1.1K Feb 24 15:35 01_badcompany.tokyo.conf
--rw-r--r-- 1 root root  741 Sep 15 18:06 01_badcompany.tokyo.conf.20250224
--rw-r--r-- 1 root root 1.2K Feb 24 15:41 02_dash.badcompany.tokyo.conf
--rw-r--r-- 1 root root  981 Feb 25 11:48 03_kuma.badcompany.tokyo.conf
--rw-r--r-- 1 root root  714 Nov 24 01:19 03_kuma.badcompany.tokyo.conf.20250224
--rw-r--r-- 1 root root 1012 Nov 24 01:26 04_filebrowser.badcompany.tokyo.conf
--rw-r--r-- 1 root root 1.5K Feb 24 15:45 05_jupyterlab.badcompany.tokyo.conf
--rw-r--r-- 1 root root 1.4K Feb 24 15:45 06_code.badcompany.tokyo.conf
--rw-r--r-- 1 root root 1.5K Feb 26 10:56 07_buntin.code.badcompany.tokyo.conf
--rw-r--r-- 1 root root 1.5K Feb 26 10:56 07_buntin.code.badcompany.tokyo.conf.20250228
--rw-r--r-- 1 root root  759 Feb 25 11:50 08_raw.badcompany.tokyo.conf
+-rw-r--r-- 1 root root 1.1K Feb 24 15:35 01_domain.tld.conf
+-rw-r--r-- 1 root root  741 Sep 15 18:06 01_domain.tld.conf.20250224
+-rw-r--r-- 1 root root 1.2K Feb 24 15:41 02_dash.domain.tld.conf
+-rw-r--r-- 1 root root  981 Feb 25 11:48 03_kuma.domain.tld.conf
+-rw-r--r-- 1 root root  714 Nov 24 01:19 03_kuma.domain.tld.conf.20250224
+-rw-r--r-- 1 root root 1012 Nov 24 01:26 04_filebrowser.domain.tld.conf
+-rw-r--r-- 1 root root 1.5K Feb 24 15:45 05_jupyterlab.domain.tld.conf
+-rw-r--r-- 1 root root 1.4K Feb 24 15:45 06_code.domain.tld.conf
+-rw-r--r-- 1 root root 1.5K Feb 26 10:56 07_buntin.code.domain.tld.conf
+-rw-r--r-- 1 root root 1.5K Feb 26 10:56 07_buntin.code.domain.tld.conf.20250228
+-rw-r--r-- 1 root root  759 Feb 25 11:50 08_raw.domain.tld.conf
 drwxr-xr-x 2 root root 4.0K Feb 28 17:08 tunnels
 root@badcompany /etc/nginx/conf.d                                                                                     [17:12:16]
-> # cat 08_raw.badcompany.tokyo.conf                                                                                            
+> # cat 08_raw.domain.tld.conf                                                                                            
 server {
     listen 80;
-    server_name raw.badcompany.tokyo;
+    server_name raw.domain.tld;
 
-    access_log /var/log/nginx/raw.badcompany.tokyo_access.log main;
-    error_log  /var/log/nginx/raw.badcompany.tokyo_error.log warn;
+    access_log /var/log/nginx/raw.domain.tld_access.log main;
+    error_log  /var/log/nginx/raw.domain.tld_error.log warn;
 
-    return 301 https://raw.badcompany.tokyo$request_uri;
+    return 301 https://raw.domain.tld$request_uri;
 }
 
 server {
     listen 443 ssl;
-    server_name raw.badcompany.tokyo;
+    server_name raw.domain.tld;
 
-    ssl_certificate     /opt/dehydrated/certs/badcompany.tokyo/fullchain.pem;
-    ssl_certificate_key /opt/dehydrated/certs/badcompany.tokyo/privkey.pem;
+    ssl_certificate     /opt/dehydrated/certs/domain.tld/fullchain.pem;
+    ssl_certificate_key /opt/dehydrated/certs/domain.tld/privkey.pem;
 
-    access_log /var/log/nginx/raw.badcompany.tokyo_access.log main;
-    error_log  /var/log/nginx/raw.badcompany.tokyo_error.log warn;
+    access_log /var/log/nginx/raw.domain.tld_access.log main;
+    error_log  /var/log/nginx/raw.domain.tld_error.log warn;
 
     location / {
         root /var/www/raw;
@@ -133,21 +142,21 @@ server {
 root@badcompany /etc/nginx/conf.d                                                                                     [17:12:19]
 > # cd tunnels                                                                                                                  
 root@badcompany /etc/nginx/conf.d/tunnels                                                                             [17:12:38]
-> # vim 01_secret.raw.badcompany.tokyo.conf                                                                                     
+> # vim 01_secret-raw.domain.tld.conf                                                                                     
 root@badcompany /etc/nginx/conf.d/tunnels                                                                             [17:12:43]
-> # cat 01_secret.raw.badcompany.tokyo.conf                                                                                     
+> # cat 01_secret-raw.domain.tld.conf                                                                                     
 server {
     listen 20001;
-    server_name secret.raw.badcompany.tokyo;
+    server_name secret-raw.domain.tld;
 
-    #ssl_certificate     /opt/dehydrated/certs/badcompany.tokyo/fullchain.pem;
-    #ssl_certificate_key /opt/dehydrated/certs/badcompany.tokyo/privkey.pem;
+    #ssl_certificate     /opt/dehydrated/certs/domain.tld/fullchain.pem;
+    #ssl_certificate_key /opt/dehydrated/certs/domain.tld/privkey.pem;
 
-    access_log /var/log/nginx/secret.badcompany.tokyo_access.log main;
-    error_log  /var/log/nginx/secret.badcompany.tokyo_error.log warn;
+    access_log /var/log/nginx/secret.domain.tld_access.log main;
+    error_log  /var/log/nginx/secret.domain.tld_error.log warn;
 
     location / {
-        root /var/www/raw.secret;
+        root /var/www/secret-raw;
 
         autoindex on;
         autoindex_exact_size off;
@@ -160,7 +169,7 @@ root@badcompany /etc/nginx/conf.d/tunnels                                       
 root@badcompany /etc/nginx                                                                        [18:34:49]
 > # cp -p nginx.conf{,.$(date "+%Y%m%d")}                                                                   
 root@badcompany /etc/nginx                                                                        [18:34:59]
-> # vim nginx.conf                                                                                          
+> # vim nginx.conf # 追加でtunnelディレクトリとして新規でnginxの設定を置き出したディレクトリを読み込むように変更
 root@badcompany /etc/nginx                                                                        [18:35:23]
 > # diff nginx.conf.20250215 nginx.conf                                                                     
 34a35
@@ -188,27 +197,45 @@ root@badcompany /etc/nginx                                                      
              ├─1460337 "nginx: worker process is shutting down"
              └─1525043 "nginx: worker process"
 
-Feb 15 16:45:00 badcompany.tokyo nginx[1460337]: 2025/02/15 16:45:00 [error] 1460337#1460337: *5542 open() ">
-Feb 15 16:51:07 badcompany.tokyo nginx[1460337]: 2025/02/15 16:51:07 [error] 1460337#1460337: *5553 open() ">
-Feb 15 17:14:31 badcompany.tokyo nginx[1460337]: 2025/02/15 17:14:31 [error] 1460337#1460337: *5604 open() ">
-Feb 15 18:06:16 badcompany.tokyo nginx[1460337]: 2025/02/15 18:06:16 [error] 1460337#1460337: *5670 open() ">
-Feb 15 18:29:56 badcompany.tokyo nginx[1460337]: 2025/02/15 18:29:56 [error] 1460337#1460337: *5762 open() ">
-Feb 15 18:29:56 badcompany.tokyo nginx[1460337]: 2025/02/15 18:29:56 [error] 1460337#1460337: *5763 open() ">
-Feb 15 18:34:44 badcompany.tokyo nginx[1460337]: 2025/02/15 18:34:44 [error] 1460337#1460337: *5770 open() ">
-Feb 15 18:35:43 badcompany.tokyo systemd[1]: Reloading nginx web server...
-Feb 15 18:35:43 badcompany.tokyo nginx[1525037]: 2025/02/15 18:35:43 [notice] 1525037#1525037: signal proces>
-Feb 15 18:35:43 badcompany.tokyo systemd[1]: Reloaded nginx web server.
+Feb 15 16:45:00 domain.tld nginx[1460337]: 2025/02/15 16:45:00 [error] 1460337#1460337: *5542 open() ">
+Feb 15 16:51:07 domain.tld nginx[1460337]: 2025/02/15 16:51:07 [error] 1460337#1460337: *5553 open() ">
+Feb 15 17:14:31 domain.tld nginx[1460337]: 2025/02/15 17:14:31 [error] 1460337#1460337: *5604 open() ">
+Feb 15 18:06:16 domain.tld nginx[1460337]: 2025/02/15 18:06:16 [error] 1460337#1460337: *5670 open() ">
+Feb 15 18:29:56 domain.tld nginx[1460337]: 2025/02/15 18:29:56 [error] 1460337#1460337: *5762 open() ">
+Feb 15 18:29:56 domain.tld nginx[1460337]: 2025/02/15 18:29:56 [error] 1460337#1460337: *5763 open() ">
+Feb 15 18:34:44 domain.tld nginx[1460337]: 2025/02/15 18:34:44 [error] 1460337#1460337: *5770 open() ">
+Feb 15 18:35:43 domain.tld systemd[1]: Reloading nginx web server...
+Feb 15 18:35:43 domain.tld nginx[1525037]: 2025/02/15 18:35:43 [notice] 1525037#1525037: signal proces>
+Feb 15 18:35:43 domain.tld systemd[1]: Reloaded nginx web server.
 ```
 
 ![06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test.webp?_a=BAMHUyJu0)
 
-OKそうですね。
+OKそうですね
 
-これにより、`raw.`, `secret.raw.`の両方の準備が整いました。
+Nginxの設定ファイルや実際の編集内容などは、ログの途中を読んでいただけると🙇‍♂️
+
+自宅回線(※天下の究極うんこISP Nuro光)のルーターによる、ポートアドレス変換の配下にいるサーバーの設定例となります。
+
+実際の使用環境では、`/var/www/secret-raw` には秘匿性の高い情報が入るはずなので扱い方に注意です(Nginxを使って配信している時点で察してください)  
+外部から20001番ポートに直接アクセスできないようにアクセス制限をかけるくらいは必要かと。
+
+これにより、`raw.`, `secret-raw.`の両方の準備が整いました。
 
 rawディレクトリにファイルを追加していき、ここからファイルをダウンロードする想定です。ポートを分けているため、まだ外部からアクセスできません。
 
+ドメインを実際に切るのは最後にします。
+
 ### 2. Cloudflare Tunnelを使い、20001ポートを公開する
+
+#### 注意 CloudflareにNSを移管する必要があります
+
+> !注意! Cloudflareにネームサーバーを移している前提となります ※1
+
+冒頭の以上は、ここに関係します。今回利用するCloudflareTunnel, ZeroTrustは、Cloudflareにネームサーバーを移して使えるCloudflare独自の機能なので、ここからはその前提ありきで進めていきます。  
+また、CloudflareDashboard内の権限周りは考えません。全権限を持っている前提の話です。開発環境では関係ない話だと思いますが念のため。
+
+#### 1. cloudflaredをインストール
 
 Cloudflaredをインストールします。サーバーにはArchを使用しています。
 
@@ -247,20 +274,84 @@ Total Installed Size:  24.88 MiB
 :: Calculating inner conflicts...
 ```
 
+#### 2. Cloudflareダッシュボードからトンネルを作成
 
 Cloudflareのダッシュボードからトンネルを管理します。
 
-CLIからやる方法もあり、CLIということでそっちを使ってあげたいですが、トンネルの情報をコンパネから触れるメリットがデカすぎるので、今回はコンパネで行きます。
+CLIからやる方法もありますが、トンネルの情報をコンパネから触れるメリットがデカすぎるので、今回はコンパネで行きます。  
+グローバル・ローカル管理という名目でダッシュボードでも選択制となっていて、グローバル(コンパネ)推奨とはっきり書いてあります。  
+ここは、流石にベストプラクティスっぽい方を選んでおきます。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01.webp?_a=BAMHUyJu0)
+また、Tunnel作成時などにCNAMEかなんかのレコードがCloudflare側で貼られます
 
 メインページから、「Cloudflare Access」を選択すると、ZeroTrustに統合された旨が表示されてZeroTrustのダッシュボードに進みます。
 
 次に、「Zero Trustの概要 > ネットワーク > Tunnels(トンネル)」に進みます。
 
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01.webp?_a=BAMHUyJu0)
+
 「トンネルを追加する」から、トンネルを追加します。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02.webp?_a=BAMHUyJu0)
+
+
+Cloudflaredを使用します  
+というか、WARPを使っている人ってどれくらいいるんですかね？
+他のネタでも言うと思いますが、Cloudflareのグローバルネットワークの力でゴリ押しているだけで、tailscaleの完全下位互換だと思うのですが。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config.webp?_a=BAMHUyJu0)
+
+トンネル名を決め、cloudflaredインストール後の手順の部分をシェルにコピペします
+
+```
+> # sudo cloudflared service install KEYKEYKEYKEYKEY
+2025-03-26T04:25:48Z INF Using Systemd
+2025-03-26T04:25:49Z INF Linux service for cloudflared installed successfully
+```
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected.webp?_a=BAMHUyJu0)
+
+パブリックホストの作成と、ポリシーの定義を行います。
+ここで作成しているのは、Cloudflare Zero Trustでいうところの「アプリケーション」です。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-004-create-public-host](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-004-create-public-host.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-005](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-005.webp?_a=BAMHUyJu0)
+
+画像で「secret.raw」となっているのは見なかったことにしてください。
+証明書の件を後から気づいてドメインを変更するまで気づかずスクショ撮っちゃってました。
+画像のところは本来「secret-raw」になるはずです。
+
+secret-raw.domain.tldにアクセスしようとすると、以下のようなページに遷移します。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-0008-access-auth](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-0008-access-auth.webp?_a=BAMHUyJu0)
+
+githubを選択すると、githubでの認証画面に移ります。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-009-oauth-page](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-009-oauth-page.webp?_a=BAMHUyJu0)
+
+githubの認証が完了すると、メールアドレスの情報がCloudflareに渡されます。そのペイロードをもとに、パブリックホストのアクセス権限時に作成したルール、ポリシーに従ってアクセス可否が判断されます。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw.webp?_a=BAMHUyJu0)
+
+これでsecret-rawの方は認証付きで公開までいけました。
+
+###  3. raw. のレコードを作成
+
+raw. のレコードを、とりあえずサーバーに向ける必要があります。Nginxのバーチャルホストで、Hostヘッダーを利用した分岐はCloudflare越しでも機能するため、構わずwwwに対するCloudflareプロキシ有りのCNAMEレコードを作成しています。
+
+一応アクセス可能か確認します。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw.webp?_a=BAMHUyJu0)
+
+ここまでで、`secret-raw.` と、`raw.`について、Cloudflareのプロキシを介してリソースの公開まで完了しました
+ZeroTrustは、自分みたいななんちゃってSOHOユーザーからしたら厳格すぎるので、自分が楽しめるラインまでこだわった形で楽しめて最高ですね。
+
+次回は、SOHO計画02としてメール周りを再び整備します。
 
 ## 参考
 
 [Cloudflare Tunnel · Cloudflare Zero Trust docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 [ゼロトラストネットワークとは？ | Cloudflare](https://www.cloudflare.com/ja-jp/learning/security/glossary/what-is-zero-trust/)
+
+SOHO計画01
