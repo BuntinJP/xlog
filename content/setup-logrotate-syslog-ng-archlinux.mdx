@@ -1,15 +1,14 @@
 ---
 title: ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
-description: test post
+description: 以前セットアップしたsyslog-ngにて吐き出されるメールログをlogrotateでローテートしたくなりました。
 date: 2025-02-10
 tags: ['Zero Trust','Cloudflare']
 categories: ['備忘録', 'サーバー','ミドルウェア']
 ---
+
 # ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
 
 ArchLinuxのsyslog-ngにて出力している`/var/log/mail.log`をログローテートして圧縮か削除するスクリプトを作成したくなったので、一旦ログローテートの設定を整備します。
-
-ArchLinuxでsyslog-ngのログローテートをlogrotateで設定する方法
 
 ArchLinuxのPackageに`logrotate`というまんまのやつがあります。  
 そいつでセットアップします。
@@ -132,7 +131,7 @@ Nginxのログ用に以下のようなやつも設定してみました。
 ```
 
 と言っても、ほとんどテンプレの丸写しです。
-今までほぼローカルはのアクセスと思われていた接続についてはログを入れていなかったのですが、念の為取るようにしました。
+今までほぼローカルか、tailnetからのアクセスと思われていた接続についてはログを入れていなかったのですが、念の為取るようにしました。
 
 また、以下のように、logrotateのログ保持設定を一年巻にしました。
 
@@ -385,6 +384,8 @@ root@badcompany ~                                [4:49:53]
              man:logrotate.conf(5)
 Mar 02 04:49:53 badcompany.tokyo systemd[1]: Started Daily>
 ```
+
+途中の長いログはテストです。
 
 これによりログについては、しばらくは時間稼ぎできました。
 S3へのrcloneによる同期設定にするか、ローカルのバックアップサーバーにアップロードするかなど、これらのファイル(ほぼ確実に利用機会はありません)を、どう保存してやるかを考えているところです。
