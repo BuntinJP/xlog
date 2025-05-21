@@ -10,7 +10,8 @@ import type { MDXComponents } from 'mdx/types';
 export const mdxComponents: MDXComponents = {
   ...defaultComponents,
   img: (props: ImageZoomProps) => (
-    <ImageZoom {...props} overrideSrc={props.src as string} />
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    <ImageZoom {...(props as any)} overrideSrc={(props as any).src} />
   ),
   a: (props) => (
     <a
