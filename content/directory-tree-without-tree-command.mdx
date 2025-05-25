@@ -1,0 +1,222 @@
+---
+title: treeコマンドがない環境で、それっぽいことをするシェル芸もどきの紹介
+description: 顧客環境でtreeが入っていないことが多々あり、どこでも使えるスニペットとして欲しくなったので作りました
+date: 2025-05-25
+tags: ['Linux','posix']
+categories: ['備忘録', 'シェル']
+---
+
+
+お客様環境で、`tree` コマンドがないことが結構あります。
+
+そして、/etc/httpdなどをどれくらい改変したかの差分を取る時に、treeが使いたくなるんですね。
+
+そのため、どこでも動く(最近httpd,apache2の違いに苦しめられたため)簡単なtreeもどきを作りました。
+
+```sh
+find . -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
+```
+
+find と sedに依存しますが、共に[POSIX.1-2017(IEEE Std 1003.1-2017) Shell & Utilities](https://pubs.opengroup.org/onlinepubs/9699919799/)に含まれます。
+まあほぼどの環境でも使えると言って良いでしょう。findのGNU,BSD間差異についても影響を受けません。
+
+出力サンプル
+
+```
+find . -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
+.
+|_____components
+| |____List.tsx
+| |____TagsList.tsx
+| |____CategoriesList.tsx
+|____tags
+| |_____components
+| | |____ItemList.tsx
+| |____[slug]
+| | |____page.tsx
+| |____page.tsx
+|____layout.tsx
+|____posts
+| |_____components
+| | |____Toc.tsx
+| | |____ItemList.tsx
+| |____[...slug]
+| | |____page.tsx
+| |____page.tsx
+|____api
+| |____og
+| | |____route.tsx
+| |____rss.xml
+| | |____route.ts
+|____favicon.ico
+|____global.css
+|____categories
+| |____[slug]
+| | |____page.tsx
+| |____page.tsx
+|____page.tsx
+|____not-found.ts
+```
+
+表示するトップレベルにファイルがない場合、バグります。
+
+```
+find . -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
+.
+|____[slug]
+| |____page.tsx
+|____page.tsx
+---
+find . -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
+.
+|____og
+| |____route.tsx
+|____rss.xml
+| |____route.ts
+```
+
+
+ここからはほぼワンライナーではないので、自己満のおまけです。
+
+見た目改善版
+
+```sh
+find . -print \
+  | sed -e 's:[^/]*/:│   :g' \
+        -e 's:│   \([^│]*\)$:└── \1:' \
+        -e '1s:│   ::'
+```
+
+```
+.
+└── libs
+│   └── source.ts
+│   └── mdx-config.tsx
+└── app
+│   └── _components
+│   │   └── List.tsx
+│   │   └── TagsList.tsx
+│   │   └── CategoriesList.tsx
+│   └── tags
+│   │   └── _components
+│   │   │   └── ItemList.tsx
+│   │   └── [slug]
+│   │   │   └── page.tsx
+│   │   └── page.tsx
+│   └── layout.tsx
+│   └── posts
+│   │   └── _components
+│   │   │   └── Toc.tsx
+│   │   │   └── ItemList.tsx
+│   │   └── [...slug]
+│   │   │   └── page.tsx
+│   │   └── page.tsx
+│   └── api
+│   │   └── og
+│   │   │   └── route.tsx
+│   │   └── rss.xml
+│   │   │   └── route.ts
+│   └── favicon.ico
+│   └── global.css
+│   └── categories
+│   │   └── [slug]
+│   │   │   └── page.tsx
+│   │   └── page.tsx
+│   └── page.tsx
+│   └── not-found.tsx
+└── components
+│   └── BuyMeACoffee.tsx
+│   └── Footer.tsx
+│   └── Header.tsx
+│   └── PostsList.tsx
+```
+
+最大階層バグ・見た目修正・除外追加版
+
+```sh
+find . \( -type d \( -name "node_modules" -o -name ".git" -o -name ".next" -o -name "dist" -o -name "build" \) -prune \) -o -print \
+| awk '
+  BEGIN {
+    FS = "/"
+    OFS = ""
+  }
+  FNR == 1 {
+    print $0
+    next
+  }
+  {
+    depth = NF - 1
+    name = $NF
+    parent = substr($0, 1, length($0) - length(name) - 1)
+
+    total_children[parent]++
+    records[FNR] = $0
+    names[FNR]   = name
+    depths[FNR]  = depth
+    parents[FNR] = parent
+  }
+  END {
+    for (i = 2; i <= FNR; i++) {
+      path   = records[i]
+      name   = names[i]
+      depth  = depths[i]
+      parent = parents[i]
+
+      seen[parent]++
+      is_last = (seen[parent] == total_children[parent])
+
+      indent = ""
+      for (d = 1; d < depth; d++) {
+        indent = indent (branch[d] ? "    " : "│   ")
+      }
+
+      printf "%s%s %s\n", indent, (is_last ? "└──" : "├──"), name
+
+      branch[depth] = is_last
+    }
+  }
+'
+.
+├── .vscode
+│   └── settings.json
+├── src
+│   └── main.ts
+├── package.json
+├── tsconfig.json
+├── upload
+│   ├── 04_xlog-from-hugo-to-nextjs
+│   │   ├── new-wappalyzer02.png
+│   │   └── new-wappalyzer01.png
+│   ├── 03_welcome-dehydrated
+│   │   ├── welcome-dehydrated-info.png
+│   │   └── welcome-dehydrated-info.webp
+│   ├── 05_build-mailserver-with-sendgrid-arch
+│   │   ├── test-03-gmail.webp
+│   │   └── sendgrid-05.png
+│   ├── 02_github-gpg-signing
+│   │   ├── github-gpg-signing-result.png
+│   │   └── github-gpg-signing-result.webp
+│   ├── 06_publish-web-with-cloudflare-zero-trust-and-tunnel
+│   │   ├── cf-zerotrust-tunnel-bc-001.png
+│   │   └── cf-access-launcher-sample-01.png
+│   ├── 01_aboutme
+│   │   ├── buntin-logo.webp
+│   │   └── buntin-logo.jpg
+│   └── 07_sakura-no-mailbox-alternative-purelymail
+│       ├── 02_purelymail_signup.png
+│       └── 01_purelymail_home.png
+├── .env
+├── .gitignore
+├── biome.json
+├── README.md
+├── image-data.json
+├── yard
+│   ├── welcome-dehydrated-info.png
+│   ├── buntin-logo.jpg
+│   └── github-ssh-user-changer-01.webp
+└── bun.lockb
+```
+
+後半は`awk`をがっつり使ってますが、POSIXに準拠しているので、どこでも動くはずです笑
+
+Raycastのスニペットに登録していつでもtreeできるようになりました。
