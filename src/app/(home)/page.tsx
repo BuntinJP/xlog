@@ -1,11 +1,11 @@
-import { mdxComponents } from '@/libs/mdx-config';
-import { getPage } from '@/libs/source';
 import { DocsBody } from 'fumadocs-ui/page';
 import type { Metadata } from 'next';
 import { Shippori_Mincho } from 'next/font/google';
 import { notFound } from 'next/navigation';
-import { CategoriesList } from './_components/CategoriesList';
-import { TagsList } from './_components/TagsList';
+import { source } from '@/lib/source';
+import { getMDXComponents } from '@/mdx-components';
+import { CategoriesList } from '../_components/CategoriesList';
+import { TagsList } from '../_components/TagsList';
 
 const shipporiMincho = Shippori_Mincho({
   subsets: ['latin'],
@@ -13,7 +13,7 @@ const shipporiMincho = Shippori_Mincho({
 });
 
 export default function HomePage() {
-  const about = getPage([]);
+  const about = source.getPage([]);
 
   if (about === undefined) {
     notFound();
@@ -27,7 +27,7 @@ export default function HomePage() {
         <DocsBody
           className={`${shipporiMincho.className} text-[#fbf1c7] decoration-[#fbf1c7]`}
         >
-          <MDX components={mdxComponents} />
+          <MDX components={getMDXComponents()} />
         </DocsBody>
       </div>
       <div>

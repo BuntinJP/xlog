@@ -1,16 +1,19 @@
 import config from 'config.json';
 import { loader } from 'fumadocs-core/source';
 import { createMDXSource } from 'fumadocs-mdx';
-import { blog } from '.source';
+import { blog } from '@/.source';
 
-export const { getPage, getPages, pageTree } = loader({
+export const source = loader({
+  // it assigns a URL to your pages
   baseUrl: '/posts',
   source: createMDXSource(blog, []),
 });
 
-export const getDraftPages = () => getPages().filter((post) => post.data.draft);
+export const getDraftPages = () =>
+  source.getPages().filter((post) => post.data.draft);
 
-export const getProdPages = () => getPages().filter((post) => !post.data.draft);
+export const getProdPages = () =>
+  source.getPages().filter((post) => !post.data.draft);
 
 const posts = getProdPages();
 

@@ -1,6 +1,6 @@
-import { DraftPostList, PostsList } from '@/components/PostsList';
-import { getDraftPages, getProdPages } from '@/libs/source';
 import type { Metadata } from 'next';
+import { DraftPostList, PostsList } from '@/components/PostList';
+import { getDraftPages, getProdPages } from '@/lib/source';
 
 const Page = () => {
   const posts = getProdPages()

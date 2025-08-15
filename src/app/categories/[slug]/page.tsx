@@ -1,8 +1,8 @@
-import { PostsList } from '@/components/PostsList';
-import { categoriesList, categoriesWithPosts } from '@/libs/source';
 import { Folder } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { PostsList } from '@/components/PostList';
+import { categoriesList, categoriesWithPosts } from '@/lib/source';
 
 const Page = async (props: { params: Promise<{ slug: string }> }) => {
   const params = await props.params;

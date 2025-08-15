@@ -1,5 +1,5 @@
-import type { Posts } from '@/libs/source';
 import Link from 'next/link';
+import type { Posts } from '@/lib/source';
 
 export const PostsList = ({ posts }: { posts: Posts }) => {
   let year = 0;

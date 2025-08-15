@@ -1,6 +1,6 @@
 'use client';
 
-import type { TOCItemType, TableOfContents } from 'fumadocs-core/server';
+import type { TableOfContents, TOCItemType } from 'fumadocs-core/server';
 import { Play } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -42,7 +42,10 @@ const Item = ({ item }: { item: TOCItemType }) => {
 export const Toc = ({
   toc,
   className,
-}: { toc: TableOfContents; className?: string }) => {
+}: {
+  toc: TableOfContents;
+  className?: string;
+}) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => {
     setOpen((prev) => !prev);

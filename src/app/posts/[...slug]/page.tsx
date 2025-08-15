@@ -1,10 +1,10 @@
-import { mdxComponents } from '@/libs/mdx-config';
-import { getPage, getProdPages } from '@/libs/source';
 import { DocsBody } from 'fumadocs-ui/page';
 import { Folder, Tag } from 'lucide-react';
 import type { Metadata } from 'next';
 import { Shippori_Mincho } from 'next/font/google';
 import { notFound } from 'next/navigation';
+import { getProdPages, source } from '@/lib/source';
+import { getMDXComponents } from '@/mdx-components';
 import { ItemList } from '../_components/ItemList';
 import { Toc } from '../_components/Toc';
 
@@ -13,11 +13,9 @@ const shipporiMincho = Shippori_Mincho({
   weight: '400',
 });
 
-const Page = async (props: {
-  params: Promise<{ slug: string[] }>;
-}) => {
+const Page = async (props: { params: Promise<{ slug: string[] }> }) => {
   const params = await props.params;
-  const post = getPage(params.slug);
+  const post = source.getPage(params.slug);
 
   if (post === undefined) {
     notFound();
@@ -28,7 +26,7 @@ const Page = async (props: {
   });
 
   const lastModified = post.data.lastModified;
-  let lastUpdateDate: string | undefined = undefined;
+  let lastUpdateDate: string | undefined;
   if (lastModified !== undefined) {
     lastUpdateDate = new Date(lastModified).toLocaleDateString('ja-JP', {
       timeZone: 'Asia/Tokyo',
@@ -78,7 +76,7 @@ const Page = async (props: {
           {post.data.description}
         </p>
         <Toc toc={toc} className='mb-10' />
-        <MDX components={mdxComponents} />
+        <MDX components={getMDXComponents()} />
       </DocsBody>
     </div>
   );
@@ -103,7 +101,7 @@ export const generateMetadata = async (props: {
   params: Promise<{ slug: string[] }>;
 }) => {
   const params = await props.params;
-  const post = getPage(params.slug);
+  const post = source.getPage(params.slug);
   if (post === undefined) notFound();
 
   const title = post.data.title;

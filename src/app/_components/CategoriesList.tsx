@@ -1,5 +1,5 @@
-import { myCategoriesList, withoutMyCategoriesList } from '@/libs/source';
 import { Folders } from 'lucide-react';
+import { myCategoriesList, withoutMyCategoriesList } from '@/lib/source';
 import { List } from './List';
 
 const Title = () => {

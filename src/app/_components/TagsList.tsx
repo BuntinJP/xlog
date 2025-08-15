@@ -1,5 +1,5 @@
-import { tagsList } from '@/libs/source';
 import { Tags } from 'lucide-react';
+import { tagsList } from '@/lib/source';
 import { List } from './List';
 
 const Title = () => {

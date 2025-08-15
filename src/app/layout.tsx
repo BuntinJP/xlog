@@ -1,14 +1,13 @@
+import '@/app/global.css';
+// import { Analytics } from '@vercel/analytics/react';
+// import { SpeedInsights } from '@vercel/speed-insights/next';
+import type { Metadata } from 'next';
+import { Shippori_Mincho } from 'next/font/google';
+import { ThemeProvider } from 'next-themes';
+import type { ReactNode } from 'react';
 import { BuyMeACoffee } from '@/components/BuyMeACoffee';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
-import type { Metadata } from 'next';
-import { ThemeProvider } from 'next-themes';
-import { Shippori_Mincho } from 'next/font/google';
-import type { ReactNode } from 'react';
-import './global.css';
-import 'katex/dist/katex.css';
 
 const shipporiMincho = Shippori_Mincho({
   subsets: ['latin'],
@@ -17,13 +16,12 @@ const shipporiMincho = Shippori_Mincho({
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang='ja' className={shipporiMincho.className}>
-      {process.env.NODE_ENV === 'production' && (
-        <>
-          <Analytics />
-          <SpeedInsights />
-        </>
-      )}
+    <html
+      lang='ja'
+      className={shipporiMincho.className}
+      suppressHydrationWarning
+    >
+      {/* TODO append Vercel Analytics and SpeedInsights */}
       <body className='bg-[#282828] flex min-h-dvh flex-col'>
         <ThemeProvider attribute='class' defaultTheme='dark'>
           <div className='lg:grid lg:grid-cols-6'>
@@ -40,7 +38,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <Footer />
-          <BuyMeACoffee />
+          <BuyMeACoffee />{' '}
         </ThemeProvider>
       </body>
     </html>
