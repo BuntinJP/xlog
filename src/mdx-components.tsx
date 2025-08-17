@@ -1,16 +1,15 @@
 import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
 import { Heading } from 'fumadocs-ui/components/heading';
-import {
-  ImageZoom,
-  type ImageZoomProps,
-} from 'fumadocs-ui/components/image-zoom';
+import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
-    img: (props: ImageZoomProps) => <ImageZoom {...props} />,
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    img: (props) => <ImageZoom {...(props as any)} />,
+
     a: (props) => (
       <a
         {...props}
