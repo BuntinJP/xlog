@@ -51,9 +51,7 @@ const Page = async (props: { params: Promise<{ slug: string[] }> }) => {
 
   return (
     <div>
-      <DocsBody
-        className={`${shipporiMincho.className} text-[#fbf1c7] decoration-[#fbf1c7]`}
-      >
+      <DocsBody className={`${shipporiMincho.className} text-[#fbf1c7] decoration-[#fbf1c7]`}>
         <h1 className='text-center mb-auto text-[#fbf1c7] font-thin text-3xl sm:text-4xl'>
           {post.data.title}
         </h1>
@@ -72,9 +70,7 @@ const Page = async (props: { params: Promise<{ slug: string[] }> }) => {
             <ItemList key={item.basePath + item.name} {...item} />
           ))}
         </div>
-        <p className='text-center my-4 text-[#fbf1c7]'>
-          {post.data.description}
-        </p>
+        <p className='text-center my-4 text-[#fbf1c7]'>{post.data.description}</p>
         <Toc toc={toc} className='mb-10' />
         <MDX components={getMDXComponents()} />
       </DocsBody>
@@ -97,9 +93,7 @@ export const generateStaticParams = () => {
     .filter((params): params is { slug: string[] } => params !== undefined);
 };
 
-export const generateMetadata = async (props: {
-  params: Promise<{ slug: string[] }>;
-}) => {
+export const generateMetadata = async (props: { params: Promise<{ slug: string[] }> }) => {
   const params = await props.params;
   const post = source.getPage(params.slug);
   if (post === undefined) notFound();

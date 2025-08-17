@@ -8,11 +8,9 @@ export const source = loader({
   source: createMDXSource(blog, []),
 });
 
-export const getDraftPages = () =>
-  source.getPages().filter((post) => post.data.draft);
+export const getDraftPages = () => source.getPages().filter((post) => post.data.draft);
 
-export const getProdPages = () =>
-  source.getPages().filter((post) => !post.data.draft);
+export const getProdPages = () => source.getPages().filter((post) => !post.data.draft);
 
 const posts = getProdPages();
 
@@ -58,9 +56,7 @@ export const categoriesWithPosts: {
 }[] = [];
 
 for (const category of categories) {
-  const filteredPosts = posts.filter((post) =>
-    post.data.categories?.includes(category),
-  );
+  const filteredPosts = posts.filter((post) => post.data.categories?.includes(category));
   categoriesWithPosts.push({ name: category, posts: filteredPosts });
 }
 categoriesWithPosts.sort((a, b) => a.name.localeCompare(b.name));
@@ -78,14 +74,12 @@ export const withoutMyCategoriesList = categoriesList.filter((category) => {
 
 export const myCategoriesWithPosts: typeof categoriesWithPosts = [];
 
-export const withoutMyCategoriesWithPosts = categoriesWithPosts.filter(
-  (category) => {
-    for (const myCategory of myCategoriesList) {
-      if (category.name === myCategory) {
-        myCategoriesWithPosts.push(category);
-        return false;
-      }
+export const withoutMyCategoriesWithPosts = categoriesWithPosts.filter((category) => {
+  for (const myCategory of myCategoriesList) {
+    if (category.name === myCategory) {
+      myCategoriesWithPosts.push(category);
+      return false;
     }
-    return true;
-  },
-);
+  }
+  return true;
+});

@@ -16,11 +16,7 @@ const shipporiMincho = Shippori_Mincho({
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang='ja'
-      className={shipporiMincho.className}
-      suppressHydrationWarning
-    >
+    <html lang='ja' className={shipporiMincho.className} suppressHydrationWarning>
       <body className='bg-[#282828] flex min-h-dvh flex-col'>
         {process.env.NODE_ENV === 'production' && (
           <>
@@ -36,17 +32,13 @@ export default function Layout({ children }: { children: ReactNode }) {
           }}
         >
           <div className='lg:grid lg:grid-cols-6'>
-            <div className='hidden lg:block lg:col-span-1'>
-              {/* ad here (pc only) */}
-            </div>
+            <div className='hidden lg:block lg:col-span-1'>{/* ad here (pc only) */}</div>
             <div className='lg:col-span-4'>
               <Header />
               <div className='mx-6'>{children}</div>
               <div className='mt-12'>{/* ad here */}</div>
             </div>
-            <div className='hidden lg:block lg:col-span-1'>
-              {/* ad here (pc only) */}
-            </div>
+            <div className='hidden lg:block lg:col-span-1'>{/* ad here (pc only) */}</div>
           </div>
           <Footer />
           <BuyMeACoffee />
@@ -57,9 +49,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
-  ),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
   title: 'xlog',
   description: 'Buntin-BadCompany-Blog',
   openGraph: {

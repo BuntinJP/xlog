@@ -39,13 +39,7 @@ const Item = ({ item }: { item: TOCItemType }) => {
   );
 };
 
-export const Toc = ({
-  toc,
-  className,
-}: {
-  toc: TableOfContents;
-  className?: string;
-}) => {
+export const Toc = ({ toc, className }: { toc: TableOfContents; className?: string }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => {
     setOpen((prev) => !prev);

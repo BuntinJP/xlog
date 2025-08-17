@@ -1,12 +1,5 @@
-import {
-  rehypeCodeDefaultOptions,
-  remarkImage,
-} from 'fumadocs-core/mdx-plugins';
-import {
-  defineCollections,
-  defineConfig,
-  frontmatterSchema,
-} from 'fumadocs-mdx/config';
+import { rehypeCodeDefaultOptions, remarkImage } from 'fumadocs-core/mdx-plugins';
+import { defineCollections, defineConfig, frontmatterSchema } from 'fumadocs-mdx/config';
 import { transformerTwoslash } from 'fumadocs-twoslash';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
@@ -46,10 +39,7 @@ export default defineConfig({
         light: 'github-light',
         dark: 'github-dark',
       },
-      transformers: [
-        ...(rehypeCodeDefaultOptions.transformers ?? []),
-        transformerTwoslash(),
-      ],
+      transformers: [...(rehypeCodeDefaultOptions.transformers ?? []), transformerTwoslash()],
     },
     remarkPlugins: [remarkImage, remarkMath],
     rehypePlugins: (v) => [rehypeKatex, ...v],
