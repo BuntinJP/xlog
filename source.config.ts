@@ -1,4 +1,3 @@
-import { transformerRemoveNotationEscape } from '@shikijs/transformers';
 import {
   rehypeCodeDefaultOptions,
   remarkImage,
@@ -25,7 +24,7 @@ export const blog = defineCollections({
           return new Date(value);
         } catch {
           context.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: 'Invalid date',
           });
           return z.NEVER;
@@ -47,11 +46,10 @@ export default defineConfig({
         light: 'github-light',
         dark: 'github-dark',
       },
-      // transformers: [
-      //   ...(rehypeCodeDefaultOptions.transformers ?? []),
-      //   // transformerRemoveNotationEscape(),
-      //   transformerTwoslash(),
-      // ],
+      transformers: [
+        ...(rehypeCodeDefaultOptions.transformers ?? []),
+        transformerTwoslash(),
+      ],
     },
     remarkPlugins: [remarkImage, remarkMath],
     rehypePlugins: (v) => [rehypeKatex, ...v],

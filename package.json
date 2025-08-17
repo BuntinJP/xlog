@@ -6,15 +6,21 @@
     "build": "next build",
     "dev": "next dev --turbo",
     "start": "next start",
-    "postinstall": "fumadocs-mdx"
+    "postinstall": "fumadocs-mdx",
+    "lint": "biome lint --reporter=summary .",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "fix": "biome check --write .",
+    "deps:outdated": "npm outdated || true",
+    "deps:audit": "npm audit || true"
   },
   "dependencies": {
-    "@vercel/analytics": "^1.5.0",
-    "@vercel/speed-insights": "^1.2.0",
-    "feed": "^5.1.0",
+    "@vercel/analytics": "1.5.0",
+    "@vercel/speed-insights": "1.2.0",
+    "feed": "5.1.0",
     "fumadocs-core": "15.6.10",
     "fumadocs-mdx": "11.7.5",
-    "fumadocs-twoslash": "^3.1.6",
+    "fumadocs-twoslash": "3.1.6",
     "fumadocs-ui": "15.6.10",
     "katex": "0.16.22",
     "lucide-react": "0.539.0",
@@ -32,6 +38,7 @@
     "@types/mdx": "2.0.13",
     "@tailwindcss/postcss": "4.1.11",
     "tailwindcss": "4.1.11",
-    "postcss": "8.5.6"
+    "postcss": "8.5.6",
+    "@biomejs/biome": "2.2.0"
   }
 }

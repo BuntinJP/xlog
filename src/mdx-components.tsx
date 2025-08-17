@@ -7,8 +7,8 @@ import type { MDXComponents } from 'mdx/types';
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    // img: (props) => <ImageZoom {...(props as any)} />,
+    // biome-ignore lint/suspicious/noExplicitAny: MDX component props typing
+    img: (props) => <ImageZoom {...(props as any)} />,
 
     a: (props) => (
       <a

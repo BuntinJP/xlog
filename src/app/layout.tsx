@@ -21,14 +21,13 @@ export default function Layout({ children }: { children: ReactNode }) {
       className={shipporiMincho.className}
       suppressHydrationWarning
     >
-      {process.env.NODE_ENV === 'production' && (
-        <>
-          <Analytics />
-          <SpeedInsights />
-        </>
-      )}
-      {/* TODO append Vercel Analytics and SpeedInsights */}
       <body className='bg-[#282828] flex min-h-dvh flex-col'>
+        {process.env.NODE_ENV === 'production' && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
         <RootProvider
           theme={{
             enabled: true,
@@ -50,7 +49,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <Footer />
-          <BuyMeACoffee />{' '}
+          <BuyMeACoffee />
         </RootProvider>
       </body>
     </html>
