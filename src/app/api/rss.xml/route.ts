@@ -1,5 +1,5 @@
-import { getProdPages } from '@/libs/source';
 import { Feed } from 'feed';
+import { getProdPages } from '@/lib/source';
 
 export const dynamic = 'force-static';
 
@@ -13,9 +13,7 @@ const escapeForXML = (str: string) => {
 };
 
 export const GET = () => {
-  const baseUrl = new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
-  );
+  const baseUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000');
 
   const feed = new Feed({
     title: 'xlog',
@@ -48,9 +46,7 @@ export const GET = () => {
       image: {
         title: post.data.title,
         type: 'image/png',
-        url: escapeForXML(
-          new URL(`/api/og?${imageParams}`, baseUrl).toString(),
-        ),
+        url: escapeForXML(new URL(`/api/og?${imageParams}`, baseUrl).toString()),
       },
       date: post.data.date,
       author: [

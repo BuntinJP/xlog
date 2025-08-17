@@ -77,9 +77,9 @@ https://???.cloudflareaccess.com/#/Launcher などのURLから、それぞれの
 
 以下は、ほぼ保守されていない以前の環境のランチャーの例です。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-01](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-01.webp?_a=BAMHUyJu0)
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-02](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-02.webp?_a=BAMHUyJu0)
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-03](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-03.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-01](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-01.webp)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-02](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-02.webp)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-03](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-03.webp)
 
 ### Nginx
 
@@ -209,7 +209,7 @@ Feb 15 18:35:43 domain.tld nginx[1525037]: 2025/02/15 18:35:43 [notice] 1525037#
 Feb 15 18:35:43 domain.tld systemd[1]: Reloaded nginx web server.
 ```
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test.webp)
 
 OKそうですね
 
@@ -288,19 +288,19 @@ CLIからやる方法もありますが、トンネルの情報をコンパネ�
 
 次に、「Zero Trustの概要 > ネットワーク > Tunnels(トンネル)」に進みます。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01.webp)
 
 「トンネルを追加する」から、トンネルを追加します。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02.webp)
 
 
 Cloudflaredを使用します  
 というか、WARPを使っている人ってどれくらいいるんですかね？
 他のネタでも言うと思いますが、Cloudflareのグローバルネットワークの力でゴリ押しているだけで、tailscaleの完全下位互換だと思うのですが。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001.webp?_a=BAMHUyJu0)
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001.webp)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config.webp)
 
 トンネル名を決め、cloudflaredインストール後の手順の部分をシェルにコピペします
 
@@ -310,13 +310,13 @@ Cloudflaredを使用します
 2025-03-26T04:25:49Z INF Linux service for cloudflared installed successfully
 ```
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected.webp)
 
 パブリックホストの作成と、ポリシーの定義を行います。
 ここで作成しているのは、Cloudflare Zero Trustでいうところの「アプリケーション」です。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-004-create-public-host](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-004-create-public-host.webp?_a=BAMHUyJu0)
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-005](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-005.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-004-create-public-host](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-004-create-public-host.webp)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-005](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-005.webp)
 
 画像で「secret.raw」となっているのは見なかったことにしてください。
 証明書の件を後から気づいてドメインを変更するまで気づかずスクショ撮っちゃってました。
@@ -324,17 +324,17 @@ Cloudflaredを使用します
 
 secret-raw.domain.tldにアクセスしようとすると、以下のようなページに遷移します。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-0008-access-auth](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-0008-access-auth.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-0008-access-auth](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-0008-access-auth.webp)
 
 githubを選択すると、githubでの認証画面に移ります。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-009-oauth-page](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-009-oauth-page.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-009-oauth-page](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-009-oauth-page.webp)
 
 githubの認証が完了すると、メールアドレスの情報がCloudflareに渡されます。そのペイロードをもとに、パブリックホストのアクセス権限時に作成したルール、ポリシーに従ってアクセス可否が判断されます。
 
 ※ 謎のドメイン隠しが多くて申し訳ないです。今年に入ってすぐあたりに、仲間内でセキュリティ的に問題があったため、一応隠しています。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw.webp)
 
 これでsecret-rawの方は認証付きで公開までいけました。
 
@@ -344,7 +344,7 @@ raw. のレコードを、とりあえずサーバーに向ける必要があり
 
 一応アクセス可能か確認します。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw](https://res.cloudinary.com/xlog/image/upload/v1/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw.webp?_a=BAMHUyJu0)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw.webp)
 
 ここまでで、`secret-raw.` と、`raw.`について、Cloudflareのプロキシを介してリソースの公開まで完了しました
 ZeroTrustは、自分みたいななんちゃってSOHOユーザーからしたら厳格すぎるので、自分が楽しめるラインまでこだわった形で楽しめて最高ですね。

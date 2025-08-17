@@ -1,9 +1,6 @@
-/* Tailwind を最初にインポート */
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
-
-@source '../../node_modules/fumadocs-ui/dist/**/*.js';
 
 @layer base {
   * {

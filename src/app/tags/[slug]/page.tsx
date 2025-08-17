@@ -1,8 +1,8 @@
-import { PostsList } from '@/components/PostsList';
-import { tagsList, tagsWithPosts } from '@/libs/source';
 import { Tag } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { PostsList } from '@/components/PostList';
+import { tagsList, tagsWithPosts } from '@/lib/source';
 
 const Page = async (props: { params: Promise<{ slug: string }> }) => {
   const params = await props.params;
@@ -12,9 +12,7 @@ const Page = async (props: { params: Promise<{ slug: string }> }) => {
   if (posts.length === 0) {
     notFound();
   }
-  const sortedPosts = posts.sort(
-    (a, b) => b.data.date.getTime() - a.data.date.getTime(),
-  );
+  const sortedPosts = posts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
   return (
     <div>
@@ -35,9 +33,7 @@ export const generateStaticParams = () => {
   }));
 };
 
-export const generateMetadata = async (props: {
-  params: Promise<{ slug: string }>;
-}) => {
+export const generateMetadata = async (props: { params: Promise<{ slug: string }> }) => {
   const params = await props.params;
   const tag = decodeURIComponent(params.slug);
   const title = `${tag} - xlog`;

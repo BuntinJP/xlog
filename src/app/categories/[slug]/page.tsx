@@ -1,22 +1,19 @@
-import { PostsList } from '@/components/PostsList';
-import { categoriesList, categoriesWithPosts } from '@/libs/source';
 import { Folder } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { PostsList } from '@/components/PostList';
+import { categoriesList, categoriesWithPosts } from '@/lib/source';
 
 const Page = async (props: { params: Promise<{ slug: string }> }) => {
   const params = await props.params;
   const category = decodeURIComponent(params.slug);
-  const posts =
-    categoriesWithPosts.find((t) => t.name === category)?.posts ?? [];
+  const posts = categoriesWithPosts.find((t) => t.name === category)?.posts ?? [];
 
   if (posts.length === 0) {
     notFound();
   }
 
-  const sortedPosts = posts.sort(
-    (a, b) => b.data.date.getTime() - a.data.date.getTime(),
-  );
+  const sortedPosts = posts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
   return (
     <div>
       <h1 className='flex'>
@@ -36,9 +33,7 @@ export const generateStaticParams = () => {
   }));
 };
 
-export const generateMetadata = async (props: {
-  params: Promise<{ slug: string }>;
-}) => {
+export const generateMetadata = async (props: { params: Promise<{ slug: string }> }) => {
   const params = await props.params;
   const category = decodeURIComponent(params.slug);
   const title = `${category} - xlog`;

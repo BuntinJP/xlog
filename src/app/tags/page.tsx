@@ -1,5 +1,5 @@
-import { tagsWithPosts } from '@/libs/source';
 import type { Metadata } from 'next';
+import { tagsWithPosts } from '@/lib/source';
 import { ItemList } from './_components/ItemList';
 
 const Page = () => {
@@ -8,11 +8,7 @@ const Page = () => {
       {tagsWithPosts
         .sort((a, b) => b.posts.length - a.posts.length)
         .map((tag) => (
-          <ItemList
-            name={tag.name}
-            numOfPosts={tag.posts.length}
-            key={tag.name}
-          />
+          <ItemList name={tag.name} numOfPosts={tag.posts.length} key={tag.name} />
         ))}
     </div>
   );

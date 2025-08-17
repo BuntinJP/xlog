@@ -4,10 +4,7 @@ import type { NextRequest } from 'next/server';
 export const runtime = 'edge';
 
 const shipporiMincho = fetch(
-  new URL(
-    './ShipporiMincho-Bold.ttf',
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
-  ),
+  new URL('./ShipporiMincho-Bold.ttf', process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
 ).then((res) => res.arrayBuffer());
 
 export const GET = async (req: NextRequest) => {
