@@ -8,7 +8,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    img: (props) => <ImageZoom {...(props as any)} />,
+    // img: (props) => <ImageZoom {...(props as any)} />,
 
     a: (props) => (
       <a

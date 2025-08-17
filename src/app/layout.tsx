@@ -1,9 +1,9 @@
 import '@/app/global.css';
-// import { Analytics } from '@vercel/analytics/react';
-// import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { RootProvider } from 'fumadocs-ui/provider';
 import type { Metadata } from 'next';
 import { Shippori_Mincho } from 'next/font/google';
-import { ThemeProvider } from 'next-themes';
 import type { ReactNode } from 'react';
 import { BuyMeACoffee } from '@/components/BuyMeACoffee';
 import { Footer } from '@/components/Footer';
@@ -21,9 +21,21 @@ export default function Layout({ children }: { children: ReactNode }) {
       className={shipporiMincho.className}
       suppressHydrationWarning
     >
+      {process.env.NODE_ENV === 'production' && (
+        <>
+          <Analytics />
+          <SpeedInsights />
+        </>
+      )}
       {/* TODO append Vercel Analytics and SpeedInsights */}
       <body className='bg-[#282828] flex min-h-dvh flex-col'>
-        <ThemeProvider attribute='class' defaultTheme='dark'>
+        <RootProvider
+          theme={{
+            enabled: true,
+            defaultTheme: 'dark',
+            attribute: 'class',
+          }}
+        >
           <div className='lg:grid lg:grid-cols-6'>
             <div className='hidden lg:block lg:col-span-1'>
               {/* ad here (pc only) */}
@@ -39,7 +51,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
           <Footer />
           <BuyMeACoffee />{' '}
-        </ThemeProvider>
+        </RootProvider>
       </body>
     </html>
   );

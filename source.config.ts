@@ -8,6 +8,7 @@ import {
   defineConfig,
   frontmatterSchema,
 } from 'fumadocs-mdx/config';
+import { transformerTwoslash } from 'fumadocs-twoslash';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
 import { z } from 'zod';
@@ -46,10 +47,11 @@ export default defineConfig({
         light: 'github-light',
         dark: 'github-dark',
       },
-      transformers: [
-        ...(rehypeCodeDefaultOptions.transformers ?? []),
-        transformerRemoveNotationEscape(),
-      ],
+      // transformers: [
+      //   ...(rehypeCodeDefaultOptions.transformers ?? []),
+      //   // transformerRemoveNotationEscape(),
+      //   transformerTwoslash(),
+      // ],
     },
     remarkPlugins: [remarkImage, remarkMath],
     rehypePlugins: (v) => [rehypeKatex, ...v],

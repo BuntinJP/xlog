@@ -4,8 +4,8 @@ import { Shippori_Mincho } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { source } from '@/lib/source';
 import { getMDXComponents } from '@/mdx-components';
-import { CategoriesList } from '../_components/CategoriesList';
-import { TagsList } from '../_components/TagsList';
+import { CategoriesList } from './_components/CategoriesList';
+import { TagsList } from './_components/TagsList';
 
 const shipporiMincho = Shippori_Mincho({
   subsets: ['latin'],
