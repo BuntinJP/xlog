@@ -13,9 +13,9 @@ const shipporiMincho = Shippori_Mincho({
   weight: '400',
 });
 
-const Page = async (props: { params: Promise<{ slug: string[] }> }) => {
-  const params = await props.params;
-  const post = source.getPage(params.slug);
+export default async function Page({ params }: { params: Promise<{ slug: string[] }> }) {
+  const { slug } = await params;
+  const post = source.getPage(slug);
 
   if (post === undefined) {
     notFound();
@@ -76,9 +76,7 @@ const Page = async (props: { params: Promise<{ slug: string[] }> }) => {
       </DocsBody>
     </div>
   );
-};
-
-export default Page;
+}
 
 export const generateStaticParams = () => {
   return getProdPages()

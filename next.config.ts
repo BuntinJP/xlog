@@ -10,6 +10,12 @@ const config: NextConfig = {
   },
   images: {
     formats: ['image/webp', 'image/avif'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.buymeacoffee.com',
+      },
+    ],
   },
 };
 

@@ -4,9 +4,9 @@ import { notFound } from 'next/navigation';
 import { PostsList } from '@/components/PostList';
 import { categoriesList, categoriesWithPosts } from '@/lib/source';
 
-const Page = async (props: { params: Promise<{ slug: string }> }) => {
-  const params = await props.params;
-  const category = decodeURIComponent(params.slug);
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const category = decodeURIComponent(slug);
   const posts = categoriesWithPosts.find((t) => t.name === category)?.posts ?? [];
 
   if (posts.length === 0) {
@@ -23,9 +23,7 @@ const Page = async (props: { params: Promise<{ slug: string }> }) => {
       <PostsList posts={sortedPosts} />
     </div>
   );
-};
-
-export default Page;
+}
 
 export const generateStaticParams = () => {
   return categoriesList.map((category) => ({
