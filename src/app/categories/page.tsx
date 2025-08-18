@@ -26,7 +26,7 @@ const DisplayNumOfPosts = ({ category }: { category: Category }) => {
   return <div className='text-lg'>({category.posts.length}件)</div>;
 };
 
-const Page = () => {
+export default function Page() {
   const sortedWithoutMyCategoriesWithPosts = withoutMyCategoriesWithPosts.sort(
     (a, b) => b.posts.length - a.posts.length,
   );
@@ -58,9 +58,7 @@ const Page = () => {
       </div>
     </div>
   );
-};
-
-export default Page;
+}
 
 export const generateMetadata = () => {
   const title = 'Categories - xlog';

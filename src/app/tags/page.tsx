@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { tagsWithPosts } from '@/lib/source';
 import { ItemList } from './_components/ItemList';
 
-const Page = () => {
+export default function Page() {
   return (
     <div className='flex gap-2 flex-wrap'>
       {tagsWithPosts
@@ -12,9 +12,7 @@ const Page = () => {
         ))}
     </div>
   );
-};
-
-export default Page;
+}
 
 export const generateMetadata = () => {
   const title = 'Tags - xlog';

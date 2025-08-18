@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { DraftPostList, PostsList } from '@/components/PostList';
 import { getDraftPages, getProdPages } from '@/lib/source';
 
-const Page = () => {
+export default function Page() {
   const posts = getProdPages()
     // remove index page
     .filter((post) => post.slugs.length !== 0)
@@ -16,9 +16,7 @@ const Page = () => {
     );
   }
   return <PostsList posts={posts} />;
-};
-
-export default Page;
+}
 
 export const generateMetadata = () => {
   const title = 'Posts - xlog';
