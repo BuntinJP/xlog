@@ -12,7 +12,9 @@
     "check": "biome check .",
     "fix": "biome check --write .",
     "deps:outdated": "npm outdated || true",
-    "deps:audit": "npm audit || true"
+    "deps:audit": "npm audit || true",
+    "convert-png": "find public -type f \\( -name '*.PNG' -o -name '*.png' \\) | while read -r file; do ext=\"${file##*.}\"; if [ \"$ext\" = 'PNG' ]; then mv \"$file\" \"${file%.PNG}.png\"; fi; done && files=\"$(find public -type f -name '*.png')\" && [ -z \"$files\" ] && exit 0 || (echo \"$files\" && echo '上記のファイルを変換します。中止するならCtrl-C (5秒待機)' && sleep 5 && echo \"$files\" | while read -r file; do cwebp -quiet \"$file\" -o \"${file%.png}.webp\" && rm \"$file\"; done)",
+    "convert-heic": "find public -type f \\( -name '*.HEIC' -o -name '*.heic' \\) | while read -r file; do ext=\"${file##*.}\"; if [ \"$ext\" = 'HEIC' ]; then mv \"$file\" \"${file%.HEIC}.heic\"; fi; done && files=\"$(find public -type f -name '*.heic')\" && [ -z \"$files\" ] && exit 0 || (echo \"$files\" && echo '上記のファイルを変換します。中止するならCtrl-C (5秒待機)' && sleep 5 && echo \"$files\" | while read -r file; do heif-convert \"$file\" \"${file%.heic}.png\" && rm \"$file\"; done)"
   },
   "dependencies": {
     "@vercel/analytics": "1.5.0",
