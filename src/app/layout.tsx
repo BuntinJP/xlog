@@ -28,6 +28,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           theme={{
             enabled: true,
             defaultTheme: 'dark',
+            enableSystem: false,
             attribute: 'class',
           }}
         >
