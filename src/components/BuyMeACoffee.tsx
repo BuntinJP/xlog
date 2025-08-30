@@ -1,9 +1,8 @@
 import Image from 'next/image';
-import Link from 'next/link';
 
 export const BuyMeACoffee = () => {
   return (
-    <Link
+    <a
       href='https://www.buymeacoffee.com/buntin'
       target='_blank'
       rel='noopener noreferrer'
@@ -15,6 +14,6 @@ export const BuyMeACoffee = () => {
         width={30}
         height={30}
       />
-    </Link>
+    </a>
   );
 };
