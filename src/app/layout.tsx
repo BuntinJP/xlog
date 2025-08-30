@@ -16,7 +16,11 @@ const shipporiMincho = Shippori_Mincho({
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang='ja' className={shipporiMincho.className} suppressHydrationWarning>
+    <html
+      lang='ja'
+      className={`dark ${shipporiMincho.className}`}
+      suppressHydrationWarning
+    >
       <body className='bg-[#282828] flex min-h-dvh flex-col'>
         {process.env.NODE_ENV === 'production' && (
           <>
