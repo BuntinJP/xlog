@@ -18,13 +18,13 @@ export const GET = () => {
   const feed = new Feed({
     title: 'xlog',
     description: 'Buntin-BadCompany-Blog',
-    id: baseUrl.toString(),
+    id: baseUrl.href,
     copyright: 'xlog',
-    link: baseUrl.toString(),
-    feed: new URL('/api/rss.xml', baseUrl).toString(),
+    link: baseUrl.href,
+    feed: new URL('/api/rss.xml', baseUrl).href,
     language: 'ja',
     updated: new Date(),
-    favicon: new URL('/favicon.ico', baseUrl).toString(),
+    favicon: new URL('/favicon.ico', baseUrl).href,
   });
 
   const posts = getProdPages();
@@ -42,11 +42,11 @@ export const GET = () => {
           name: category,
         };
       }),
-      link: new URL(post.url, baseUrl).toString(),
+      link: new URL(post.url, baseUrl).href,
       image: {
         title: post.data.title,
         type: 'image/png',
-        url: escapeForXML(new URL(`/api/og?${imageParams}`, baseUrl).toString()),
+        url: escapeForXML(new URL(`/api/og?${imageParams}`, baseUrl).href),
       },
       date: post.data.date,
       author: [
