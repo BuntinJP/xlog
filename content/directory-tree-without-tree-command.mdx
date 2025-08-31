@@ -6,12 +6,15 @@ tags: ['Linux','posix']
 categories: ['備忘録', 'シェル']
 ---
 
+## はじめに
 
 お客様環境で、`tree` コマンドがないことが結構あります。
 
 そして、/etc/httpdなどをどれくらい改変したかの差分を取る時に、treeが使いたくなるんですね。
 
 そのため、どこでも動く(最近httpd,apache2の違いに苦しめられたため)簡単なtreeもどきを作りました。
+
+## 通常版
 
 ```sh
 find . -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
@@ -75,10 +78,9 @@ find . -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'
 | |____route.ts
 ```
 
+## 見た目改善版
 
 ここからはほぼワンライナーではないので、自己満のおまけです。
-
-見た目改善版
 
 ```sh
 find . -print \
@@ -131,7 +133,9 @@ find . -print \
 │   └── PostsList.tsx
 ```
 
-最大階層バグ・見た目修正・除外追加版
+## 最大階層バグ・見た目修正・除外追加版
+
+ほぼawkです。シェル芸でもないです。
 
 ```sh
 find . \( -type d \( -name "node_modules" -o -name ".git" -o -name ".next" -o -name "dist" -o -name "build" \) -prune \) -o -print \
@@ -217,6 +221,6 @@ find . \( -type d \( -name "node_modules" -o -name ".git" -o -name ".next" -o -n
 └── bun.lockb
 ```
 
-後半は`awk`をがっつり使ってますが、POSIXに準拠しているので、どこでも動くはずです笑
+`awk`をがっつり使ってますが、POSIXに準拠しているので、どこでも動くはずです笑
 
 Raycastのスニペットに登録していつでもtreeできるようになりました。
