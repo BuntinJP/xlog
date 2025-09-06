@@ -2,8 +2,8 @@
 title: Cloudflare Zero Trust, Tunnel で、コンテンツをセキュアに配信する
 description: Cloudflare Tunnelで公開したドメインを、Cloudflare Zero Trustでの認証により使えるようにします。
 date: 2025-04-10
-categories: ['工作', 'Linux','SOHO']
-tags: ['Zero Trust','Cloudflare','ArchLinux']
+categories: ['工作','Linux','Web']
+tags: ['ArchLinux','Cloudflare','Zero Trust']
 ---
 
 ## はじめに
@@ -34,8 +34,6 @@ raw.domain.tld          公開用
 
 余談ですが、本来は、`secret-raw.domain.tld` は、 `secret.raw.domain.tld` とする予定でした。しかし、.で区切るとワイルドカード証明書が使えなくなり、トンネルの証明書検証が内部で失敗することでブラウザから接続不可能になります。
 
-最近、SOHOというワードを知りました。気に入って自分にも当てはまるため、今回からSOHO計画と名付けて自分のSmartOffice兼しょぼHomelabの整備を日記として残します。
-そのため、これはSOHO計画01です。
 
 ※1 作業内容2
 
@@ -347,9 +345,9 @@ raw. のレコードを、とりあえずサーバーに向ける必要があり
 ![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw.webp)
 
 ここまでで、`secret-raw.` と、`raw.`について、Cloudflareのプロキシを介してリソースの公開まで完了しました
-ZeroTrustは、自分みたいななんちゃってSOHOユーザーからしたら厳格すぎるので、自分が楽しめるラインまでこだわった形で楽しめて最高ですね。
 
-次回は、SOHO計画02としてメール周りを再び整備します。
+自分が誤ってセキュリティ設定を変更したりしなければ安全な構成かと思います。
+では。
 
 ## 参考
 
