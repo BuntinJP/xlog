@@ -30,7 +30,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             defaultTheme: 'dark',
             enableSystem: false,
             attribute: 'class',
-          }},
+          }}
           search={{
             enabled: false,
           }}
