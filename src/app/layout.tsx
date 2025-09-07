@@ -30,6 +30,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             defaultTheme: 'dark',
             enableSystem: false,
             attribute: 'class',
+          }},
+          search={{
+            enabled: false,
           }}
         >
           <div className='lg:grid lg:grid-cols-6'>
