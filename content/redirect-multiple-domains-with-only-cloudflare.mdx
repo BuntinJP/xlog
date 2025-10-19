@@ -1,0 +1,103 @@
+---
+title: CloudflareでWorkersを使わずにリダイレクトを設定する
+description: メール用途で取得したドメインを、実サーバー無しでリダイレクトを設定します。リダイレクトのためだけにWorkersを使うのは無駄なので使いません。
+date: 2025-10-19
+categories: ['備忘録','クラウド','Web']
+tags: ['Cloudflare']
+---
+
+## 目的
+
+メール用途で取得したドメインを、実サーバー無しでリダイレクトを設定します。  
+なぜわざわざリダイレクトを設定するのかというと、mxtoolboxで警告がうざいからです。  
+mxtoolboxは、メール関連のドメイン設定などを外部からチェックしたりできるサービスです。
+
+Cloudflare Workersで実現することも可能です。しかし、目的はただのリダイレクトです。Workersを使うのは機能的にも無駄なので使いません。
+
+今回は、「domain.tld」、「*.domain.tld」というAPEX、サブドメインの全てのパターンに対して共通のリダイレクトを設定する方法を解説します。
+
+## 前提
+
+- CloudflareでDNS管理していること(NSが`*.ns.cloudflare.com.`に向いていること)
+
+私はドメインをCloudflare Registrarで管理しているので、条件を満たしています。
+
+## 解説
+
+利用するのは、Cloudflareの[Cloudflare Rules](https://developers.cloudflare.com/rules/)です。  
+Cloudflare Rules は CloudFront のビヘイビアや ALB のリスナールールのようなリクエスト制御・ルーティングを行える仕組みです。
+無料プランでも利用可能です。
+
+DNSレコードは設定する必要があります。    
+[公式ドキュメント](https://developers.cloudflare.com/fundamentals/manage-domains/redirect-domain/)通り、A,AAAAレコードの値にはダミーを利用します。
+
+今回は、後ほどそれらドメインでWeb運用する可能性が0ではないため、302リダイレクトを返します。本当は301リダイレクトを返すべきです。
+
+## 手順
+
+### 1. DNSレコードの設定
+
+全てのサブドメインに対して適用するので、ワイルドカードで設定します。  
+プロキシはオンにする必要があります(オレンジ雲)。
+
+![08_redirect-multiple-domains-with-only-cloudflare/01-dns-setting-result.webp](/images/08_redirect-multiple-domains-with-only-cloudflare/01-dns-setting-result.webp)
+
+サブドメイン全てに適用するためにワイルドカードで指定しています。  
+証明書と同じく、ワイルドカードはAPEXドメインには適用されません。
+そのためAPEXドメイン(@,付箋でマスクされている箇所)に対して別のA,AAAAレコードを設定しています。
+
+この状態だと、レコード自体は存在しますが、実際には何もホスティングされていない状態です。
+
+![08_redirect-multiple-domains-with-only-cloudflare/02-timeout-page-cloudflare-proxied.webp](/images/08_redirect-multiple-domains-with-only-cloudflare/02-timeout-page-cloudflare-proxied.webp)
+
+以上のようになっているのが正解です。
+
+### 2. Cloudflare Rulesの設定
+
+Cloudflareあるあるなのですが、製品名が似ている新旧のサービスが混在しています。  
+「Page Rules」 という旧来の項目から、「Cloudflare Rules」に移行しており、Rulesの中でも複数の目的に応じて分類されています。
+Cloudflare RulesとPages Rulesが競合した場合、Cloudflare Rulesが優先されます。  
+今回設定するのは、「Cloudflare Rules > Redirect Rule」です。
+
+サイドパネルの「ルール > 概要」から「ルールを作成」を押下し「リダイレクトルール」を選択します。
+
+![08_redirect-multiple-domains-with-only-cloudflare/03-redirect-rule-settings.webp](/images/08_redirect-multiple-domains-with-only-cloudflare/03-redirect-rule-settings.webp)
+
+リダイレクトルールの内容を入力し、「デプロイ」を押下します。
+
+全リクエスト(Cloudflareプロキシネットワークを通るこのドメインの全リクエスト)に対して、`https://www.xlog.systems/`への302リダイレクトを設定しています。  
+
+ここで注意なのは、「Rules」上の「全てのリクエスト」とは、Cloudflareプロキシネットワークを通るこのドメインの全リクエストを指します。  
+従って、当然ではありますが、プロキシがオフのドメインに対して適用されませんし、レコードがないサブドメインに対しても適用されません。
+
+今回の目的の、`domain.tld`、`*.domain.tld`というAPEX、サブドメインの全てのパターン、に適用するためには、ワイルドカードによるサブドメイン全てに対するレコード設定が必要です。
+
+### (3. 確認)
+
+```
+~ » curl https://domain.tld -I
+HTTP/2 302
+date: Sun, 19 Oct 2025 08:49:18 GMT
+location: https://www.xlog.systems/
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=rM5749OlvEbCIxlxrkPnrP5NQ7Teu8f1UiIO3I%2FSjMZuHsYTHCZG4%2Bxv%2F1Ns69pCD4N9ziUnyi%2FXPHSlgRv4hi76eRybiY8ys4Dm3b3qG2WG%2BhLFBxco86%2FPaB8%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: 990f057a3ab9db53-NRT
+```
+
+```
+~ » curl https://anything.domain.tld -I
+HTTP/2 302
+date: Sun, 19 Oct 2025 08:56:12 GMT
+location: https://www.xlog.systems/
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=cKKGk6Hf4g1VHwC3wkgVjXHZ%2BF15EJTAue%2B9QGIN4q7VTkzsMky6zc7DQfmt0y9IGlMDSEdGmBYDO8bPreNM9SuUdLjq7tyeWr7Wc5zAEwpk5HkWOuidYYukUX%2FNeLT1OrF%2F%2Fk4%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: 990f0f93cef4af4f-NRT
+```
+
+OKです。APEXドメイン、サブドメイン共にリダイレクトが機能しています。
+
+## まとめ
+
+Cloudflareのみでドメインへのリダイレクトを設定する方法を解説しました。

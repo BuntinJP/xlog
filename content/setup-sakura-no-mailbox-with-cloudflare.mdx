@@ -26,15 +26,16 @@ purelymail,fastmailなど、他のメールサービスに乗り換えようと�
 
 ## 注意
 
-※ 適当なドメイン(*.sakura.ne.jp)でさくらのメールボックスが契約されている前提です
+※ 適当なドメイン(*.sakura.ne.jp)でさくらのメールボックスが契約されている前提です  
 ※ 適当な独自ドメインをCloudflareにNS設定してDNS管理をしている前提です
 
 ## 方針
 
 1. さくらのコンパネから独自ドメインを追加
-2. CloudflareでDNS設定
+2. 独自ドメインのDKIM,DMARCを有効化
+3. CloudflareでDNS設定
 3. ユーザーを設定
-4. Thunderbirdから送受信できることを確認
+4. 送信できることを確認
 
 ## 手順
 
@@ -60,3 +61,150 @@ purelymail,fastmailなど、他のメールサービスに乗り換えようと�
 おそらくレンサバのUIを流用しているからだと思うのですが、さくら側のDNSに勝手にレコード追加され、NSを移せ、というスタイルです。  
 そのため、NSを移さずとも、同様のレコードをコンパネ上から確認してCloudflareに設定すればドメインの設定は完了する、ということになります。
 
+### 2. 独自ドメインのDKIM,DMARCを有効化
+
+画像の「メールドメイン設定」ボタンから設定画面に入ります。
+
+![07_setup-sakura-no-mailbox-with-cloudflare/004_sakura-no-mailbox-domain-setting-button_01.webp](/images/07_setup-sakura-no-mailbox-with-cloudflare/004_sakura-no-mailbox-domain-setting-button_01.webp)
+
+DKIM,DMARCを有効化します。
+
+![07_setup-sakura-no-mailbox-with-cloudflare/005_sakura-no-mailbox-domain-options.webp](/images/07_setup-sakura-no-mailbox-with-cloudflare/005_sakura-no-mailbox-domain-options.webp)
+
+DMARCの詳細設定はお好みで。
+
+![07_setup-sakura-no-mailbox-with-cloudflare/006_sakura-no-mailbox-domain-setting.webp](/images/07_setup-sakura-no-mailbox-with-cloudflare/006_sakura-no-mailbox-domain-setting.webp)
+
+### 3. コンパネからレコードを確認し、Cloudflareに設定する
+
+画像の「DNSレコード設定」ボタンから設定画面に入ります。
+
+![07_setup-sakura-no-mailbox-with-cloudflare/004_sakura-no-mailbox-domain-setting-button_01.webp](/images/07_setup-sakura-no-mailbox-with-cloudflare/004_sakura-no-mailbox-domain-setting-button_01.webp)
+
+設定画面から、Cloudflareに設定するレコード情報を確認します。  
+このコンパネは、さくらのDNSの設定画面となっています。さくらの言う通りにNSを移した場合コンパネの設定値がそのまま反映されます。
+
+Cloudflareから移したくないので、コンパネから確認した設定をCloudflareに手動で設定します。
+
+設定内容を確認し、Cloudflareに手動で設定します。  
+※ Cloudflare側の説明は割愛します。
+
+![07_setup-sakura-no-mailbox-with-cloudflare/007_sakura-no-mailbox-domain-setting.webp](/images/07_setup-sakura-no-mailbox-with-cloudflare/007_sakura-no-mailbox-domain-setting.webp)
+
+### 4. ユーザーを設定
+
+ユーザーを追加します。
+画像の「新規追加」をクリックします。
+
+![07_setup-sakura-no-mailbox-with-cloudflare/008_sakura-no-mailbox-mailaddress-setting.webp](/images/07_setup-sakura-no-mailbox-with-cloudflare/008_sakura-no-mailbox-mailaddress-setting.webp)
+
+ユーザー情報などを入力してユーザーを作成します。
+
+![07_setup-sakura-no-mailbox-with-cloudflare/009_sakura-no-mailbox-mailaddress-setting-02.webp](/images/07_setup-sakura-no-mailbox-with-cloudflare/009_sakura-no-mailbox-mailaddress-setting-02.webp)
+
+### 5. 送信テスト
+
+MUAは正直何でもいいのですが、今回は[swaks](https://github.com/jetmore/swaks)を利用し送信テストをします。おすすめです。
+
+```sh
+swaks \
+  --to TARGET@gmail.com \
+  --from USER@CUSTOMDOMAIN.TLD \
+  --header "Subject: さくらのメールボックス テスト" \
+  --body "TEST MAIL" \
+  --server DOMAIN.sakura.ne.jp:587 \
+  --protocol ESMTP \
+  --auth LOGIN \
+  --auth-user USER@CUSTOMDOMAIN.TLD \
+  --auth-password YOUER_PASSWORD \
+  --tls \
+  --tls-optional
+```
+
+```
+swaks \
+--to [recipient@example.com] \
+--from [sender@example.com] \
+--header "Subject: さくらのメールボックステスト from swaks" \
+--body "TEST MAIL" \
+--server [server.example.jp] \
+--protocol ESMTP \
+--auth LOGIN \
+--auth-user [sender@example.com] \
+--auth-password [REDACTED] \
+--tls \
+--tls-optional
+=== Trying [server.example.jp]:25...
+=== Connected to [server.example.jp].
+<- 220 [hostname.example.jp] ESMTP Sendmail 8.16.1/8.16.1; Mon, 6 Oct 2025 01:09:44 +0900 (JST)
+ -> EHLO [client.example.com]
+<- 250-[hostname.example.jp] Hello [IPv6:[REDACTED]], pleased to meet you
+<- 250-ENHANCEDSTATUSCODES
+<- 250-PIPELINING
+<- 250-8BITMIME
+<- 250-SIZE 209715200
+<- 250-DSN
+<- 250-ETRN
+<- 250-AUTH CRAM-MD5 DIGEST-MD5 LOGIN PLAIN
+<- 250-STARTTLS
+<- 250-DELIVERBY
+<- 250 HELP
+ -> STARTTLS
+<- 220 2.0.0 Ready to start TLS
+=== TLS started with cipher TLSv1.2:ECDHE-RSA-AES256-GCM-SHA384:256
+=== TLS client certificate requested and not sent
+=== TLS no client certificate set
+=== TLS peer[0] subject=[/CN=*.example.jp]
+=== commonName=[*.example.jp], subjectAltName=[DNS:*.example.jp, ... (truncated for brevity)]
+=== TLS peer[1] subject=[/C=JP/ST=Tokyo/L=Chiyoda-ku/O=Gehirn Inc./CN=Gehirn Managed Certification Authority - RSA DV]
+=== commonName=[Gehirn Managed Certification Authority - RSA DV], subjectAltName=[] notAfter=[2028-03-15T23:59:59Z]
+=== TLS peer[2] subject=[/C=US/ST=New Jersey/L=Jersey City/O=The USERTRUST Network/CN=USERTrust RSA Certification Authority]
+=== commonName=[USERTrust RSA Certification Authority], subjectAltName=[] notAfter=[2028-12-31T23:59:59Z]
+=== TLS peer certificate passed CA verification, passed host verification (using host [server.example.jp] to verify)
+ ~> EHLO [client.example.com]
+<~ 250-[hostname.example.jp] Hello [IPv6:[REDACTED]], pleased to meet you
+<~ 250-ENHANCEDSTATUSCODES
+<~ 250-PIPELINING
+<~ 250-8BITMIME
+<~ 250-SIZE 209715200
+<~ 250-DSN
+<~ 250-ETRN
+<~ 250-AUTH CRAM-MD5 DIGEST-MD5 LOGIN PLAIN
+<~ 250-DELIVERBY
+<~ 250 HELP
+ ~> AUTH LOGIN
+<~ 334 VXNlcm5hbWU6
+ ~> [REDACTED]
+<~ 334 UGFzc3dvcmQ6
+ ~> [REDACTED]
+<~ 235 2.0.0 OK Authenticated
+ ~> MAIL FROM:<[sender@example.com]>
+<~ 250 2.1.0 <[sender@example.com]>... Sender ok
+ ~> RCPT TO:<[recipient@example.com]>
+<~ 250 2.1.5 <[recipient@example.com]>... Recipient ok
+ ~> DATA
+<~ 354 Enter mail, end with "." on a line by itself
+ ~> Date: Mon, 06 Oct 2025 01:09:44 +0900
+ ~> To: [recipient@example.com]
+ ~> From: [sender@example.com]
+ ~> Subject: さくらのメールボックステスト from swaks
+ ~> Message-Id: <[REDACTED]@[client.example.com]>
+ ~> X-Mailer: swaks vDEVRELEASE jetmore.org/john/code/swaks/
+ ~>
+ ~> TEST MAIL
+ ~>
+ ~>
+ ~> .
+<~ 250 2.0.0 595G9iGL001333 Message accepted for delivery
+ ~> QUIT
+<~ 221 2.0.0 [hostname.example.jp] closing connection
+=== Connection closed with remote host.
+```
+
+※ 実際のログをGrokにマスクしてもらったものです。
+
+![07_setup-sakura-no-mailbox-with-cloudflare/010_skaura-no-mailbox-test-mail-result.webp](/images/07_setup-sakura-no-mailbox-with-cloudflare/010_skaura-no-mailbox-test-mail-result.webp)
+
+問題なく送信できます。
+
+### 6. 受信テスト
