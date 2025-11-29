@@ -7,8 +7,14 @@ import type { MDXComponents } from 'mdx/types';
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
-    // biome-ignore lint/suspicious/noExplicitAny: MDX component props typing
-    img: (props) => <ImageZoom {...(props as any)} />,
+    img: (props) => (
+      <ImageZoom
+        className='mx-auto w-[min(80vw,700px)] max-h-[420px] object-contain'
+        style={{ maxHeight: '420px' }}
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        {...(props as any)}
+      />
+    ),
 
     a: (props) => (
       <a

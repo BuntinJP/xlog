@@ -1,0 +1,98 @@
+---
+title: "[Convertio代替]ConvertXをセルフホストして安全にファイル変換する"
+description: 安全と書いてるサイトの変換サービスを信頼しないわけではないのですが、やはりセルフホストしないと気が済みません。
+date: 2025-11-20
+categories: ['工作','セルフホスト','Windows','自作PC']
+tags: ['ArchLinux','ブート','GRUB','shims']
+draft: true
+---
+
+## はじめに
+
+オンラインサービス系は結構有り、ツールなんかは仕事でも使ったりするにはするのですが、ファイルのアップロードは流石にできません。  
+機密ではなくとも、変換なんかでもセルフホストできるものを探していました。
+
+今回はConvertioの代替として、ConvertXというツールをセルフホストしてみました。
+
+## ConvertXとは
+
+[ConvertX](https://github.com/C4illin/ConvertX)は、「セルフホスト型オンラインファイルコンバーター」(Description直訳)です。
+
+様々なファイル形式の変換をサポートしており、セルフホストのWebインターフェースを通じて利用できます。
+
+| Converter                                                       | Use case         | Converts from | Converts to |
+| --------------------------------------------------------------- | ---------------- | ------------- | ----------- |
+| [Inkscape](https://inkscape.org/)                               | Vector images    | 7             | 17          |
+| [libjxl](https://github.com/libjxl/libjxl)                      | JPEG XL          | 11            | 11          |
+| [resvg](https://github.com/RazrFalcon/resvg)                    | SVG              | 1             | 1           |
+| [Vips](https://github.com/libvips/libvips)                      | Images           | 45            | 23          |
+| [libheif](https://github.com/strukturag/libheif)                | HEIF             | 2             | 4           |
+| [XeLaTeX](https://tug.org/xetex/)                               | LaTeX            | 1             | 1           |
+| [Calibre](https://calibre-ebook.com/)                           | E-books          | 26            | 19          |
+| [LibreOffice](https://www.libreoffice.org/)                     | Documents        | 41            | 22          |
+| [Dasel](https://github.com/TomWright/dasel)                     | Data Files       | 5             | 4           |
+| [Pandoc](https://pandoc.org/)                                   | Documents        | 43            | 65          |
+| [msgconvert](https://github.com/mvz/email-outlook-message-perl) | Outlook          | 1             | 1           |
+| [dvisvgm](https://dvisvgm.de/)                                  | Vector images    | 4             | 2           |
+| [ImageMagick](https://imagemagick.org/)                         | Images           | 245           | 183         |
+| [GraphicsMagick](http://www.graphicsmagick.org/)                | Images           | 167           | 130         |
+| [Assimp](https://github.com/assimp/assimp)                      | 3D Assets        | 77            | 23          |
+| [FFmpeg](https://ffmpeg.org/)                                   | Video            | ~472          | ~199        |
+| [Potrace](https://potrace.sourceforge.net/)                     | Raster to vector | 4             | 11          |
+| [VTracer](https://github.com/visioncortex/vtracer)              | Raster to vector | 8             | 1           |
+
+READMEから引用ですが、以上のように非常に多くの形式に対応しています。
+
+多くのライブラリを組み合わせて利用する関係上依存とからが面倒そうですが、Dockerイメージが提供されています。  
+神すぎます。
+
+また、TypeScriptで書かれており、Bun + Elysiaベースです。新しすぎてもはや面白いです。
+
+## 構成
+
+### ホスト方法
+
+Dockerを利用します。
+
+### アクセス方法
+
+Nginxで直のクライアント証明書でのmTLS認証と、Cloudflareプロセス経由のセキュアなアクセス制御(Zero Trust)の2パターンのアクセスをセットアップします。
+
+NginxのmTLS認証は証明書がインストール済み環境のみ対応となるため、より汎用的な認証としてCloudflare Zero Trustを使用します。  
+Cloudflareプロキシ経由にすると、無料プランアップロード上限により最大ファイルサイズが100MBに制限されます。
+
+[CloudflareでWorkersを使わずにリダイレクトを設定する](/posts/redirect-multiple-domains-with-only-cloudflare)  
+こちらの記事にZero Trustの設定方法をまとめています。
+
+
+## 手順
+
+### Dockerコンテナのセットアップ
+
+公式からテンプレを借りてきて、適当なディレクトリにファイルを作成します。
+
+```yml
+common@badcompany ~/apps/convertx                                                                                                                                                                          [21:01:24]
+> $ cat compose.yml                                                                                                                                                                                                  
+services:
+  convertx:
+    build:
+      context: .
+      # dockerfile: Debian.Dockerfile
+    volumes:
+      - ./data:/app/data
+    environment: # Defaults are listed below. All are optional.
+      - ACCOUNT_REGISTRATION=false # true or false, doesn't matter for the first account (e.g. keep this to false if you only want one account)
+      - JWT_SECRET=YDhY2P7zVaN3YmP8h7gcVkTnsDVZM4bTyvhxq7VnNButZi54o # will use randomUUID() by default
+      - HTTP_ALLOWED=false # setting this to true is unsafe, only set this to true locally
+      - ALLOW_UNAUTHENTICATED=true # allows anyone to use the service without logging in, only set this to true locally
+      - AUTO_DELETE_EVERY_N_HOURS=0 # checks every n hours for files older then n hours and deletes them, set to 0 to disable
+      # - FFMPEG_ARGS=-hwaccel vulkan # additional arguments to pass to ffmpeg
+      # - WEBROOT=/convertx # the root path of the web interface, leave empty to disable
+      # - HIDE_HISTORY=true # hides the history tab in the web interface, defaults to false
+      - TZ=Asia/Tokyo # set your timezone, defaults to UTC
+      # - UNAUTHENTICATED_USER_SHARING=true # for use with ALLOW_UNAUTHENTICATED=true to share history with all unauthenticated users / devices
+    ports:
+      - 3000:3000
+```
+

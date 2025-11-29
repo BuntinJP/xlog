@@ -1,4 +1,6 @@
 {
+  "deno.enable": false,
+  "deno.lint": false,
   "editor.formatOnSave": true,
   "[javascript]": {
     "editor.defaultFormatter": "biomejs.biome"
@@ -18,5 +20,6 @@
   "editor.codeActionsOnSave": {
     "quickfix.biome": "always",
     "source.organizeImports.biome": "always"
-  }
+  },
+  "chatgpt.openOnStartup": true
 }
