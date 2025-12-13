@@ -1,5 +1,5 @@
 ---
-title: '[dehydrated]ブログのSSL証明書をより強固に自動更新したい'
+title: 'Cloudflareでドメインを管理するブログのSSL証明書をより強固に自動更新したい[dehydrated]'
 description: SSL 証明書を certbot で cron するだけのチン 🙆 ス脳死構成ではなく、ちゃんと CloudflareAPI を利用した堅牢な証明書自動更新環境を作成したい。
 date: 2024-03-08
 categories: ['工作','Linux','SSL']
@@ -15,54 +15,43 @@ keywords: ['dehydrated', "Let's Encrypt", 'certbot', 'SSL', 'Cloudflare', '証�
 
 何こいつ？って感じでしょうか。
 
-私にとって、脳死構成は http 接続とドメイン指定による certbot の SSL 証明書発行です。よく行われていると思います。それを cron したりもです。
+「脳死構成」とは、サーバー上で一時的に http を開けて `certbot -d example.com ...` みたいなコマンドを、そのまま cron に入れるとかです。  
+よく行われていると思います。確かに楽だとは思います。
 
-自分は、できれば限りなく CA やドメイン関連以外の構成はかなり技術的に堅い、というか、より機械的なものが好きです。
-今回は解決策が出てきますので楽しみにしててください。
+しかし、自分は、できるだけ単純で機械的に動くスタックの方が好きです。c
 
-今回の私の環境を紹介しておきます。
-このブログとは別の環境になります。これを執筆している環境ですね。
-
-ブログの技術スタックは別の記事でいつか紹介しようと思います。
-
-あ、「より強固に」を「より権威的な CA からの無料証明書の入手する」と空見した方はお帰りください。そのような方法は知りません。
+今回はそんな自分が納得できた解決策を紹介します。
 
 ## 環境
 
-**自宅 LAN 内**
+証明書を取得する環境を紹介しておきます。
 
-- ONU(Nuro) ほぼ固定 IP
-- Red Hat Enterprise Linux 9.3 (x86_64)
-- Ubuntu 22 LTS (x86_64)
-- Miracle Linux 9.2 (x86_64)
+ISP: Nuro 光 (So-net)  
+OS: ArchLinux
 
-これらに対して、ZTE 製の Nuro の ONU でポート解放を行い、それぞれのサーバーを外部からアクセスできるようにしています。
+ZTE 製の Nuro の ONU でポートマッピングを行い、宣言的にポートを解放しています。
 
-使用用途は主に、開発用、web サーバー用、趣味用となります。
+使用用途は主に、趣味での開発となります。
 ゲーム用のサーバーを立てたりもしています。
 
-RHEL に強い CPU が乗っているため、ほぼそれがメインです。
-
-これらに対して、あるドメインを取得し、Cloudflare で DNS を管理しています。
-
-これも別記事になると思いますが、Cloudflare は神です。
-ですので、DNS,CDN,SSL,DDoS 対策など、私のインフラはだいぶ Cloudflare 依存気味ですので、真似はあまりお勧めしません。。
-
-## 現状解説・今までの証明書更新
-
-説明に自宅ドメインを使うのも変なので、ここでは `example.com`と言うドメインを利用している前提とします。
+また、Cloudflareで取得したドメインを向けています。
 
 まず、自宅回線でビジネスプランでもないので ISP から払い出された IP が変わることがあります。
-
-Nuro を導入して早 5 年ほど経ちますが、今の所一度しか変化していません。
+Nuro を導入して早 7 年ほど経ちますが、今の所1度しか変化していません。
 
 しかし、それでもやはりドメインと IP が機械的につながっていないと安心できない私は、Cloudflare API を利用したダイナミック DNS を利用しています。
 
+そうです。Cloudflare API を現時点で利用しているのです。
+
+## 今までの証明書更新
+
+まず大前提として、趣味用サーバーですので、有償証明書は論外です。というか、有償証明書はエンプラに売る商品でしかないと思っています。ステータスシンボルビジネスです。
+
 今までは、複数のサブドメインに対して、certbot で証明書をサーバー内から取得するものと、ZeroSSL を利用する 2 パターンが混在していました。
 
-> [certbot](https://certbot.eff.org/)- Let's Encrypt の公式クライアント
+> [certbot](https://certbot.eff.org/) - Let's Encrypt の公式クライアント
 
-> [ZeroSSL](https://zerossl.com/) > [ブラウザから無料で簡単に証明書を発行できる ZeroSSL | DevelopersIO](https://dev.classmethod.jp/articles/zerossl-a-free-and-easy-way-to-issue-certificates-from-your-browser/)
+> [ZeroSSL](https://zerossl.com/) - [ブラウザから無料で簡単に証明書を発行できる ZeroSSL | DevelopersIO](https://dev.classmethod.jp/articles/zerossl-a-free-and-easy-way-to-issue-certificates-from-your-browser/)
 
 ドメインごとに、何が使われているのかわかりにくく、かつ ZeroSSL については証明書の更新時の課金の強制感(うまくやれば(本来は)払わなくて良い)がうざかったので、やめました。ブラウザから手頃にとって来れるのは良いんですけどね。
 
@@ -70,27 +59,21 @@ Nuro を導入して早 5 年ほど経ちますが、今の所一度しか変化
 
 結局こいつらがやってるのは ACME プロトコルに準じた自動的な証明書の発行です。偉いのは CA であってこいつらでは決してありません。いや ZeroSSL はワンチャン偉いか？
 
-また、certbot はやることに比べて偉く高級で多機能なクライアントです。web サーバー機能までもっちゃってます。
+また、certbot は目的に対して不必要にで多機能なクライアントです。web サーバー機能まで持っちゃってます。
 
-何度も言いますが、自分はあまり好みではないです。必要最低限の機能のみを抽出して、それがしっかり動けばそれが一番良いと思っています。（趣味サーバーはその範疇ではない笑）
-
-また、自分がお客様のサーバーで証明書を設定するときに、Let's Encrypt で証明書を取るときは一時的に通信が http になったりします。自分は、証明書の差し替えは裏でやって、Nginx などは`reload`や`restart`のみを行う形式にしたいと考えています。そのためには、TXT レコードなどを利用したドメインの検証が必要になります。
-ここを、CloudflareAPI をうまくこねくり回して解決したいところです。
+自分はあまり好みではないです。自宅に知らない業者が定期的に上がり込んできて勝手にケーブリングしていくみたいな居心地の悪さがあります。
 
 以上が現状まとめ、となります。
 
 ## 今後の証明書更新
 
-要件は以下のようになります。自宅用の自己満構成なのでかなり緩めです。
+整理すると、要件は以下のようになります。
 
-**要件**
+- 無料で利用できること(Let'sEncrypt)
+- dns-01チャレンジを利用したい
+- certbot は少し多機能すぎる。ZeroSSL は論外
 
-- 結局自分がしたいのは、Cloudflare 管理のドメインで、自動的に証明書が更新されてほしい。
-- 自宅 IP が変わったら動作しないスクリプトにしたくない。
-- certbot は少し多機能すぎる。ZeroSSL は論外。
-- 更新時 Web サーバーを止めたくない。
-
-以上の要件から、自分が出した答えは以下の二つの構成です。
+以上の要件から、自分が出した答えは以下2つの構成です。
 
 **dehydrated**
 
@@ -104,70 +87,113 @@ Nuro を導入して早 5 年ほど経ちますが、今の所一度しか変化
 
 ### dehydrated とは
 
-*dehydrated*は certbot と同じく ACME プロトコルに対応するクライアントです。ShellScript で書かれた単純なスクリプトです。
+*dehydrated*は certbot と同じく ACME プロトコルに対応するクライアントです。単一のbashスクリプトです。この上なくシンプルでもはや美しいです。
 
 certbot と違い、証明書の取得のみを行います。証明書の設定などはユーザーが自分で行う必要があります。
-でも、やることは証明書の更新なので、設定はすでに終わっているはずですよね。なので正直証明書の更新ごときで設定ファイルをいじるだのなんだのって話からおかしいんですよ。
-しかも、ドメインの検証機能も最低限でいいと思います。自分の Web サーバーにすでにある証明書の更新で、リジェクトされるのはドメインが自分の手から離れた後か、DNS の設定をミスっている時だけですよね。
-さらに、certbot だと、nginx や apache みたいな使い抜かれてるサーバーなんかだと自動で設定をいじってインストールまでしてくれますよね。
+しかし、やることは証明書の更新なので、設定はすでに終わっているはずですよね。なので正直証明書の更新ごときで設定ファイルをいじるだのなんだのって話からおかしいんですよ。  
+
+certbotの設定ファイルを勝手に編集する機能はマジでなんのためにあるんですか？邪魔にしか感じません。
 
 **dehydrated にはそんな余計すぎる機能はありません。**
 
-本当にいらないです。そういう機能は、
+本当にいらないです。そういう機能は。
 
-自分が更新かけなければ、ソフトウェアのバージョンは変わりません。が、自分は趣味サーバーで重いサービスをホストしてるわけでもないので、頻繁に `refresh-dnf`コマンドを実行します。このコマンドは自作です笑。commands というレポジトリにあり、以下のコピーを見てみてください。
+嫌ならアップデートするなよという反論は承知しています。  
+が、自分は趣味サーバーで重いサービスをホストしてるわけでもないので、頻繁にパッケージ全更新コマンドを実行します。
 
-```bash title="refresh-dnf.sh"
-##!/bin/bash
-
-## Refresh DNF
-sudo dnf check-update
-sudo dnf update -y
-sudo dnf upgrade -y
-sudo dnf autoremove -y
-sudo dnf clean all
-sudo dnf makecache
-```
-
-恐ろしいと感じる人もいるでしょう笑
-
-自分は本当になんとなくこれで行ってます。強いて言えば、更新されるパッケージが多いとゲージの進むスピードが遅くて楽しめるって感じです。
-
-これでも、定期的なタイミングで動くべきものはちゃんと動いて欲しいのが私です。
-
-であれば、正直やることはマジでしょぼい内容です。というか、決まりきってる過程です。それをやるソフトウェアの何を保守するんですか？
-
-[certbot](https://github.com/certbot/certbot)の commit 見てみてください。今(2024/03/26)時点で見て、ヘッドのコミットが`5 days ago`、、、すごいですね笑
-
-ンンンンンｎｎｎｎ、[dehydrated](https://github.com/dehydrated-io/dehydrated/commits/master/)はどうかな？？ 、、`3 month ago`、、微妙ですが、一応 certbot よりは古いです。というか、こっちは構造上自動的にアップデートされません(企画倒れではある)。でもドキュメントは 5 年前より変わってない様なので許してください。
+その環境なのもあり、やっぱり余計な機能がないシンプルなソリューションが好きなのです。dehydrated はまさにそれを体現する神ツールということです。
 
 ### letsencrypt-cloudflare-hook とは
 
-*letsencrypt-cloudflare-hook*は、dehydrated のプラグイン的なものです。レポジトリ名に dehydrated が含まれていないので分かりづらいですが。
+結構古いスクリプトです。しかし、機能は十分です。
 
-dehydrated は、hooks という形で API のようなものを提供しています。
+*letsencrypt-cloudflare-hook*は、dehydrated のプラグイン的なものです。レポジトリ名に dehydrated が含まれていないので分かりづらいですが。他のACMEクライアントでも利用できるようなのでこの名前になっているようです。
 
-まずドメインの検証方法として、http 以外にも、TXT 検証やサブドメインの CNAME レコードを利用した検証があります。
-どちらも certbot でも ZeroSSL でも使われています。
+dehydrated は、hooks という形で API のようなものを提供しています。dehydratedが証明書取得のためにチャレンジ情報を受けとり、それを何らかの形で利用しているドメインのAPI経由で登録したりするためのインターフェイスという位置づけです。
 
-これについてもハードコーディングで中途半端に自動化してると、チャレンジテキストが変わったりしたら失敗する可能性があります。
+そして、名前の通り、letsencrypt-cloudflare-hookはCloudflareAPIにチャレンジ情報を登録するためのhooksです。
 
-そして、私は CloudflareAPI を利用してダイナミック DNS を構成しています。CloudflareAPI はかなり柔軟にできており、これと dehydrated の API の橋渡しをこのスクリプト(プラグイン)が行います。
+APIキーの登録のみで、dehydrated がチャレンジ情報を CloudflareAPI 経由で登録、削除してくれます。
 
-そして、TXT 検証で dehydrated が特別な通信なしに証明書発行までこぎ着けます。
-CloudflareAPI 経由なのがなんとも素晴らしいです本当に。
+CloudflareではメールとAPIキーの組み合わせは非推奨となっています。しかし、新しいAPIトークン方式だと、ドメインごとにAPIエンドポイントの情報としてゾーンを指定する必要があります。本当は自動取得可能なパラメータですが、調べた限り自動取得まで行ってくれるhookスクリプトはありませんでした。
 
-### 設定内容
+dehydratedに取得対象のドメインを指定する`domains.txt`というファイルがあるのですが、そこにドメインを追加するだけで証明書発行を有効にしたかったので、今回は非推奨ながらAPIキー方式を採用しました。
 
-これを見に来ている方には使い方がわかっているツールの説明などいらないかと思うので割愛します。[こちら](https://github.com/dehydrated-io/dehydrated)をどうぞ。
+## 設定内容
 
-やったことは、以下の通りです。
+これを見に来ている方には使い方がわかっているツールの説明などいらないかと思いますが、私が設定した内容を解説しておきます。
 
-1. dehydrated をインストール(/opt/dehydrated)
-2. CloudflareAPI のトークンを取得
-3. letsencrypt-cloudflare-hook をインストール(/opt/dehydrated/hooks/cloudflare/hook.py)
-4. dehydrated の設定ファイルを設定(/opt/dehydrated/config)
-5. 対象ドメインを設定(/opt/dehydrated/domains.txt)
+公式情報は[こちら](https://github.com/dehydrated-io/dehydrated)をどうぞ。
+
+1. dehydrated をインストール
+
+`/opt/dehydrated`に設置しました
+
+```
+># git clone git@github.com:dehydrated-io/dehydrated.git /opt/dehydrated                    
+---
+Cloning into '/opt/dehydrated'...
+remote: Enumerating objects: 2485, done.
+remote: Counting objects: 100% (162/162), done.
+remote: Compressing objects: 100% (41/41), done.
+remote: Total 2485 (delta 147), reused 122 (delta 121), pack-reused 2323 (from 3)
+Receiving objects: 100% (2485/2485), 938.95 KiB | 1.94 MiB/s, done.
+Resolving deltas: 100% (1561/1561), done.
+```
+
+2. letsencrypt-cloudflare-hook をインストール
+
+[公式](https://github.com/kappataumu/letsencrypt-cloudflare-hook)のサンプル通り、`hooks/cloudflare`に設置しました
+
+```
+># cd /opt/dehydrated/
+># git clone git@github.com:kappataumu/letsencrypt-cloudflare-hook.git hooks/cloudflare
+---
+Cloning into 'hooks/cloudflare'...
+remote: Enumerating objects: 158, done.
+remote: Counting objects: 100% (67/67), done.
+remote: Compressing objects: 100% (13/13), done.
+remote: Total 158 (delta 60), reused 54 (delta 54), pack-reused 91 (from 1)
+Receiving objects: 100% (158/158), 32.00 KiB | 4.00 MiB/s, done.
+Resolving deltas: 100% (83/83), done.
+```
+
+3. CloudflareからAPIキーを取得
+
+Cloudflareのダッシュボードから取得可能です
+
+[Get Global API key (legacy) · Cloudflare Fundamentals docs](https://developers.cloudflare.com/fundamentals/api/get-started/keys/)
+
+4. dehydrated の初期化・設定
+
+最初にアカウントキーの登録が必要です。
+
+```
+># cd /opt/dehydrated
+># ./dehydrated --register --accept-terms
+---
+#
+# !! WARNING !! No main config file found, using default config!
+#
++ Generating account key...
++ Registering account key with ACME server...
++ Fetching account URL...
++ Done!
+```
+
+dehydratedのconfigにCloudflareのAPIキーを登録しておきます
+
+```
+># cd /opt/dehydrated
+># cp docs/examples/config config
+># echo "export CF_EMAIL=EMAIL_HERE" >> config
+># echo "export CF_KEY=API_KEY_HERE" >> config
+```
+
+5. 対象ドメインを設定
+
+`/opt/dehydrated/domains.txt`に取得するドメインを記載します。  
+1行が1枚の証明書に対応しており、マルチドメイン(ワイルドカード含め)対応の証明書は1行にスペース区切りで記述することで対応可能です。
 
 ```text title="domains.txt"
 code.example.com
@@ -176,6 +202,8 @@ example.com
 ```
 
 ## 結果
+
+`./dehydrated -c -t dns-01 -k 'hooks/cloudflare/hook.py'`このようなコマンドで証明書を取得できます。
 
 ```
 [::] buntin@example.com:/opt/dehydrated (master %) $ ./dehydrated -c -t dns-01 -k 'hooks/cloudflare/hook.py'
@@ -288,13 +316,8 @@ Processing example.com
 
 毎回証明書更新のたびに新しい方法に手を出してきましたが、しばらくは変更いらないくらい堅牢なのができたと思います。
 
-あとは、例のスクリプトをもとに自分が書いた TypeScript 製にしちゃいたいですね。Bun & TypeScript 構成にハマっているのでそのうちやると思います。
+あとは、`cd /opt/dehydrated/ && ./dehydrated -c -k 'hooks/cloudflare/hook.py' -t dns-01 && systemctl reload nginx`をcronに入れておくなどすればOKです。
 
-Cloudflare 関連の Web 通信系の心配は全くないんですが、証明書関連がどうなのか、、、まあ扱っているのはネットの証明書なわけですから全てあるでしょう。
+自分でDeno製のhooksを作りたいという願望がじわじわ来てるので、そのうち作ろうかと思います。(`-k "hooks/deno-dehydrated-hooks/hook.ts"`とかやってみたい)
 
 では！
-
-## 改訂履歴
-
-- 2024/03/08 初稿
-- 2024/03/26 (追記) 記事内容がスカスカすぎたため追記。さらに追記内容があるが暇な時間待ち。
