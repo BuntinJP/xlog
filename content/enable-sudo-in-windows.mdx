@@ -1,0 +1,79 @@
+---
+title: "Windows11でsudoを利用できるようになっていた"
+description: "びっくりしたのでただのお知らせクソ薄記事です。"
+date: 2025-11-20
+categories: ['備忘録','Windows','シェル']
+tags: ['PowerShell','sudo']
+draft: true
+---
+
+## まとめ
+
+何かと言われがちなWindows11ですが、初めて見直したかもしれません。
+Windows11から、sudoが使えるようになっていたようです。
+
+逆に結構知られてるのであればただ自分の情報収集能力がないだけなので笑ってください。
+
+わざわざターミナルから、Windows PowerShellを右クリして「管理者として実行」を選んで、
+
+```powershell
+choco upgrade all -y
+```
+
+とやっていたのを、ただ
+
+```powershell
+sudo choco upgrade all -y
+```
+
+とするだけでよくなりました。これは革命ですよ。
+
+## 有効化方法
+
+設定から、「設定 > 詳細設定」を開き、「sudoの有効化」をオンにします。
+
+![12-windows-sudo/01-windows-settings-page.webp](/images/12-windows-sudo/01-windows-settings-page.webp)
+
+自分は同時に、「sudoによるアプリケーションの実行方法を構成する」を、「インライン」に設定しました。デフォルトでは別ウィンドウになっています。
+
+![12-windows-sudo/03-windows-settings-page-inline-setting.webp](/images/12-windows-sudo/03-windows-settings-page-inline-setting.webp)
+
+これで完了です。秒ですね。
+
+## 実行例
+
+```
+PS C:\Users\username> sudo choco upgrade all -y
+Chocolatey v2.6.0
+Upgrading the following packages:
+all
+By upgrading, you accept licenses for the packages.
+7zip.install v25.1.0 is the latest version available based on your source(s).
+chocolatey v2.6.0 is the latest version available based on your source(s).
+chocolatey-compatibility.extension v1.0.0 is the latest version available based on your source(s).
+chocolatey-core.extension v1.4.0 is the latest version available based on your source(s).
+crystaldiskmark v9.0.1 is the latest version available based on your source(s).
+discord v1.0.9218 is the latest version available based on your source(s).
+discord.install v1.0.9218 is the latest version available based on your source(s).
+Firefox v146.0.1 is the latest version available based on your source(s).
+notepadplusplus v8.8.9 is the latest version available based on your source(s).
+notepadplusplus.install v8.8.9 is the latest version available based on your source(s).
+thunderbird v146.0.1 is the latest version available based on your source(s).
+
+Chocolatey upgraded 0/11 packages.
+ See the log for details (C:\ProgramData\chocolatey\logs\chocolatey.log).
+
+Enjoy using Chocolatey? Explore more amazing features to take your
+experience to the next level at
+ https://chocolatey.org/compare
+PS C:\Users\username>
+```
+
+実行時、以下のようなシステムプロンプトが出ます。
+
+![12-windows-sudo/02-user-account-prompt.webp](/images/12-windows-sudo/02-user-account-prompt.webp)
+
+「はい」を選択すると、Linuxのsudo同様に管理者権限でコマンドが実行できます。
+
+もうLinuxですね。Windowsは早く謝罪してほしいです(?)
+
