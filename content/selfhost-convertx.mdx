@@ -75,7 +75,7 @@ Nginxで公開します。
 
 ```shellsession
 >$ mkdir -p ~/apps/convertx
->$ ~/apps/convertx
+>$ cd ~/apps/convertx
 >$ vim compose.yml
 >$ cat compose.yml
 >$ docker compose up -d
@@ -117,9 +117,11 @@ Dockerマジで神。
 ```shellsession
 ># cd /etc/nginx/conf.d/
 ># vim 10_convertx.domain.tld.conf
-># nginx -t                                                                                     
+># nginx -t
+---
 nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 nginx: configuration file /etc/nginx/nginx.conf test is successful
+---
 ># systemctl reload nginx
 ```
 
@@ -189,8 +191,21 @@ ssl_verify_client on;
 
 これだけでサービスのホストは完了しています。
 
-3. Cloudflare Zero Trustのセットアップ
+3. DNS設定
 
-詳しい設定内容は[こちら](/posts/publish-web-with-cloudflare-zero-trust-and-tunnel)を参照してください。
+`convertx.domain.tld`がNginxサーバーのIPアドレスを指すようにAレコードを設定します。
 
+4. 動作確認
 
+ブラウザで`https://convertx.domain.tld`にアクセスし、mTLS認証を突破すればConvertXのお目見えです。
+
+変換可能な形式が大量に表示されますが、対象の形式を入力することで絞り込みが可能です。  
+今回はwebpへ変換していますが、同じ形式への変換で複数のライブラリ(vips,ImageMagick,GraphicsMagick)が選択可能でした。
+
+![11_convertx/01-convertx.png](/images/11_convertx/01-convertx.png)
+![11_convertx/02-convertx.png](/images/11_convertx/02-convertx.png)
+![11_convertx/03-convertx.png](/images/11_convertx/03-convertx.png)
+
+変換自体も非常に高速で、あっという間に完了しました。
+
+これで安心して、しかも簡単にファイル変換が可能になりました:)
