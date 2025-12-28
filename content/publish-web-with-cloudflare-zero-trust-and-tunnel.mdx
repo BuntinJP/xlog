@@ -32,11 +32,11 @@ Cloudflare Zero Trustを利用するためには、Cloudflareにネームサー�
 
 以下のシナリオで行きます。
 
-1. `/var/www/secret-raw` を公開するバーチャルホスト(secret-raw)を、20001ポートで公開
-2. Cloudflare Tunnelを作成し、サーバーのcloudflaredと接続
-3. ポリシーを作成する
-3. アプリケーション(Cloudflare Zero Trust内のサービスの単位)を作成し、Cloudflare Tunnel経由でsecret-rawにアクセス可能にする
-4. Zero Trustにて、対象のドメイン(アプリケーション)をGithubのアカウント認証などから利用できるようにする
+1. Nginxでディレクトリインデックスを有効にした、リソース公開用VHを作成
+2. Cloudflareダッシュボードからトンネルを作成
+3. Cloudflare Tunnel経由でsecret-rawを公開
+3. ポリシーを作成
+4. アプリケーションを作成しポリシーを適用
 
 ## 使用技術
 
