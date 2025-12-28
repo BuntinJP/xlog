@@ -1,15 +1,15 @@
 ---
 title: "[Convertio代替]ConvertXをセルフホストして安全にファイル変換する"
 description: 安全と書いてるサイトの変換サービスを信頼しないわけではないのですが、やはりセルフホストしないと気が済みません。
-date: 2025-11-20
+date: 2025-12-24
 categories: ['工作','セルフホスト']
-tags: ['ArchLinux','ConvertX','Docker','Nginx','Cloudflare']
+tags: ['ArchLinux','ConvertX','Docker','Nginx']
 draft: true
 ---
 
 ## はじめに
 
-画像やドキュメントを変換するオンラインサービス系は結構有りますよね。自分はよくConvertioやiLovePDFを利用しますが、自分の公的書類なんかは流石にアップロードできません。  
+画像やドキュメントを変換するオンラインサービス系は結構有りますよね。自分はよくConvertioやiLovePDFを利用しますが、公的書類なんかは流石にアップロードしたくありません。  
 WebUIを持った変換ソフトウェア系でセルフホストできるものを探していました。
 
 今回はConvertioの代替として、ConvertXというツールをセルフホストしてみました。
@@ -48,7 +48,7 @@ WebUIを持った変換ソフトウェア系でセルフホストできるもの
 
 また、TypeScriptで書かれており、Bun + Elysiaベースです。新しすぎてもはや面白いです。
 
-Next.jsやHonoは協力な大企業の後ろ盾があるのに対して、Elysiaはどうなのかなという感想でしたが、BunがAnthropicに買収されたため不安が払拭されました笑
+Next.jsやHonoは強力な大企業の後ろ盾があるのに対して、Elysiaは...という感想でしたが、BunがAnthropicに買収されたため不安が払拭されました笑
 
 ## 構成
 
@@ -58,10 +58,8 @@ Dockerを利用します。
 
 ### アクセス方法
 
-Nginxで直のクライアント証明書でのmTLS認証と、Cloudflareプロセス経由のセキュアなアクセス制御(Zero Trust)の2パターンのアクセスをセットアップします。
-
-NginxのmTLS認証は証明書がインストール済み環境のみ対応となるため、より汎用的な認証としてCloudflare Zero Trustを使用します。  
-Cloudflareプロキシ経由にすると、無料プランアップロード上限により最大ファイルサイズが100MBに制限されます。
+Nginxで公開します。
+認証は、mTLS認証を利用します。
 
 ## 手順
 
@@ -73,29 +71,126 @@ Cloudflareプロキシ経由にすると、無料プランアップロード上�
 
 サンプルの[compose.yaml](https://github.com/C4illin/ConvertX/blob/main/compose.yaml)から一部オプションを変更しました。
 
-```yml
+実行コマンドは以下の通りです。
+
+```shellsession
 >$ mkdir -p ~/apps/convertx
->$ vim ~/apps/convertx/compose.yml                                                                                                                                                                                                  
+>$ ~/apps/convertx
+>$ vim compose.yml
+>$ cat compose.yml
+>$ docker compose up -d
+```
+
+```yml title="compose.yml"
 services:
   convertx:
     image: ghcr.io/c4illin/convertx
     container_name: convertx
     restart: unless-stopped
     ports:
-      - 3000:3000
+      - 10010:3000
     volumes:
       - ./data:/app/data
-    environment: # Defaults are listed below. All are optional.
-      - ACCOUNT_REGISTRATION=false # true or false, doesn't matter for the first account (e.g. keep this to false if you only want one account)
-      - JWT_SECRET=YDhY2P7zVaN3YmP8h7gcVkTnsDVZM4bTyvhxq7VnNButZi54o # will use randomUUID() by default
-      - HTTP_ALLOWED=false # setting this to true is unsafe, only set this to true locally
-      - ALLOW_UNAUTHENTICATED=true # allows anyone to use the service without logging in, only set this to true locally
-      - AUTO_DELETE_EVERY_N_HOURS=0 # checks every n hours for files older then n hours and deletes them, set to 0 to disable
-      # - FFMPEG_ARGS=-hwaccel vulkan # additional arguments to pass to ffmpeg
-      # - WEBROOT=/convertx # the root path of the web interface, leave empty to disable
-      # - HIDE_HISTORY=true # hides the history tab in the web interface, defaults to false
-      - TZ=Asia/Tokyo # set your timezone, defaults to UTC
-      # - UNAUTHENTICATED_USER_SHARING=true # for use with ALLOW_UNAUTHENTICATED=true to share history with all unauthenticated users / devices
+    environment:
+      - ACCOUNT_REGISTRATION=false
+      # - JWT_SECRET=-------------------------------------------------
+      - HTTP_ALLOWED=false
+      - ALLOW_UNAUTHENTICATED=true
+      - AUTO_DELETE_EVERY_N_HOURS=0
+      # - FFMPEG_ARGS=-hwaccel vulkan
+      # - WEBROOT=/convertx
+      # - HIDE_HISTORY=true
+      - TZ=Asia/Tokyo
+      # - UNAUTHENTICATED_USER_SHARING=true
+      - MAX_CONVERT_PROCESS=0
+```
+
+これだけでサービスのホスト自体は完了しています。  
+Dockerマジで神。
+
+10010ポートで待ち受けているのはただの個人の事情です。
+
+2. Nginxのセットアップ
+
+実行コマンドは以下の通りです。
+
+```shellsession
+># cd /etc/nginx/conf.d/
+># vim 10_convertx.domain.tld.conf
+># nginx -t                                                                                     
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+># systemctl reload nginx
+```
+
+mTLS認証を利用するため、自前で構築したプライベート認証局(CA)の証明書を指定しています。
+WebSocketのプロキシ設定はおそらく不要です。私はテンプレを使いまわしているので残ってしまっています。
+
+`client_max_body_size 0;`でアップロード上限を無制限にしています。適宜調整してください。私は認証をかけたので無制限にしました。
+デフォルトが1MBなので注意してください。
+
+```nginx title="10_convertx.domain.tld.conf"
+map $http_upgrade $connection_upgrade { 
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    server_name convertx.domain.tld;
+
+    client_max_body_size 0;
+
+    access_log /var/log/nginx/convertx.domain.tld_access.log main;
+    error_log  /var/log/nginx/convertx.domain.tld_error.log warn;
+
+    return 301 https://convertx.domain.tld$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name convertx.domain.tld;
+
+    ssl_certificate     /opt/dehydrated/certs/domain.tld/fullchain.pem;
+    ssl_certificate_key /opt/dehydrated/certs/domain.tld/privkey.pem;
+
+    client_max_body_size 0;
+
+    access_log /var/log/nginx/convertx.domain.tld_access.log main;
+    error_log  /var/log/nginx/convertx.domain.tld_error.log warn;
+
+    ssl_client_certificate /opt/domain_ca/ca.crt;
+    ssl_verify_client on;
+
+    location / {
+        proxy_pass http://localhost:10010;
+
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_set_header Host $host;
+
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
 
 ```
+ssl_client_certificate /opt/domain_ca/ca.crt;
+ssl_verify_client on;
+```
+
+以上の部分がmTLS認証の設定です。  
+`/opt/domain_ca/ca.crt`は自前で構築したプライベート認証局(CA)の証明書です。
+
+これだけでサービスのホストは完了しています。
+
+3. Cloudflare Zero Trustのセットアップ
+
+詳しい設定内容は[こちら](/posts/publish-web-with-cloudflare-zero-trust-and-tunnel)を参照してください。
+
 

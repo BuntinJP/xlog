@@ -8,70 +8,57 @@ tags: ['ArchLinux','Nginx','Cloudflare','Zero Trust']
 
 ## はじめに
 
-#### !注意! Cloudflareにネームサーバーを移している前提の内容となります ※1
+#### (2025/12/28 追記) Cloudflareの最新のUIに合わせて内容を一部修正しました。
 
-
-以前死んだOracleLinux,RHEL9サーバーで、`raw.` というサブドメインを使い、画像や、公開鍵ファイル、CMS用のコンテンツなどを配信していました。
-それが死んでから、しばらくの間放置状態だったのですが、最近ちょっとその機能が欲しくなったため、復活させます。
-
-また、`secret-raw` というサブドメインを使い、外にいるときや、鍵を持ってきていない端末で、p12ファイルなどの秘密情報をダウンロードできるようにします。
-当然ですが、秘密情報は認証を通じて自分や友人のためだけに公開したいです。なんなら、githubのオーガナイゼーションを利用してメンバーや内部のACLによるアクセス制限を行うなんてことも考えられます。
-一旦はgithubなどのアカウント認証を使うを目標とします。
-
-例: 外出先のスマートフォンから、mTLSで保護されているURLにアクセスしたい
-
-そのため、2つのドメインを使って、それぞれ公開用・秘密用で分けたいと思います。
+以前死んだOracleLinux,RHEL9サーバーで、`raw.` というサブドメインを使い、画像や、公開鍵ファイル、CMS用のコンテンツなどを配信していました。  
+サーバーが死んでから、pdfとかを取ってくるのに結構重宝してたことに気づいたので、復活させます。
+mTLSは証明書の導入が面倒(スマホ等)なので、Github,GoogleのOAuth認証を利用したいと思っています。
 
 ```
-secret-raw.domain.tld   秘密(認証必須)用
-raw.domain.tld          公開用
+secret-raw.domain.tld
 ```
 
-としようと思います。
+みたいなドメイン名で、Github,Googleの認証を用いてサイトにログインし、Nginxの専用のバーチャルホストにアクセスできるのを目標とします。
 
-`secret-raw.` の方については、
-また、80,443がすでに複数のドメインのバーチャルホストとして使われているため、不正アクセスを防ぐために、ポートごと分けて運用します。
+ちなみに、作業内容は[こちら](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/)のドキュメントにすべてまとめられています。
 
-余談ですが、本来は、`secret-raw.domain.tld` は、 `secret.raw.domain.tld` とする予定でした。しかし、.で区切るとワイルドカード証明書が使えなくなり、トンネルの証明書検証が内部で失敗することでブラウザから接続不可能になります。
+## 注意
 
+Cloudflare Zero Trustを利用するためには、Cloudflareにネームサーバーを移管している必要があります。
 
-※1 作業内容2
+プランはなんでもOKです。私は無料プランです。
 
 ## 対応方針
 
 以下のシナリオで行きます。
 
 1. `/var/www/secret-raw` を公開するバーチャルホスト(secret-raw)を、20001ポートで公開
-2. 20001ポートをCloudflare Tunnelで公開
-3. `/var/www/raw`を公開するバーチャルホスト(raw)を80,443ポートで公開
-4. Cloudflare Tunnelで公開したドメインを、Clouflare Zero Trustで保護
-5. Zero Trustにて、対象のドメイン(アプリケーション)をGithubのアカウント認証などから利用できるようにする
+2. Cloudflare Tunnelを作成し、サーバーのcloudflaredと接続
+3. ポリシーを作成する
+3. アプリケーション(Cloudflare Zero Trust内のサービスの単位)を作成し、Cloudflare Tunnel経由でsecret-rawにアクセス可能にする
+4. Zero Trustにて、対象のドメイン(アプリケーション)をGithubのアカウント認証などから利用できるようにする
 
-## 使用技術解説
+## 使用技術
 
-### Cloudflared(Cloudflare Tunnel)
+### Cloudflare Tunnel
 
 大昔OracleLinuxを使っていたときによく使っていたツールです。
-名前の通り、Cloudflareのツールです。
+ngrokみたいな感じで、サーバー内にトンネルを通せるツールです。そのトンネルとCloudflareのプロ騎士ネットワークを通じて、セキュアにサーバー内部のリソースを公開できます。
 
-Cloudflareのグローバルネットワークでプロキシ(CDN)を使うと、サーバーの実IPを隠すことができます。  
-これ目的で大体の犯罪サイト(漫画rawなど)はCloudflareを使用するわけですが、これを応用します。
-そのネットワークのエッジと、サーバーのリソースをCloudflaredを通した暗号化通信でプロキシすることで、疑似的にサーバー内にトンネルを通すことができます。
-
-正確には、CloudflareサーバーとCloudflared間でトンネルが通るのですが、Cloudflareを使ってCDNプロキシを使うと、表向きはCloudflareによってプロキシされているただのサイトのように見せられます。
+Cloudflareのネットワークに依存するため、完全なTCPトンネルとしての利用は無理があるかもしれませんが、公式でSSH,VNC,RDPのブラウザレンダリングがサポートされているので、結構柔軟に使えます。
 
 そのため、22ポートを指定して、sshconfigでちょっとしたプロキシ設定を書くだけで、それを使ってSSHをすることもできます。
 
-### Cloudflare Zero Trust (旧Cloudflare Access)
+### Cloudflare Zero Trust
 
-Zero Trustの基本概念などは、Cloudflareの記事を参照ください。
+Zero Trustの基本概念などは、Cloudflareの記事を[参照](#参考)ください。
 
-自分のZero Trustネットワークを定義、その中でGoogleやGithubをIdentityProviderとして使用し、それぞれのメールを識別子としてそれぞれユーザーを発行、それぞれのユーザーがどのリソースにアクセスできるかなどを柔軟に管理できます。
-
-こちらを使うと、Cloudflareで公開(プロキシ必須)しているSaaSや、Webアプリケーションなどを、Cloudflareの基盤で認証をしないと使えないようにすることができます。
+GoogleやGithub等複数の認証プロバイダーを使用し、メールを識別子としてそれぞれユーザーを発行、ポリシーによってアプリケーションへのアクセスを管理できます。  
+これの何がすごいのかというと、サーバー側は普通のWebアプリケーションのホストと同じインターフェイスなのに対して、Cloudflare側でアクセス制御を行い、Zero Trust的なセキュリティを実現できる点です。
 
 また、疑似的なランチャーも展開できます。  
-https://???.cloudflareaccess.com/#/Launcher などのURLから、それぞれのユーザーが許可されているアプリケーションに遷移できるという感じです。
+https://???.cloudflareaccess.com/#/Launcher といったURLで、それぞれのユーザーが許可されているアプリケーション一覧のページにアクセスできます。  
+AWS access portalみたいな感じです。
 
 以下は、ほぼ保守されていない以前の環境のランチャーの例です。
 
@@ -87,71 +74,37 @@ https://???.cloudflareaccess.com/#/Launcher などのURLから、それぞれの
 
 ### 1. Nginxでディレクトリインデックスを有効にした、リソース公開用VHを作成
 
+内部用のVHは`/etc/nginx/conf.d/tunnels/`ディレクトリに配置し、ポートを`20001`から始まるように設計してみました。
+
+```console
+># cd /etc/nginx/
+># cp -p nginx.conf{,.$(date "+%Y%m%d")}
+># vim nginx.conf # /etc/nginx/conf.d/tunnelsディレクトリを読み込むように変更
+># diff nginx.conf.20250215 nginx.conf
+---
+34a35
+>     include /etc/nginx/conf.d/tunnels/*.conf;
+---
+># cd /etc/nginx/conf.d/tunnels
+># vim 01_secret-raw.conf
+># nginx -t
+--
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+---
+># systemctl reload nginx
 ```
-root@badcompany ~                                                                                 [18:27:55]
-> # cd /etc/nginx/conf.d                                                                                    
-root@badcompany /etc/nginx/conf.d                                                                                     [17:12:09]
-> # ls -lah                                                                                                                     
-total 56K
-drwxr-xr-x 3 root root 4.0K Feb 28 17:05 .
-drwxr-xr-x 3 root root 4.0K Feb 24 15:39 ..
--rw-r--r-- 1 root root 1.1K Feb 24 15:35 01_domain.tld.conf
--rw-r--r-- 1 root root  741 Sep 15 18:06 01_domain.tld.conf.20250224
--rw-r--r-- 1 root root 1.2K Feb 24 15:41 02_dash.domain.tld.conf
--rw-r--r-- 1 root root  981 Feb 25 11:48 03_kuma.domain.tld.conf
--rw-r--r-- 1 root root  714 Nov 24 01:19 03_kuma.domain.tld.conf.20250224
--rw-r--r-- 1 root root 1012 Nov 24 01:26 04_filebrowser.domain.tld.conf
--rw-r--r-- 1 root root 1.5K Feb 24 15:45 05_jupyterlab.domain.tld.conf
--rw-r--r-- 1 root root 1.4K Feb 24 15:45 06_code.domain.tld.conf
--rw-r--r-- 1 root root 1.5K Feb 26 10:56 07_buntin.code.domain.tld.conf
--rw-r--r-- 1 root root 1.5K Feb 26 10:56 07_buntin.code.domain.tld.conf.20250228
--rw-r--r-- 1 root root  759 Feb 25 11:50 08_raw.domain.tld.conf
-drwxr-xr-x 2 root root 4.0K Feb 28 17:08 tunnels
-root@badcompany /etc/nginx/conf.d                                                                                     [17:12:16]
-> # cat 08_raw.domain.tld.conf                                                                                            
-server {
-    listen 80;
-    server_name raw.domain.tld;
 
-    access_log /var/log/nginx/raw.domain.tld_access.log main;
-    error_log  /var/log/nginx/raw.domain.tld_error.log warn;
-
-    return 301 https://raw.domain.tld$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name raw.domain.tld;
-
-    ssl_certificate     /opt/dehydrated/certs/domain.tld/fullchain.pem;
-    ssl_certificate_key /opt/dehydrated/certs/domain.tld/privkey.pem;
-
-    access_log /var/log/nginx/raw.domain.tld_access.log main;
-    error_log  /var/log/nginx/raw.domain.tld_error.log warn;
-
-    location / {
-        root /var/www/raw;
-
-        autoindex on;
-        autoindex_exact_size off;
-        autoindex_localtime on;
-    }
-}
-root@badcompany /etc/nginx/conf.d                                                                                     [17:12:19]
-> # cd tunnels                                                                                                                  
-root@badcompany /etc/nginx/conf.d/tunnels                                                                             [17:12:38]
-> # vim 01_secret-raw.domain.tld.conf                                                                                     
-root@badcompany /etc/nginx/conf.d/tunnels                                                                             [17:12:43]
-> # cat 01_secret-raw.domain.tld.conf                                                                                     
+```nginx title="secret-raw.conf"
 server {
     listen 20001;
-    server_name secret-raw.domain.tld;
+    server_name secret-raw;
 
-    #ssl_certificate     /opt/dehydrated/certs/domain.tld/fullchain.pem;
-    #ssl_certificate_key /opt/dehydrated/certs/domain.tld/privkey.pem;
+    #ssl_certificate     /opt/dehydrated/certs/badcompany.tokyo/fullchain.pem;
+    #ssl_certificate_key /opt/dehydrated/certs/badcompany.tokyo/privkey.pem;
 
-    access_log /var/log/nginx/secret.domain.tld_access.log main;
-    error_log  /var/log/nginx/secret.domain.tld_error.log warn;
+    access_log /var/log/nginx/secret-raw_access.log main;
+    error_log  /var/log/nginx/secret-raw_error.log warn;
 
     location / {
         root /var/www/secret-raw;
@@ -161,84 +114,32 @@ server {
         autoindex_localtime on;
     }
 }
-root@badcompany /etc/nginx/conf.d/tunnels                                                                             [17:12:46]
-> #             root@badcompany /etc/nginx/conf.d/tunnels                                                         [18:34:43]
-> # cd /etc/nginx/                                                                                          
-root@badcompany /etc/nginx                                                                        [18:34:49]
-> # cp -p nginx.conf{,.$(date "+%Y%m%d")}                                                                   
-root@badcompany /etc/nginx                                                                        [18:34:59]
-> # vim nginx.conf # 追加でtunnelディレクトリとして新規でnginxの設定を置き出したディレクトリを読み込むように変更
-root@badcompany /etc/nginx                                                                        [18:35:23]
-> # diff nginx.conf.20250215 nginx.conf                                                                     
-34a35
->     include /etc/nginx/conf.d/tunnels/*.conf;
-root@badcompany /etc/nginx                                                                        [18:35:32]
-> # nginx -t                                                                                                
-nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
-nginx: configuration file /etc/nginx/nginx.conf test is successful
-root@badcompany /etc/nginx                                                                        [18:35:38]
-> # systemctl reload nginx                                                                                  
-root@badcompany /etc/nginx                                                                        [18:35:43]
-> # systemctl status nginx                                                                                  
-● nginx.service - nginx web server
-     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: disabled)
-     Active: active (running) since Sat 2025-02-15 01:35:05 JST; 17h ago
- Invocation: b7b4fe898ef24286a1f8eb63fd5e9dda
-    Process: 1460335 ExecStart=/usr/bin/nginx (code=exited, status=0/SUCCESS)
-    Process: 1525037 ExecReload=/usr/bin/nginx -s reload (code=exited, status=0/SUCCESS)
-   Main PID: 1460336 (nginx)
-      Tasks: 3 (limit: 57486)
-     Memory: 7.3M (peak: 9.1M)
-        CPU: 10.903s
-     CGroup: /system.slice/nginx.service
-             ├─1460336 "nginx: master process /usr/bin/nginx"
-             ├─1460337 "nginx: worker process is shutting down"
-             └─1525043 "nginx: worker process"
-
-Feb 15 16:45:00 domain.tld nginx[1460337]: 2025/02/15 16:45:00 [error] 1460337#1460337: *5542 open() ">
-Feb 15 16:51:07 domain.tld nginx[1460337]: 2025/02/15 16:51:07 [error] 1460337#1460337: *5553 open() ">
-Feb 15 17:14:31 domain.tld nginx[1460337]: 2025/02/15 17:14:31 [error] 1460337#1460337: *5604 open() ">
-Feb 15 18:06:16 domain.tld nginx[1460337]: 2025/02/15 18:06:16 [error] 1460337#1460337: *5670 open() ">
-Feb 15 18:29:56 domain.tld nginx[1460337]: 2025/02/15 18:29:56 [error] 1460337#1460337: *5762 open() ">
-Feb 15 18:29:56 domain.tld nginx[1460337]: 2025/02/15 18:29:56 [error] 1460337#1460337: *5763 open() ">
-Feb 15 18:34:44 domain.tld nginx[1460337]: 2025/02/15 18:34:44 [error] 1460337#1460337: *5770 open() ">
-Feb 15 18:35:43 domain.tld systemd[1]: Reloading nginx web server...
-Feb 15 18:35:43 domain.tld nginx[1525037]: 2025/02/15 18:35:43 [notice] 1525037#1525037: signal proces>
-Feb 15 18:35:43 domain.tld systemd[1]: Reloaded nginx web server.
 ```
 
 ![06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test.webp)
 
 OKそうですね
 
-Nginxの設定ファイルや実際の編集内容などは、ログの途中を読んでいただけると🙇‍♂️
+実際の使用環境では、`/var/www/secret-raw` には秘匿性の高い情報が入るはずなので扱い方に注意です(私の環境は参考にできたものではないためお気をつけください笑)  
+外部から20001番ポートに直接アクセスできないように、自宅回線(※天下の究極うんこISP Nuro光)のルーターによる、ポートアドレス変換の対象外にしています。
+iptablesが起動しており、20001ポートへはポリシーによってDROPされるようになっていますが、あまり意味はないです。
 
-自宅回線(※天下の究極うんこISP Nuro光)のルーターによる、ポートアドレス変換の配下にいるサーバーの設定例となります。
+これにより、サーバー側の準備が整いました。
 
-実際の使用環境では、`/var/www/secret-raw` には秘匿性の高い情報が入るはずなので扱い方に注意です(Nginxを使って配信している時点で察してください)  
-外部から20001番ポートに直接アクセスできないようにアクセス制限をかけるくらいは必要かと。
-
-これにより、`raw.`, `secret-raw.`の両方の準備が整いました。
-
-rawディレクトリにファイルを追加していき、ここからファイルをダウンロードする想定です。ポートを分けているため、まだ外部からアクセスできません。
-
-ドメインを実際に切るのは最後にします。
-
-### 2. Cloudflare Tunnelを使い、20001ポートを公開する
+### 2. Cloudflare Zero Trust経由でアクセスできるようにする
 
 #### 注意 CloudflareにNSを移管する必要があります
 
-> !注意! Cloudflareにネームサーバーを移している前提となります ※1
-
-冒頭の以上は、ここに関係します。今回利用するCloudflareTunnel, ZeroTrustは、Cloudflareにネームサーバーを移して使えるCloudflare独自の機能なので、ここからはその前提ありきで進めていきます。  
-また、CloudflareDashboard内の権限周りは考えません。全権限を持っている前提の話です。開発環境では関係ない話だと思いますが念のため。
+[冒頭の注意](#注意)は、ここに関係します。今回利用するCloudflareTunnel, ZeroTrustは、Cloudflareにネームサーバーを移して使えるCloudflare独自の機能なので、ここからはその前提ありきで進めていきます。  
+また、Cloudflareのアカウント権限周りは考えません。全権限を持っている前提の話です。開発環境では関係ない話だと思いますが念のため。
 
 #### 1. cloudflaredをインストール
 
-Cloudflaredをインストールします。サーバーにはArchを使用しています。
+cloudflaredをインストールします。サーバーにはArchLinuxを使用しているため、paruでインストールしています。
 
-```
-❯ paru -Syu cloudflared
+```console
+># paru -Syu cloudflared
+---
 :: Synchronizing package databases...
  core is up to date
  extra is up to date
@@ -272,53 +173,97 @@ Total Installed Size:  24.88 MiB
 :: Calculating inner conflicts...
 ```
 
-#### 2. Cloudflareダッシュボードからトンネルを作成
+#### 1. IDプロバイダーを登録する
 
-Cloudflareのダッシュボードからトンネルを管理します。
+Cloudflare Zero Trustで使用するIDプロバイダーを登録します。(Github, Google等)  
+
+詳しい設定方法はプロバイダーによって異なるので、設定への入り方のみ解説します。Google Cloudのプロジェクトの作成方法などは公式ドキュメントを見てください
+
+Cloudflare全体のダッシュボードから、「Zero Trust」を選択すると、ZeroTrustのダッシュボードに進みます。
+次に、「インテグレーション > IDプロバイダー」に進み、「IDプロバイダーを追加する」をクリックします。
+
+[公式ドキュメント](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/)に、各IDプロバイダーごとの設定方法があります。
+
+#### 3. Cloudflareダッシュボードからトンネルを作成
 
 CLIからやる方法もありますが、トンネルの情報をコンパネから触れるメリットがデカすぎるので、今回はコンパネで行きます。  
 グローバル・ローカル管理という名目でダッシュボードでも選択制となっていて、グローバル(コンパネ)推奨とはっきり書いてあります。  
 ここは、流石にベストプラクティスっぽい方を選んでおきます。
 
-また、Tunnel作成時などにCNAMEかなんかのレコードがCloudflare側で貼られます
+ZeroTrustのダッシュボードに入ります。
 
-メインページから、「Cloudflare Access」を選択すると、ZeroTrustに統合された旨が表示されてZeroTrustのダッシュボードに進みます。
-
-次に、「Zero Trustの概要 > ネットワーク > Tunnels(トンネル)」に進みます。
-
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-network-tunnels-01.webp)
-
-「トンネルを追加する」から、トンネルを追加します。
+次に、「ネットワーク > コネクタ」に進み、「トンネルを作成する」をクリックします。
 
 ![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02.webp)
-
 
 Cloudflaredを使用します  
 というか、WARPを使っている人ってどれくらいいるんですかね？
 他のネタでも言うと思いますが、Cloudflareのグローバルネットワークの力でゴリ押しているだけで、tailscaleの完全下位互換だと思うのですが。
 
 ![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001.webp)
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config.webp)
 
 トンネル名を決め、cloudflaredインストール後の手順の部分をシェルにコピペします
 
-```
-> # sudo cloudflared service install KEYKEYKEYKEYKEY
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config.webp)
+
+
+```console
+># sudo cloudflared service install KEYKEYKEYKEYKEY
 2025-03-26T04:25:48Z INF Using Systemd
 2025-03-26T04:25:49Z INF Linux service for cloudflared installed successfully
 ```
 
 ![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected.webp)
 
-パブリックホストの作成と、ポリシーの定義を行います。
-ここで作成しているのは、Cloudflare Zero Trustでいうところの「アプリケーション」です。
+これで、Cloudflare Tunnelの作成まで完了です。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-004-create-public-host](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-004-create-public-host.webp)
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-005](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-005.webp)
+#### 4. Cloudflare Tunnel経由でsecret-rawを公開
 
-画像で「secret.raw」となっているのは見なかったことにしてください。
-証明書の件を後から気づいてドメインを変更するまで気づかずスクショ撮っちゃってました。
-画像のところは本来「secret-raw」になるはずです。
+先程作成したCloudflare Tunnelの編集に入り、「公開されたアプリケーション ルート」に進みます。
+
+「公開されたアプリケーション ルートを追加する」をクリックします。
+
+ホスト名、サーバー内部からのアクセス先設定などを行います。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/public-application-creation-page.png](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/public-application-creation-page.png)
+
+ドメイン部分は自分の環境に合わせて設定してください。Cloudflareで管理しているドメインを選択可能です。
+
+ここまでで、Cloudflare Tunnel経由で、Nginxの20001ポートにアクセスできるようになりました。  
+この状態だと、アクセス制限無しで誰でもアクセスできてしまうので、次にアクセス制限をかけます。
+
+#### 5. Cloudflareダッシュボードからポリシーを作成
+
+アプリケーションに適用するアクセス制限を、ポリシーという形で定義します。
+
+ZeroTrustのダッシュボードから、「Access コントロール > ポリシー」に進み、「ポリシーを作成する」をクリックします。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-policy-creation-page.png](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-policy-creation-page.png)
+
+画像のように、許可したいユーザーの条件を設定します。画像の場合は、`m@example.com`、`test@example.com`というメールアドレスを許可する`member`というポリシーを作成しています。
+
+#### 6. アプリケーションを作成しポリシーを適用
+
+先程追加した「公開されたアプリケーション ルート」は、ただのドメインのついたトンネルです。Zero Trust的なアクセス制限は適用されていません。  
+そのドメインを「アプリケーション」として登録し、ポリシー適用することで、Zero Trust的なアクセスが可能になります。
+
+「Access コントロール > アプリケーション」に進み、「アプリケーションを作成する」をクリックします。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/application-creation-page.png](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/application-creation-page.png)
+
+アプリケーションの種類は、「セルフホスト」を選択します。
+
+「パブリックホストを追加」をクリックすると、ドメインを入力するフォームが出現するので、先程の公開したドメイン(Cloudflare Tunnelのドメイン)を入力します。
+
+Access ポリシーの部分で、先程作成したポリシーを選択します。「既存のポリシーを選択」から追加可能です。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/applicatoin-creation-page2.png](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/applicatoin-creation-page2.png)
+
+ログイン方法の部分で、GithubやGoogleなどのIDプロバイダーを選択します。「利用可能なすべてのIDプロバイダーを受け入れる」をオンにすると、すべてのIDプロバイダーから選択的に利用可能になります。
+
+最初のページ以外は、ランチャーの設定などです。好きに設定してください。
+
+#### 7. 確認
 
 secret-raw.domain.tldにアクセスしようとすると、以下のようなページに遷移します。
 
@@ -334,22 +279,11 @@ githubの認証が完了すると、メールアドレスの情報がCloudflare�
 
 ![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw.webp)
 
-これでsecret-rawの方は認証付きで公開までいけました。
+異なるメールで認証してみて、アクセスできないことも確認しておいたほうがいいです。
 
-###  3. raw. のレコードを作成
-
-raw. のレコードを、とりあえずサーバーに向ける必要があります。Nginxのバーチャルホストで、Hostヘッダーを利用した分岐はCloudflare越しでも機能するため、構わずwwwに対するCloudflareプロキシ有りのCNAMEレコードを作成しています。
-
-一応アクセス可能か確認します。
-
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-007-raw.webp)
-
-ここまでで、`secret-raw.` と、`raw.`について、Cloudflareのプロキシを介してリソースの公開まで完了しました
-
-自分が誤ってセキュリティ設定を変更したりしなければ安全な構成かと思います。
-では。
+これでサーバー内部向けに公開しているVHに、Cloudflare Zero Trust経由でセキュアにアクセスできるようになりました。
 
 ## 参考
 
-[Cloudflare Tunnel · Cloudflare Zero Trust docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+[Cloudflare Tunnel · Cloudflare Zero Trust docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)  
 [ゼロトラストネットワークとは？ | Cloudflare](https://www.cloudflare.com/ja-jp/learning/security/glossary/what-is-zero-trust/)
