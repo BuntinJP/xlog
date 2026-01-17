@@ -1,0 +1,306 @@
+---
+title: "Obsidianのクロスプラットフォーム同期をセルフホストする[Selfhosted Live Sync]"
+description: 月5ドルは乞食には高すぎます🥲
+date: 2026-01-06
+categories: ['工作','セルフホスト']
+tags: ['Obsidian','Docker']
+draft: true
+---
+
+## はじめに
+
+メモツールにこだわるのが結構好きなタイプなのですが、色々風呂敷を広げすぎて、自分で管理できなくなってしまいました笑
+
+Apple Notes、Notion、Discord等、情報を記述するところが使用している端末によって情報が拡散しすぎたので、Obsidianにすべてを集約しようと思います。
+
+かなり辛い選択ですが、どうにか適応します。
+
+私にとって、一番必要なのはクロスプラットフォームであることです。  
+現在の情報の拡散も、そこから来ています。
+
+それを一番に重視すれば、Notionに確定してしまいますが、それだとLLMに読ませたりなど、そこからの拡張性にやはり限界があります。
+SlackのAIロックインが本当に気持ち悪いですが、それと同じ雰囲気をNotionからも感じています。
+
+Apple Notes(メモ)は、アプリの使用感だけで言えば究極の神です。流石はAppleといったところです。本当に。  
+しかし、クロスプラットフォームという点で言えばゴミです。Android、ゴミOS(Windows)でも動いてほしいです。
+
+そのため、あくまでただのMarkdownエディターであるObsidianが良く写ったというわけです。
+
+## Obsidian Syncは高すぎる
+
+じゃあObsidianもデフォルトで良いクロスプラットフォームなのかというと、そうでもありません。
+
+公式のObsidian Syncが料金を考えない場合は、最高の選択肢です。  
+しかし、公式へのお礼として当たり前に支払えるRedditの海外勢(そういうコメントを見かけるだけです)とは異なり、私は乞食です。  
+なけなしの5ドル(年更新で4ドル)のサブスクは、ちょっと抵抗感があります。ランニングコストが、使い続けるというモチベに大きな抵抗となるので、サーバーをうまく利用してケチる方向で頑張ります。
+
+サードパーティー同期と呼ばれているプラグインを用いた同期で、最も良さそうなものをセルフホストする方向で進めます。
+
+## Self-hosted LiveSync
+
+[obsidian-livesync](https://github.com/vrtmrz/obsidian-livesync)
+
+色々な同期ツールを調べましたが、一番これが良さそうです。  
+即時同期である必要はないのですが、こちらの場合即時性もかなり高そうです。
+
+競合の解決も、よく利用されているSyncthingというツールより良さそうに感じました。
+Syncthingはファイルのハッシュ、mtimeを基準にするrsync方式ですが、Self-hosted LiveSyncの場合はObsidianの編集イベント駆動の同期が行われるようです。最高です。
+
+内部でJSONデータベースとして、CouchDBを利用するようです(S3も選択可能だが実験的)。  
+Apache CouchDBは、JSONドキュメントを保存するNoSQLデータベースであり、
+すべての操作をHTTP REST API経由で行うデータベースサーバーです。
+
+… Apache財団だからOKです笑
+
+マネージドホスティングは、私が探したところ(ChatGPT,Geminiに聞いたところ)、IBM Cloudantしかないとのことでした。  
+無料枠1GBのその1つ上のプランが月額1万1000円のエンプラ向けアプライアンスは正直眼中にありません。
+
+と思ったらSelf-hostedって書いてありました笑
+
+## 構成
+
+自宅サーバーのDockerを利用します。  
+ほぼすべての設定をDockerのみで行うことを目指します。
+
+Nginxでリバースプロキシします。
+DBを全公開するというとんでもない行為ですが、公式がやれというので仕方有りません。  
+AI曰く一応(E2EEを通せばパスフレーズを通じて)アーキテクチャ的に安全らしいです。
+
+しかし、CouchDBに脆弱性が存在してゼロデイで突かれたら終わりな気がするので、気が向いたらTailscale経由に変更するかもです。
+
+## 設定方法
+
+### 1. CouchDBのコンテナを立てる
+
+DockerでCouchDBのイメージを使いコンテナを立てます。
+
+compose.ymlでユーザーへのパスワード設定を行っており、その情報(`CHAME_ME`)が外部からサーバーを守る唯一の手段(Basic認証😭)になります。
+
+コマンド
+
+```console
+>$ mkdir ~/apps/obsidian-livesync                                                               
+>$ cd ~/apps/obsidian-livesync                                                                  
+>$ vim compose.yml
+>$ sudo mkdir -p couchdb-config
+>$ mkdir -p couchdb-data
+>$ sudo vim couchdb-config/local.ini
+>$ sudo chown -R 5984:5984 couchdb-data couchdb-config
+>$ docker compose up -d
+```
+
+```yml title="compose.yml"
+services:
+  couchdb:
+    image: couchdb:3
+    container_name: obsidian-livesync
+    user: "5984:5984"
+    restart: unless-stopped
+
+    environment:
+      - COUCHDB_USER=CHANGE_ME
+      - COUCHDB_PASSWORD=CHANGE_ME
+
+    ports:
+      - "10012:5984"
+
+    volumes:
+      - ./couchdb-data:/opt/couchdb/data
+      - ./couchdb-config:/opt/couchdb/etc/local.d
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          curl -sfSL
+          -u "$$COUCHDB_USER:$$COUCHDB_PASSWORD"
+          http://127.0.0.1:5984/_up
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+```
+
+```ini title="local.ini"
+[couchdb]
+single_node=true
+max_document_size = 50000000
+
+[chttpd]
+require_valid_user = true
+max_http_request_size = 4294967296
+
+[chttpd_auth]
+require_valid_user = true
+authentication_redirect = /e=_/_utils/session.html
+
+[httpd]
+WWW-Authenticate = Basic realm="couchdb"
+enable_cors = true
+
+[cors]
+origins = app://obsidian.md,capacitor://localhost,http://localhost,https://obsidian-live-sync.domain.tld
+credentials = true
+headers = accept, authorization, content-type, origin, referer
+methods = GET, PUT, POST, HEAD, DELETE
+max_age = 3600
+
+[log]
+level = info
+```
+
+### 2. CouchDBに対してLiveSyncのセットアップスクリプトを実行する
+
+公式の[セルフホスト向けドキュメント](https://github.com/vrtmrz/obsidian-livesync/blob/aa6d771d17bef94a4d29dfdf27500d522349d816/docs/setup_own_server.md)を参考に、以下の手順でスクリプトを実行します。
+
+bashスクリプトです。
+
+```console
+>$ export hostname=localhost:10012
+>$ export username=CHANGE_ME
+>$ export password=CHANGE_ME
+>$ curl -s https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/utils/couchdb/couchdb-init.sh | bash
+---
+INFO: defaulting to _local
+-- Configuring CouchDB by REST APIs... -->
+{"ok":true}
+"true"
+"true"
+"Basic realm=\"couchdb\""
+"true"
+""
+"4294967296"
+"50000000"
+"true"
+"app://obsidian.md,capacitor://localhost,http://localhost,https://obsidian-live-sync.domain.tld"
+<-- Configuring CouchDB by REST APIs Done!
+```
+
+変数を定義しているのは、コマンド最下部のスクリプト内部で使用しているためです。  
+ローカルからDockerのCouchDBへの接続のための情報になります。
+
+curlでCouchDBへ初期化の命令を送るスクリプトになっています。
+
+
+### 3. Nginxでリバースプロキシを設定する
+
+rootで`/etc/nginx/conf.d`への設定の追加と、リロード、ステータス確認まで行いました。
+
+- Self-hosted LiveSync用のCouchDB(10012ポート)へのリバースプロキシ設定
+
+```console
+># cd /etc/nginx/conf.d/
+># vim 12_obsidian-live-sync.domain.tld.conf
+># nginx -t
+---
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+---
+># systemctl reload nginx
+># systemctl status nginx --no-pager
+---
+● nginx.service - nginx web server
+     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: disabled)
+     Active: active (running) since Sun 2025-12-14 04:35:00 JST; 2 weeks 2 days ago
+ Invocation: 94c3f1526d3f4bbe879ee81be9722441
+    Process: 1830872 ExecReload=/usr/bin/nginx -s reload (code=exited, status=0/SUCCESS)
+   Main PID: 6350 (nginx)
+      Tasks: 2 (limit: 57477)
+     Memory: 1G (peak: 1G)
+        CPU: 2min 33.730s
+     CGroup: /system.slice/nginx.service
+             ├─   6350 "nginx: master process /usr/bin/nginx"
+             └─1830877 "nginx: worker process"
+Dec 23 23:52:26 domain.tld systemd[1]: Reloaded nginx web server.
+Dec 24 22:59:20 domain.tld systemd[1]: Reloading nginx web server...
+Dec 24 22:59:20 domain.tld nginx[1078291]: 2025/12/24 22:59:20 [notice] 1078291#1078291: signal process started
+Dec 24 22:59:20 domain.tld systemd[1]: Reloaded nginx web server.
+Dec 28 11:04:24 domain.tld systemd[1]: Reloading nginx web server...
+Dec 28 11:04:24 domain.tld nginx[1371000]: 2025/12/28 11:04:24 [notice] 1371000#1371000: signal process started
+Dec 28 11:04:24 domain.tld systemd[1]: Reloaded nginx web server.
+Dec 30 20:13:38 domain.tld systemd[1]: Reloading nginx web server...
+Dec 30 20:13:38 domain.tld nginx[1830872]: 2025/12/30 20:13:38 [notice] 1830872#1830872: signal process started
+Dec 30 20:13:38 domain.tld systemd[1]: Reloaded nginx web server.
+```
+
+Docker内部のCouchDBでアップロード上限の設定をしているので、Nginxの方では制限していません。
+
+```nginx title="12_obsidian-live-sync.domain.tld.conf"
+server {
+    listen 80;
+    server_name obsidian-live-sync.domain.tld;
+
+    client_max_body_size 0;
+
+    access_log /var/log/nginx/obsidian-live-sync.domain.tld_access.log main;
+    error_log  /var/log/nginx/obsidian-live-sync.domain.tld_error.log warn;
+
+    return 301 https://obsidian-live-sync.domain.tld$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name obsidian-live-sync.domain.tld;
+
+    ssl_certificate     /opt/dehydrated/certs/domain.tld/fullchain.pem;
+    ssl_certificate_key /opt/dehydrated/certs/domain.tld/privkey.pem;
+
+    client_max_body_size 0;
+
+    access_log /var/log/nginx/obsidian-live-sync.domain.tld_access.log main;
+    error_log  /var/log/nginx/obsidian-live-sync.domain.tld_error.log warn;
+
+    # ssl_client_certificate /opt/domain_ca/ca.crt;
+    # ssl_verify_client on;
+
+    location / {
+        proxy_pass http://localhost:10012;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_buffering off;
+        proxy_redirect off;
+    }
+}
+```
+
+### 4. DNSを設定する
+
+書くまでも有りませんが念の為。
+
+先程の設定の`obsidian-live-sync.domain.tld`にあたるドメインに対して、サーバーのIPアドレス(Nginxが80,443ポートを受け入れるIPアドレス。私の場合は天下のうんこISP、NuroのIPです。)に向けたレコード(CNAME,A)を作成します。
+
+正確には先程Nginxをリロードした時点で公開されていますが、DNSを通すことで本格的にDBが露出します笑
+
+この段階で、CouchDBの管理画面`https://obsidian-live-sync.domain.tld/_utils/`にアクセスできるようになります。  
+先程設定した`CHANGE_ME`のユーザー名とパスワードでBasic認証にログインします。
+
+### 5. 設定用URLを生成する
+
+公式による設定方法は以下の通りです。
+
+```console
+export hostname=https://obsidian-live-sync.domain.tld
+export database=obsidiannotes
+export passphrase=任意のE2EEパスフレーズ
+export username=CHANGE_ME
+export password=CHANGE_ME
+
+deno run -A https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/utils/flyio/generate_setupuri.ts
+```
+
+はい。なんとドキュメントが[Deno](https://deno.com/)に依存してました笑  
+スクリプトがURL形式となっている以上、Deno依存のセットアップ方式なんですね。
+
+自分としてはDeno大好きなので最高ですが、念の為報告となります。
+
+
+
+## 参考
+
+[Obsidian の同期を解消する & Cloudflare 配下でホストする](https://blog.naa0yama.com/p/18w10-azvs93f1/)
+
