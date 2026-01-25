@@ -1,35 +1,128 @@
 ---
-title: s-nailでDNS(MX)を無視して任意のホストにメールを送信する
+title: s-nail,swaksでDNS(MX)を無視して任意のホストにメールを送信する
 description: 本番設定でDNS設定がされているメールアドレスへのメールをlocalhostに送信したかったのです
 date: 2025-01-19
 categories: ['備忘録','Linux','メール']
-tags: ['ArchLinux','s-nail']
+tags: ['ArchLinux','s-nail','swaks']
 ---
 
 
-s-nailで、すでにメールサーバー周りの設定が完了しているメールがあります。DNSレコードをテストのために変更できないので、localhostにメールアドレスを指定して送る必要があります。
-メールのヘッダーに組み込む方法もあるようですが、再利用性が低そうだったのでs-nailの純正の機能でlocalhostにアドレス指定で送付する設定を確認しました。
+さくらのメールボックスでホストしている、DNS含め設定が完了しているメールドメインがあるのですが、訳あってそのドメインのアドレス宛のメールを、localhostのメールサーバーに送りつけたいという状況です。  
+決してスパムではありません。
+
+ちょうどよかったので、s-nail,swaksの純正の機能でlocalhostにホスト指定で送付する設定を確認しました。
+
+つまりは、Postfixなどをリレーとして利用せず、ただ任意のホストを指定してMUAから直接相手のメールサーバーに送信する方法です。
 
 TELNETを使えばいい話なのですが、面倒なのとあくまでMUAから送信したかったので。
 
 ## 手順
 
+### s-nail
+
+mailコマンドです。
+
 ```sh
-echo "TEST MAIL" | mail -s "Test Subject" -S mta=smtp://localhost:25 -S smtp-auth=none -S v15-compat=yes  user@domain.tld
+echo "TEST MAIL" | mail \
+  -r sender@domain.tld \
+  -s "Test Subject" \
+  -S mta=smtp://localhost:25 \
+  -S smtp-auth=none \
+  -S v15-compat=yes \
+  recipient@domain.tld
 ```
 
-これだけです。
+- `mail -v`とすると以下のような出力がでます。
 
-mailコマンドの使い方の解説になってしまいますが、`echo "TEST MAIL"`の部分が本文で、`-s "Test Subject"`が件名です。  
-オプション類の部分で、`-S v15-compat=yes`については、以下のような警告がうざいので消すためにつけています。
-
+```console
+mail: No such file to load: /home/user/.mailrc
+mail: P(seudo)R(andom)N(umber)G(enerator): arc4random
+mail: Resolving host localhost:25 ... done
+mail: Connecting to IP_REMOTE_HOST:25 ... connected.
 ```
+
+mailコマンドの使い方の解説になってしまいますが、`echo "TEST MAIL"`の部分が本文で、`-s "Test Subject"`が件名です。
+
+
+- オプション類の部分で、`-S v15-compat=yes`については、以下のような警告がうざいので消すためにつけています。
+
+```console
 mail: Obsoletion warning: Use of old-style credentials, which will vanish in v15!
 mail:   Please read the manual section "On URL syntax and credential lookup"
 ```
 
-25番ポートに直接接続して、暗号化・認証なしにメールを送りつけることができます。
+### swaks
 
+```sh
+echo "TEST MAIL" | swaks \
+  --server localhost \
+  --port 25 \
+  --to recipient@domain.tld \
+  --from sender@domain.tld \
+  --header "Subject: Test Subject" \
+  --body "TEST MAIL"
+```
+
+```console
+=== Trying HOSTNAME:25...
+=== Connected to HOSTNAME.
+<-  220 HOSTNAME ESMTP Sendmail 8.16.1/8.16.1; Sun, 18 Jan 2026 02:52:11 +0900 (JST)
+ -> EHLO localhost.local
+<-  250-HOSTNAME Hello [IPv6:[::]], pleased to meet you
+<-  250-ENHANCEDSTATUSCODES
+<-  250-PIPELINING
+<-  250-8BITMIME
+<-  250-SIZE 209715200
+<-  250-DSN
+<-  250-ETRN
+<-  250-AUTH CRAM-MD5 DIGEST-MD5 LOGIN PLAIN
+<-  250-STARTTLS
+<-  250-DELIVERBY
+<-  250 HELP
+ -> MAIL FROM:<recipient@domain.tld>
+<-  250 2.1.0 <recipient@domain.tld>... Sender ok
+ -> RCPT TO:<mail@domain.tld>
+<-  250 2.1.5 <mail@domain.tld>... Recipient ok
+ -> DATA
+<-  354 Enter mail, end with "." on a line by itself
+ -> Date: Sun, 18 Jan 2026 02:52:11 +0900
+ -> To: mail@domain.tld
+ -> From: recipient@domain.tld
+ -> Subject: Test From BC
+ -> Message-Id: <20260118025211.3848138@localhost.local>
+ -> X-Mailer: swaks vDEVRELEASE jetmore.org/john/code/swaks/
+ -> 
+ -> TEST MAIL from BadCompany
+ -> 
+ -> 
+ -> .
+<-  250 2.0.0 60HHqBtP051431 Message accepted for delivery
+ -> QUIT
+<-  221 2.0.0 HOSTNAME closing connection
+=== Connection closed with remote host.
+```
+
+こっちはデフォルトで詳細なログが出ます。
+
+ログを消すには、以下のようにオプションを有効にします。
+
+```sh
+# エラー以外を表示しない (エラー発生後は詳細も表示)
+echo "TEST MAIL" | swaks --silent   \
+
+# エラーのみ表示
+echo "TEST MAIL" | swaks --silent 2 \
+
+# 完全に何も表示しない
+echo "TEST MAIL" | swaks --silent 3 \
+```
+
+`-S` (または `--silent`) オプションを使用することで、出力を抑制できます。
+`--silent`を1回(または引数なし)指定するとエラーが出るまで無表示になり、`2`だとエラーのみ、`3`だと完全に無表示になります。
+
+これで25番ポートに直接接続して、暗号化・認証なしにメールを送りつけることができますね。
+
+![09-mail-client-mailfrom-options/inbox.webp](/images/09-mail-client-mailfrom-options/inbox.webp)
 
 ## 参考
 
@@ -38,3 +131,5 @@ mail:   Please read the manual section "On URL syntax and credential lookup"
 [s-nail warning about old style | bbs.archlinux.org](https://bbs.archlinux.org/viewtopic.php?id=252939)
 
 [Ubuntu Manpage: S-nail [v14.9.6] | manpages.ubuntu.com](https://manpages.ubuntu.com/manpages/bionic/man1/s-nail.1.html)
+
+[swaks(1) - Linux man page | linux.die.net](https://linux.die.net/man/1/swaks)

@@ -43,7 +43,7 @@ Cloudflare Zero Trustを利用するためには、Cloudflareにネームサー�
 ### Cloudflare Tunnel
 
 大昔OracleLinuxを使っていたときによく使っていたツールです。
-ngrokみたいな感じで、サーバー内にトンネルを通せるツールです。そのトンネルとCloudflareのプロ騎士ネットワークを通じて、セキュアにサーバー内部のリソースを公開できます。
+ngrokみたいな感じで、サーバー内にトンネルを通せるツールです。そのトンネルとCloudflareのプロキシネットワークを通じて、セキュアにサーバー内部のリソースを公開できます。
 
 Cloudflareのネットワークに依存するため、完全なTCPトンネルとしての利用は無理があるかもしれませんが、公式でSSH,VNC,RDPのブラウザレンダリングがサポートされているので、結構柔軟に使えます。
 
@@ -225,7 +225,7 @@ Cloudflaredを使用します
 
 ホスト名、サーバー内部からのアクセス先設定などを行います。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/public-application-creation-page.png](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/public-application-creation-page.png)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/public-application-creation-page.webp](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/public-application-creation-page.webp)
 
 ドメイン部分は自分の環境に合わせて設定してください。Cloudflareで管理しているドメインを選択可能です。
 
@@ -238,7 +238,7 @@ Cloudflaredを使用します
 
 ZeroTrustのダッシュボードから、「Access コントロール > ポリシー」に進み、「ポリシーを作成する」をクリックします。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-policy-creation-page.png](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-policy-creation-page.png)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-policy-creation-page.webp](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-policy-creation-page.webp)
 
 画像のように、許可したいユーザーの条件を設定します。画像の場合は、`m@example.com`、`test@example.com`というメールアドレスを許可する`member`というポリシーを作成しています。
 
@@ -249,7 +249,7 @@ ZeroTrustのダッシュボードから、「Access コントロール > ポリ�
 
 「Access コントロール > アプリケーション」に進み、「アプリケーションを作成する」をクリックします。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/application-creation-page.png](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/application-creation-page.png)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/application-creation-page.webp](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/application-creation-page.webp)
 
 アプリケーションの種類は、「セルフホスト」を選択します。
 
@@ -257,7 +257,7 @@ ZeroTrustのダッシュボードから、「Access コントロール > ポリ�
 
 Access ポリシーの部分で、先程作成したポリシーを選択します。「既存のポリシーを選択」から追加可能です。
 
-![06_publish-web-with-cloudflare-zero-trust-and-tunnel/applicatoin-creation-page2.png](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/applicatoin-creation-page2.png)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/applicatoin-creation-page2.webp](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/applicatoin-creation-page2.webp)
 
 ログイン方法の部分で、GithubやGoogleなどのIDプロバイダーを選択します。「利用可能なすべてのIDプロバイダーを受け入れる」をオンにすると、すべてのIDプロバイダーから選択的に利用可能になります。
 
