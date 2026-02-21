@@ -1,7 +1,7 @@
-import config from 'config.json';
 import { loader } from 'fumadocs-core/source';
 import { createMDXSource } from 'fumadocs-mdx';
 import { blog } from '@/.source';
+import { tagConfig } from '@/config';
 
 export const source = loader({
   baseUrl: '/posts',
@@ -61,7 +61,7 @@ for (const category of categories) {
 }
 categoriesWithPosts.sort((a, b) => a.name.localeCompare(b.name));
 
-export const myCategoriesList = config.myCategoriesList as string[];
+export const myCategoriesList = tagConfig.myCategoriesList as string[];
 
 export const withoutMyCategoriesList = categoriesList.filter((category) => {
   for (const myCategory of myCategoriesList) {
