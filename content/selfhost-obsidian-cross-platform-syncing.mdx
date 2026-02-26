@@ -43,7 +43,7 @@ Apple Notes(メモ)は、アプリの使用感だけで言えば究極の神で�
 [obsidian-livesync](https://github.com/vrtmrz/obsidian-livesync)
 
 Obsidianの、サードパーティープラグインになります。  
-無料で利用でき、かつサーバーはコンテナ1つです。美しいですね。しかし、後述しますが一つだけでかい疵があります。
+無料で利用でき、かつサーバーはDBコンテナ1つです。美しいですね。
 
 色々な同期ツールを調べましたが、一番これが良さそうです。  
 即時同期である必要はないのですが、こちらの場合即時性もかなり高そうです。
@@ -297,8 +297,8 @@ server {
 この段階で、CouchDBの管理画面`https://obsidian-live-sync.domain.tld/_utils/`にアクセスできるようになります。  
 先程設定した`CHANGE_ME`のユーザー名とパスワードでBasic認証にログインします。
 
-![13-selfhost-obsidian-cross-platform-syncing/01-couchdb-test.png](/images/13-selfhost-obsidian-cross-platform-syncing/01-couchdb-test.png)
-![13-selfhost-obsidian-cross-platform-syncing/02-couchdb-conpane.png](/images/13-selfhost-obsidian-cross-platform-syncing/02-couchdb-conpane.png)
+![13-selfhost-obsidian-cross-platform-syncing/01-couchdb-test.webp](/images/13-selfhost-obsidian-cross-platform-syncing/01-couchdb-test.webp)
+![13-selfhost-obsidian-cross-platform-syncing/02-couchdb-conpane.webp](/images/13-selfhost-obsidian-cross-platform-syncing/02-couchdb-conpane.webp)
 
 結構リッチなコンパネが付属してるんですね。
 
@@ -321,21 +321,23 @@ deno run -A https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/util
 DenoのURLでスクリプトを指定して実行できる機能、前から神機能とは思ってましたが、こんなところで見ることになるとは、少し感動です。
 
 注意点として、引数として指定している`passphrase`によって、データベースに保存する内容が暗号化されるということです。  
-つまり、これを忘れるとすべてのメモがゴミと化します。
+つまり、これを忘れるとすべてのメモがアクセス不能になります。
 
-万が一に備え、スクリプト、設定をローカルに保存するようにしました。  
-スクリプトは内部で`octagonal-wheels`という、`obsidian-livesync`の作者が作成しているnpmパッケージに依存していますが、こちらはnpmパッケージである以上突然アクセスできなくなることはなさそうなので放置しています。
+万が一に備え、スクリプトと設定をローカルに保存するようにしました。セキュアではないので参考にされる際はご注意ください。
+
+また、スクリプトは内部で`octagonal-wheels`という、`obsidian-livesync`の作者が作成しているnpmパッケージに依存しています。  
+おそらくセットアップ中にセットアップURIが適切かどうかなどを判定するために、共通のパッケージとして利用していると思われます。
+こちらはnpmパッケージである以上突然アクセスできなくなることはなさそうなので放置しています。
 
 
 ```console
 >$ cd ~/apps/obsidian-livesync
->$ curl -sfSLo generate_setupuri.ts https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/utils/flyio/generate_setupuri.ts
 >$ echo "hostname=https://obsidian-live-sync.domain.tld" >> .env
 >$ echo "database=obsidiannotes" >> .env
 >$ echo "passphrase=任意のE2EEパスフレーズ" >> .env
 >$ echo "username=CHANGE_ME" >> .env
 >$ echo "password=CHANGE_ME" >> .env
->$ deno run -A --env generate_setupuri.ts
+>$ deno run -A --env https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/utils/flyio/generate_setupuri.ts
 ---
 Your passphrase of Setup-URI is:  *****
 This passphrase is never shown again, so please note it in a safe place.
@@ -346,7 +348,43 @@ obsidian://setuplivesync?settings=******
 
 ### 6. Obsidian LiveSyncを設定する
 
-TODO
+2つのデバイス間で同期し始めるところまで解説します。
+
+#### 注意
+
+途中操作をミスると、Vaultの内容が消し飛ぶ可能性があります。バックアップを取るか、空のVaultで設定することをお勧めします。
+
+1. [1台目] プラグインをインストールする
+
+コミュニティープラグインを有効にし、`Obsidian LiveSync`をインストールします。
+
+![13-selfhost-obsidian-cross-platform-syncing/03-comunity-plugin-optin.webp](/images/13-selfhost-obsidian-cross-platform-syncing/03-comunity-plugin-optin.webp)
+
+![13-selfhost-obsidian-cross-platform-syncing/04-obsidian-livesync-plugin-page.webp](/images/13-selfhost-obsidian-cross-platform-syncing/04-obsidian-livesync-plugin-page.webp)
+
+2. [1台目] セットアップURIでサーバーに接続する
+
+Obsidian LiveSyncのセットアップ画面で、先程生成したセットアップURIを用いてサーバーに接続します。  
+初回の接続だとサーバーに情報がないため、一時的にFailedと表示されることがありますが、気にせず進めます。
+
+![13-selfhost-obsidian-cross-platform-syncing/05-plugin-setup-welcomepage.webp](/images/13-selfhost-obsidian-cross-platform-syncing/05-plugin-setup-welcomepage.webp)
+1台目なので、First Timeの方を選択します。
+
+![13-selfhost-obsidian-cross-platform-syncing/06-plugin-setup-select-connection-method.webp](/images/13-selfhost-obsidian-cross-platform-syncing/06-plugin-setup-select-connection-method.webp)
+セットアップURIの方を選択します。
+
+![13-selfhost-obsidian-cross-platform-syncing/07-plugin-setup-enter-setup-uri.webp](/images/13-selfhost-obsidian-cross-platform-syncing/07-plugin-setup-enter-setup-uri.webp)
+セットアップURIを入力します。
+
+
+
+2. 2台目のクライアントを設定
+
+コミュニティープラグインを有効にし、`Obsidian LiveSync`をインストールします。
+
+
+
+
 
 ## 参考
 
