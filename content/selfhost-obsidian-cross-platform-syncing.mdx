@@ -354,7 +354,10 @@ obsidian://setuplivesync?settings=******
 
 途中操作をミスると、Vaultの内容が消し飛ぶ可能性があります。バックアップを取るか、空のVaultで設定することをお勧めします。
 
-1. [1台目] プラグインをインストールする
+また、この手順では、パスワードを含めLiveSync関連設定をすべてVault内のmdファイルとして保存し、それごと同期するという方式前提の手順となってしまっています。  
+パスワードをmdファイルとして保存したくない場合は、適宜読み替えてください。しかし、自分もその方針で試しましたが、同期に関して同様の設定を行ったとしても、なぜか色々トラブルが多かった印象です。
+
+1. プラグインを有効化
 
 コミュニティープラグインを有効にし、`Obsidian LiveSync`をインストールします。
 
@@ -362,7 +365,7 @@ obsidian://setuplivesync?settings=******
 
 ![13-selfhost-obsidian-cross-platform-syncing/04-obsidian-livesync-plugin-page.webp](/images/13-selfhost-obsidian-cross-platform-syncing/04-obsidian-livesync-plugin-page.webp)
 
-2. [1台目] セットアップURIでサーバーに接続する
+2. セットアップURIでサーバーに接続する
 
 Obsidian LiveSyncのセットアップ画面で、先程生成したセットアップURIを用いてサーバーに接続します。  
 初回の接続だとサーバーに情報がないため、一時的にFailedと表示されることがありますが、気にせず進めます。
@@ -374,15 +377,14 @@ Obsidian LiveSyncのセットアップ画面で、先程生成したセットア
 セットアップURIの方を選択します。
 
 ![13-selfhost-obsidian-cross-platform-syncing/07-plugin-setup-enter-setup-uri.webp](/images/13-selfhost-obsidian-cross-platform-syncing/07-plugin-setup-enter-setup-uri.webp)
-セットアップURIを入力します。
+セットアップURI、パスフレーズを入力します。  
+この時入力するパスフレーズは、DBへのE2EEのためのパスフレーズではなく、スクリプト実行時に出てきた方のパスフレーズです。
 
+一部ひっかけ問題のような、意地悪な選択肢があるので、翻訳を活用したりしてセットアップウィザードを進めます。
 
+TODO
 
-2. 2台目のクライアントを設定
-
-コミュニティープラグインを有効にし、`Obsidian LiveSync`をインストールします。
-
-
+3. 設定ファイル
 
 
 

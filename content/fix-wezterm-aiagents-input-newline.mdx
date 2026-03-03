@@ -1,0 +1,54 @@
+---
+title: "WezTermでCodex・Claudeを使うときに、Shift+Enterで改行されず送信してしまう現象を修正する"
+description: Ghosttyに負けてますよ😭
+date: 2026-03-03
+categories: ['備忘録']
+tags: ['WezTerm','Codex','Claude']
+---
+
+## TL;DR
+
+WezTermの設定ファイル(`~/.wezterm.lua`,`~/.config/wezterm/wezterm.lua`)に以下を追記します。
+
+```lua
+config.enable_kitty_keyboard = true
+```
+
+## 駄文(モチベ)
+
+どうも。Codex・Claudeなんかで、改行が`Ctrl + j`になってきている流れに置いていかれているジジイです。
+
+Codexは基本GhosttyかAntigravityのターミナルから利用していたので、本番作業用として利用しているWezTermでは、なんだかんだで使っていませんでした。
+
+そしてたまたま、先ほどWezTermでCodexを利用したところマジでブチギレかけました。
+
+めちゃくちゃ上手く育てていた、`5.3-codex`ちゃんとの会話ログが、書きかけの駄文&キャンセルで汚染されてしまいました。最悪です。
+
+`Shift + Enter`で改行できて欲しいです、どうしても。完全に馴染んでしまったので。
+
+Ghosttyに出来てWezTermにできないことはないはずなので、その設定を探したという記録です。
+
+ちなみに、自分が確認した限りだと、Ghostty, VSCodeのターミナルは何もしなくても対応しています。
+
+## ソリューション
+
+詳しい説明は省きますが、`Shift + Enter`で改行を行う場合、`Kitty Keyboard Protocol`というものに依存しています。
+
+はい。GhosttyもVSCodeターミナルも、これをサポートしており、デフォルトで有効になっています。  
+しかし、WezTermは、`enable_kitty_keyboard`という設定で自分から有効にする必要があります。
+
+有効化方法は以下のように設定ファイルに追記するだけです。
+
+```lua title="~/.wezterm.lua"
+local wezterm = require("wezterm")
+local config = wezterm.config_builder()
+...
+config.enable_kitty_keyboard = true
+...
+return config
+```
+
+これだけでOKです。
+念の為、設定リロードではなく、アプリを再起動することをお勧めします。
+
+WezTermはSixelサポートでGhosttyに勝っているという記事を見て喜んだものですが、やはりHashiCorp流石ですね笑
