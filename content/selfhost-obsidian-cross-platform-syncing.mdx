@@ -350,9 +350,10 @@ obsidian://setuplivesync?settings=******(セットアップURI)
 
 スクリプトの出力をObsidian上のプラグインセットアップで利用します。
 
-### 6. Obsidian LiveSyncを設定する
+### 6. 1台目の端末でObsidian LiveSyncを設定する
 
-2つのデバイス間で同期し始めるところまで解説します。
+次章までで、2台目の端末と同期し始めるところまで解説します。  
+こちらでは、1台目のセットアップ、mdファイル経由での設定同期、2台目セットアップ用URI生成まで行います。
 
 #### 注意
 
@@ -361,6 +362,9 @@ obsidian://setuplivesync?settings=******(セットアップURI)
 
 パスワードをmdファイルとして保存したくない場合は、適宜読み替えてください。  
 しかし、それぞれの端末で自力で設定を同期する方針で試しましたが、なぜか端末間の設定差分についての警告が出たりなど、色々トラブルが多かった印象です。
+
+ちなみに、Vaultは作成されている前提です。  
+まだ作成されていない方は、先に作成しておいてください。
 
 1. プラグインを有効化
 
@@ -389,21 +393,50 @@ Obsidian LiveSyncのセットアップ画面で、先程生成したセットア
 
 ![13-selfhost-obsidian-cross-platform-syncing/08-pluginsetup.webp](/images/13-selfhost-obsidian-cross-platform-syncing/08-pluginsetup.webp)
 
+初回なので、`Restart and Initialize Server` を選択します。
+
 ![13-selfhost-obsidian-cross-platform-syncing/09-pluginsetup-02.webp](/images/13-selfhost-obsidian-cross-platform-syncing/09-pluginsetup-02.webp)
+
+画像のように入力します。
 
 ![13-selfhost-obsidian-cross-platform-syncing/10-pluginsetup-03.webp](/images/13-selfhost-obsidian-cross-platform-syncing/10-pluginsetup-03.webp)
 
-「はい」を選択します。
+`Retry` を選択します。
 
 ![13-selfhost-obsidian-cross-platform-syncing/11-pluginsetup-04.webp](/images/13-selfhost-obsidian-cross-platform-syncing/11-pluginsetup-04.webp)
+
+`はい` を選択します。
 
 ここまでで、一旦単体の端末でのセットアップは完了しています。
 
 3. 設定を同期するためのmdファイル名を指定する
 
+Obsidian LiveSyncでは、mdファイルを通じて、複数端末間で設定を同期することができます。
 
+![13-selfhost-obsidian-cross-platform-syncing/12-pluginsetup-05-sync-setting-via-mdfile.webp](/images/13-selfhost-obsidian-cross-platform-syncing/12-pluginsetup-05-sync-setting-via-mdfile.webp)
 
-### 7. 
+ファイル名はなんでもいいですが、画像の通りにmdファイル経由で設定を同期するようにします。
+
+4. 2台目端末用のセットアップURIを生成する
+
+現在セットアップしている1台目の端末にて、2台目端末用のセットアップURIを生成できます。
+
+![13-selfhost-obsidian-cross-platform-syncing/13-pluginsetup-06.webp](/images/13-selfhost-obsidian-cross-platform-syncing/13-pluginsetup-06.webp)
+
+`現在の設定をセットアップURIにコピー`の横にある`コピー`をクリックします。
+
+![13-selfhost-obsidian-cross-platform-syncing/14-pluginsetup-07.webp](/images/13-selfhost-obsidian-cross-platform-syncing/14-pluginsetup-07.webp)
+
+パスフレーズを入力します。  
+今回は、セットアップURIのパスフレーズ(DBのE2EEパスフレーズとは別)も自分で選択可能です。
+
+![13-selfhost-obsidian-cross-platform-syncing/15-pluginsetup-08.webp](/images/13-selfhost-obsidian-cross-platform-syncing/15-pluginsetup-08.webp)
+
+パスフレーズURIが出てくるので、コピーして保存しておきます。
+
+### 7. 2台目の端末でObsidian LiveSyncを設定する
+
+TODO
 
 
 
