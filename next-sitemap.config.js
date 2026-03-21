@@ -2,4 +2,5 @@
 module.exports = {
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.xlog.systems',
   generateRobotsTxt: true,
+  generateIndexSitemap: false,
 };
