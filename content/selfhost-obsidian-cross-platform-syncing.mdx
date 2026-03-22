@@ -1,0 +1,484 @@
+---
+title: "Obsidianのクロスプラットフォーム同期をセルフホストする[Selfhosted Live Sync]"
+description: 月5ドルは乞食には高すぎます🥲
+date: 2026-01-06
+categories: ['工作','セルフホスト']
+tags: ['Obsidian','Docker']
+---
+
+## はじめに
+
+自分はメモツールにこだわるのが結構好きなタイプなのですが、気になるアプリを複数端末で無計画に導入したせいで、逆に管理しきれなくなってしまいました笑
+
+情報が端末によって拡散するのがストレスで仕方ないので、1つのアプリににすべてを集約しようと思い、選ばれたのは「[Obsidian](https://obsidian.md/)」でした。  
+Apple Notes(メモ)が本当にお気に入りなので、かなり辛い選択ですが、どうにか適応しようと思います🥹
+
+アプリの選定を終えて思うのは、私にとって一番大切なのはクロスプラットフォームであること、ということです。 
+現在の情報の拡散も、そこに原因があると思っています。
+
+手軽なクロスプラットフォームメモツールとなると、Notionが浮上してきます。   
+良いアプリではあります。が、LLMに記述内容を読ませたりなど、そこからの拡張を自力でやるとなった時、限界が来るような気がしています。  
+また、目玉のデータベースが正直自分のユースケースには無用なのと、AI関連でロックインされないかなどの懸念があります。
+SlackのAIロックインが本当に気持ち悪いですが、それと同じ雰囲気をNotionからも感じています。
+
+Apple Notes(メモ)は、アプリの使用感だけで言えば究極の神です。流石はAppleといったところです。本当に。  
+しかし、クロスプラットフォームという点で言えばゴミです。Android、ゴミOS(Windows)でも動いてほしいです。
+
+そのため、あくまでただのMarkdownエディターであるObsidianが良く写ったというわけです。
+
+## Obsidian Syncは高すぎる
+
+じゃあObsidianもデフォルトで良いクロスプラットフォーム対応アプリなのかというと、そうでもありません。
+
+公式のObsidian Syncというソリューションが、料金度外視の場合最高の選択肢となります。  
+しかし、公式へのお礼として当たり前に支払えるRedditの海外勢(そういうコメントを見かけるだけです)とは異なり、私は乞食です。  
+なけなしの5ドル(年更新で4ドル)のサブスクは、ちょっと抵抗感があります。ランニングコストが、使い続けるというモチベに対し大きな抵抗となるので、サーバーをうまく利用してケチる方向で頑張ります。
+
+巷でサードパーティー同期と呼ばれている、コミュニティープラグインを用いた同期で、最も良さそうなものをセルフホストする方向で進めます。  
+この、サードパーティープラグインが多く存在し、iPhoneなど縛りf付けが厳しそうなプラットフォーム含めてマルチプラットフォームで利用できる所が、他のメモアプリに対してObsidianが大きくリードする点だと思います。
+
+また、「[obsidian-headless](https://obsidian.md/help/sync/headless)」の存在は認知しています。  
+サブスク必須な上、Obsidian-Sync-Headlessな点が正直がっかりしました。headlessというならば、プラグインまでシュミレートしろよと😭  
+一旦、そちらは利用しない方向で進めます。
+
+## Self-hosted LiveSync
+
+[obsidian-livesync](https://github.com/vrtmrz/obsidian-livesync)
+
+今回の目玉の、Vault(メモ)同期のためのソリューションです。
+Obsidianのサードパーティープラグインになります。  
+無料で利用でき、かつサーバーはDBコンテナ1つです。美しいですね。
+
+色々な同期ツールを調べましたが、一番これが良さそうです。  
+即時同期である必要はないのですが、こちらの場合即時性もかなり高そうです。
+
+競合の解決も、よく利用されているSyncthingというツールより良さそうに感じました。
+Syncthingとは、モバイル端末の内部ディレクトリを、rcloneのようにネットワーク上のストレージと同期(マウントと言えるほど大したものでもないようです)するツールです。
+ファイルのハッシュ、mtimeを基準にするrsync方式で同期を行うため、競合解決のロジックが単純な上書きになってしまいます。
+
+しかし、Self-hosted LiveSyncの場合はObsidianの編集イベント駆動の同期が行われます。最高です。
+
+内部でJSONデータベースとして、CouchDBを利用するようです(S3も選択可能だが実験的)。  
+Apache CouchDBは、JSONドキュメントを保存するNoSQLデータベースで、
+すべての操作をHTTP REST API経由で行うデータベースサーバーです。
+
+… Apache財団だからOKです笑
+
+CouchDBのマネージドホスティングは、私が探したところ(ChatGPT,Geminiに聞いたところ)、IBM Cloudantしかないとのことでした。  
+無料枠1GB、その1つ上のプランが月額1万1000円のエンプラ向けアプライアンスのため、まあ眼中にありません。
+
+と思ったらSelf-hostedって書いてありました笑
+
+`fly.io`というサービス前提のチュートリアルがあるため、他のブログを見てもそちらを利用している人が多めの印象です。  
+しかし、注意して欲しいのは無料枠は最初の5ドル分のみというただの詐欺です。ご注意ください。
+
+コンテナをホストするならば、乞食的におすすめしたいのは「[zeabur](https://zeabur.com/)」です。こちらは今だに無料で毎月5ドル分のクオータがあります。カード登録も不要です。
+
+## 構成
+
+自宅サーバーのDocker, Nginxを利用します。  
+Nginxでリバースプロキシして、専用のサブドメインをVHとしてホストします。
+
+DBを全公開するというとんでもない行為ですが、公式がやれというので仕方有りません。  
+AI曰く一応(E2EEを通せばパスフレーズを通じて)アーキテクチャ的に安全らしいです。
+
+プラグインのドキュメントには存在しませんが、プラグイン設定からヘッダーによる認証を追加できそうだったので、将来的にヘッダーでのアクセス制限も適用します。そのためには利用する端末で動機のセットアップ、メモの移行等を済ませる必要があるため、今回は触れません。
+
+また、Cloudflareは(DNSとしてしか)利用しません。また、推奨できません(地獄を見た)
+
+Cloudflareだと完全な制御ができない上、一部の通信のみ問題が発生しますが、完全な切り分けが難しく解決を断念しました。かなり茨の道になります。
+そのため、Nginxの設定にて、バッファリング無効化を入れています。
+
+## 設定方法
+
+設定方法解説では、サーバー(CouchDB)のセットアップ、Nginxのセットアップ、2台のクライアントから同期を始めるまでを解説しています。
+
+基本的には、[公式ドキュメント](https://github.com/vrtmrz/obsidian-livesync/tree/main/docs)に沿って進めています。一部、Denoの実行周りで、パスフレーズをCouchDBのdocker用ディレクトリに.envとして保存するように変更しています。
+
+### 1. CouchDBのコンテナを立てる
+
+DockerでCouchDBのイメージを使いコンテナを立てます。
+
+compose.ymlでユーザーへのパスワード設定を行っており、その情報(`CHAME_ME`)が一時的に外部からサーバーを守る唯一の手段(Basic認証😭)になります。
+
+
+```console
+>$ mkdir ~/apps/obsidian-livesync                                                               
+>$ cd ~/apps/obsidian-livesync                                                                  
+>$ vim compose.yml
+>$ sudo mkdir -p couchdb-config
+>$ mkdir -p couchdb-data
+>$ sudo vim couchdb-config/local.ini
+>$ sudo chown -R 5984:5984 couchdb-data couchdb-config
+>$ docker compose up -d
+```
+
+```yml title="compose.yml"
+services:
+  couchdb:
+    image: couchdb:3
+    container_name: obsidian-livesync
+    user: "5984:5984"
+    restart: unless-stopped
+
+    environment:
+      - COUCHDB_USER=CHANGE_ME
+      - COUCHDB_PASSWORD=CHANGE_ME
+
+    ports:
+      - "10012:5984"
+
+    volumes:
+      - ./couchdb-data:/opt/couchdb/data
+      - ./couchdb-config:/opt/couchdb/etc/local.d
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          curl -sfSL
+          -u "$$COUCHDB_USER:$$COUCHDB_PASSWORD"
+          http://127.0.0.1:5984/_up
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+```
+
+```ini title="local.ini"
+[couchdb]
+single_node=true
+max_document_size = 50000000
+
+[chttpd]
+require_valid_user = true
+max_http_request_size = 4294967296
+
+[chttpd_auth]
+require_valid_user = true
+authentication_redirect = /e=_/_utils/session.html
+
+[httpd]
+WWW-Authenticate = Basic realm="couchdb"
+enable_cors = true
+
+[cors]
+origins = app://obsidian.md,capacitor://localhost,http://localhost,https://obsidian-live-sync.domain.tld
+credentials = true
+headers = accept, authorization, content-type, origin, referer
+methods = GET, PUT, POST, HEAD, DELETE
+max_age = 3600
+
+[log]
+level = info
+```
+
+corsの所の`https://obsidian-live-sync.domain.tld`は、後ほど設定するドメインです。また、`CHANGE_ME`の部分は、適宜変更してください。
+
+### 2. CouchDBに対してLiveSyncのセットアップスクリプトを実行する
+
+公式の[セルフホスト向けドキュメント](https://github.com/vrtmrz/obsidian-livesync/blob/aa6d771d17bef94a4d29dfdf27500d522349d816/docs/setup_own_server.md)を参考に、以下の手順でスクリプトを実行します。
+
+bashスクリプトです。
+
+```console
+>$ export hostname=localhost:10012
+>$ export username=CHANGE_ME
+>$ export password=CHANGE_ME
+>$ curl -s https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/utils/couchdb/couchdb-init.sh | bash
+---
+INFO: defaulting to _local
+-- Configuring CouchDB by REST APIs... -->
+{"ok":true}
+"true"
+"true"
+"Basic realm=\"couchdb\""
+"true"
+""
+"4294967296"
+"50000000"
+"true"
+"app://obsidian.md,capacitor://localhost,http://localhost,https://obsidian-live-sync.domain.tld"
+<-- Configuring CouchDB by REST APIs Done!
+```
+
+変数を定義しているのは、コマンド最下部のスクリプト内部で使用しているためです。  
+ローカルからDockerのCouchDBへの接続のための情報になります。
+
+curlでCouchDBへ初期化の命令を送るスクリプトになっています。
+
+
+### 3. Nginxでリバースプロキシを設定する
+
+rootで`/etc/nginx/conf.d`への設定の追加と、リロード、ステータス確認まで行いました。
+
+ドメインは、先程のcorsで設定した`https://obsidian-live-sync.domain.tld`を利用します。
+
+```console
+># cd /etc/nginx/conf.d/
+># vim 12_obsidian-live-sync.domain.tld.conf
+># nginx -t
+---
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+---
+># systemctl reload nginx
+># systemctl status nginx --no-pager
+---
+● nginx.service - nginx web server
+     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: disabled)
+     Active: active (running) since Sun 2025-12-14 04:35:00 JST; 2 weeks 2 days ago
+ Invocation: 94c3f1526d3f4bbe879ee81be9722441
+    Process: 1830872 ExecReload=/usr/bin/nginx -s reload (code=exited, status=0/SUCCESS)
+   Main PID: 6350 (nginx)
+      Tasks: 2 (limit: 57477)
+     Memory: 1G (peak: 1G)
+        CPU: 2min 33.730s
+     CGroup: /system.slice/nginx.service
+             ├─   6350 "nginx: master process /usr/bin/nginx"
+             └─1830877 "nginx: worker process"
+Dec 23 23:52:26 domain.tld systemd[1]: Reloaded nginx web server.
+Dec 24 22:59:20 domain.tld systemd[1]: Reloading nginx web server...
+Dec 24 22:59:20 domain.tld nginx[1078291]: 2025/12/24 22:59:20 [notice] 1078291#1078291: signal process started
+Dec 24 22:59:20 domain.tld systemd[1]: Reloaded nginx web server.
+Dec 28 11:04:24 domain.tld systemd[1]: Reloading nginx web server...
+Dec 28 11:04:24 domain.tld nginx[1371000]: 2025/12/28 11:04:24 [notice] 1371000#1371000: signal process started
+Dec 28 11:04:24 domain.tld systemd[1]: Reloaded nginx web server.
+Dec 30 20:13:38 domain.tld systemd[1]: Reloading nginx web server...
+Dec 30 20:13:38 domain.tld nginx[1830872]: 2025/12/30 20:13:38 [notice] 1830872#1830872: signal process started
+Dec 30 20:13:38 domain.tld systemd[1]: Reloaded nginx web server.
+```
+
+Docker内部のCouchDBでアップロード上限の設定をしているので、Nginxの方では制限していません。  
+Self-hosted LiveSync用のCouchDB(10012ポート)へのリバースプロキシ設定です。
+
+```nginx title="12_obsidian-live-sync.domain.tld.conf"
+server {
+    listen 80;
+    server_name obsidian-live-sync.domain.tld;
+
+    client_max_body_size 0;
+
+    access_log /var/log/nginx/obsidian-live-sync.domain.tld_access.log main;
+    error_log  /var/log/nginx/obsidian-live-sync.domain.tld_error.log warn;
+
+    return 301 https://obsidian-live-sync.domain.tld$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name obsidian-live-sync.domain.tld;
+
+    ssl_certificate     /opt/dehydrated/certs/domain.tld/fullchain.pem;
+    ssl_certificate_key /opt/dehydrated/certs/domain.tld/privkey.pem;
+
+    client_max_body_size 0;
+
+    access_log /var/log/nginx/obsidian-live-sync.domain.tld_access.log main;
+    error_log  /var/log/nginx/obsidian-live-sync.domain.tld_error.log warn;
+
+    # ssl_client_certificate /opt/domain_ca/ca.crt;
+    # ssl_verify_client on;
+
+    location / {
+        proxy_pass http://localhost:10012;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        proxy_buffering off;
+        proxy_redirect off;
+    }
+}
+```
+
+### 4. DNSを設定する
+
+書くまでも有りませんが念の為。
+
+先程の設定の`obsidian-live-sync.domain.tld`にあたるドメインに対して、サーバーのIPアドレス(Nginxが80,443ポートを受け入れるIPアドレス。私の場合は天下のうんこISP、NuroのIPです。)に向けたレコード(CNAME,A)を作成します。
+
+正確には先程Nginxをリロードした時点で公開されていますが、DNSを通すことで本格的にDBが露出します笑
+
+この段階で、CouchDBの管理画面`https://obsidian-live-sync.domain.tld/_utils/`にアクセスできるようになります。  
+先程設定した`CHANGE_ME`のユーザー名とパスワードでBasic認証にログインします。
+
+![13-selfhost-obsidian-cross-platform-syncing/01-couchdb-test.webp](/images/13-selfhost-obsidian-cross-platform-syncing/01-couchdb-test.webp)
+![13-selfhost-obsidian-cross-platform-syncing/02-couchdb-conpane.webp](/images/13-selfhost-obsidian-cross-platform-syncing/02-couchdb-conpane.webp)
+
+結構リッチなコンパネが付属してるんですね。
+
+### 5. 設定用URLを生成する
+
+公式による設定方法は以下の通りです。
+
+```console
+export hostname=https://obsidian-live-sync.domain.tld
+export database=obsidiannotes
+export passphrase=任意のE2EEパスフレーズ
+export username=CHANGE_ME
+export password=CHANGE_ME
+deno run -A https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/utils/flyio/generate_setupuri.ts
+```
+
+はい。なんとドキュメントが[Deno](https://deno.com/)に依存してました笑  
+スクリプトがURL形式となっている以上、Deno依存のセットアップ方式なんですね。
+
+DenoのURLでスクリプトを指定して実行できる機能、前から神機能とは思ってましたが、こんなところで見ることになるとは、少し感動です。
+
+注意点として、引数として指定している`passphrase`によって、データベースに保存する内容が暗号化されるということです。  
+つまり、これを忘れるとすべてのメモがアクセス不能になります。
+
+万が一に備え、スクリプトと設定をローカルに保存するようにしました。セキュアではないので参考にされる際はご注意ください。
+
+また、スクリプトは内部で`octagonal-wheels`という、`obsidian-livesync`の作者が作成しているnpmパッケージに依存しています。  
+おそらく、Obsidian-LiveSyncプラグイン内部にて、セットアップURIのバリデーションなどを行うために、共通のパッケージとして利用していると思われます。
+こちらはnpmパッケージである以上突然アクセスできなくなることはなさそうなので放置しています。
+
+
+```console
+>$ cd ~/apps/obsidian-livesync
+>$ echo "hostname=https://obsidian-live-sync.domain.tld" >> .env
+>$ echo "database=obsidiannotes" >> .env
+>$ echo "passphrase=任意のE2EEパスフレーズ" >> .env
+>$ echo "username=CHANGE_ME" >> .env
+>$ echo "password=CHANGE_ME" >> .env
+>$ deno run -A --env https://raw.githubusercontent.com/vrtmrz/obsidian-livesync/main/utils/flyio/generate_setupuri.ts
+---
+Your passphrase of Setup-URI is:  ****(セットアップURI暗号化のためのパスフレーズ)
+This passphrase is never shown again, so please note it in a safe place.
+obsidian://setuplivesync?settings=******(セットアップURI)
+```
+
+スクリプトの出力をObsidian上のプラグインセットアップで利用します。
+
+### 6. 1台目の端末でObsidian LiveSyncを設定する
+ 
+こちらでは、1台目のセットアップ、mdファイル経由での設定同期、2台目セットアップ用URI生成まで行います。
+
+#### 注意
+
+- 途中操作をミスると、Vaultの内容が消し飛ぶ可能性があります。バックアップを取るか、空のVaultで設定することをお勧めします。
+- パスワードを含めLiveSync関連設定をすべてVault内のmdファイルとして保存し、それにより設定を同期するという方針で進めます。
+
+パスワードをmdファイルとして保存したくない場合は、適宜読み替えてください。  
+しかし、それぞれの端末で自力で設定を同期する方針で試しましたが、なぜか端末間の設定差分についての警告が出たりなど、色々トラブルが多かった印象です。
+
+ちなみに、Vaultは作成されている前提です。  
+まだ作成されていない方は、先に作成しておいてください。
+
+1. プラグインを有効化
+
+コミュニティープラグインを有効にし、`Obsidian LiveSync`をインストールします。
+
+![13-selfhost-obsidian-cross-platform-syncing/03-comunity-plugin-optin.webp](/images/13-selfhost-obsidian-cross-platform-syncing/03-comunity-plugin-optin.webp)
+
+![13-selfhost-obsidian-cross-platform-syncing/04-obsidian-livesync-plugin-page.webp](/images/13-selfhost-obsidian-cross-platform-syncing/04-obsidian-livesync-plugin-page.webp)
+
+2. セットアップURIでサーバーに接続する
+
+Obsidian LiveSyncのセットアップ画面で、先程生成したセットアップURIを用いてサーバーに接続します。  
+初回の接続だとサーバーに情報がないため、一時的にFailedと表示されることがありますが、気にせず進めます。
+
+![13-selfhost-obsidian-cross-platform-syncing/05-plugin-setup-welcomepage.webp](/images/13-selfhost-obsidian-cross-platform-syncing/05-plugin-setup-welcomepage.webp)
+1台目なので、`First Time`の方を選択します。
+
+![13-selfhost-obsidian-cross-platform-syncing/06-plugin-setup-select-connection-method.webp](/images/13-selfhost-obsidian-cross-platform-syncing/06-plugin-setup-select-connection-method.webp)
+セットアップURIの方を選択します。
+
+![13-selfhost-obsidian-cross-platform-syncing/07-plugin-setup-enter-setup-uri.webp](/images/13-selfhost-obsidian-cross-platform-syncing/07-plugin-setup-enter-setup-uri.webp)
+セットアップURI、パスフレーズを入力します。  
+この時入力するパスフレーズは、DBへのE2EEのためのパスフレーズではなく、スクリプト実行時に出てきた方のパスフレーズです。
+
+一部ひっかけ問題のような、意地悪な選択肢があるので、翻訳を活用したりしてセットアップウィザードを進めます。
+
+![13-selfhost-obsidian-cross-platform-syncing/08-pluginsetup.webp](/images/13-selfhost-obsidian-cross-platform-syncing/08-pluginsetup.webp)
+
+初回なので、`Restart and Initialize Server` を選択します。
+
+![13-selfhost-obsidian-cross-platform-syncing/09-pluginsetup-02.webp](/images/13-selfhost-obsidian-cross-platform-syncing/09-pluginsetup-02.webp)
+
+画像のように入力します。
+
+![13-selfhost-obsidian-cross-platform-syncing/10-pluginsetup-03.webp](/images/13-selfhost-obsidian-cross-platform-syncing/10-pluginsetup-03.webp)
+
+`Retry` を選択します。
+
+![13-selfhost-obsidian-cross-platform-syncing/11-pluginsetup-04.webp](/images/13-selfhost-obsidian-cross-platform-syncing/11-pluginsetup-04.webp)
+
+`はい` を選択します。
+
+ここまでで、一旦単体の端末でのセットアップは完了しています。
+
+3. 設定を同期するためのmdファイル名を指定する
+
+Obsidian LiveSyncでは、mdファイルを通じて、複数端末間で設定を同期することができます。
+
+![13-selfhost-obsidian-cross-platform-syncing/12-pluginsetup-05-sync-setting-via-mdfile.webp](/images/13-selfhost-obsidian-cross-platform-syncing/12-pluginsetup-05-sync-setting-via-mdfile.webp)
+
+ファイル名はなんでもいいですが、画像の通りにmdファイル経由で設定を同期するようにします。
+
+
+### 7. 2台目の端末でObsidian LiveSyncを設定する
+
+1. 2台目端末用のセットアップURIを生成する
+
+1台目の端末にて、2台目端末用のセットアップURIを生成します。
+
+![13-selfhost-obsidian-cross-platform-syncing/13-pluginsetup-06.webp](/images/13-selfhost-obsidian-cross-platform-syncing/13-pluginsetup-06.webp)
+
+`現在の設定をセットアップURIにコピー`の横にある`コピー`をクリックします。
+
+![13-selfhost-obsidian-cross-platform-syncing/14-pluginsetup-07.webp](/images/13-selfhost-obsidian-cross-platform-syncing/14-pluginsetup-07.webp)
+
+パスフレーズを入力します。  
+今回は、セットアップURIのパスフレーズ(DBのE2EEパスフレーズとは別)も自分で選択可能です。
+
+![13-selfhost-obsidian-cross-platform-syncing/15-pluginsetup-08.webp](/images/13-selfhost-obsidian-cross-platform-syncing/15-pluginsetup-08.webp)
+
+パスフレーズURIが出てくるので、コピーしておきます。
+
+2. 2台目の端末でセットアップ
+
+Windows で実施します。
+
+プラグイン有効化までされている前提とします。(前章参照ください)
+
+![13-selfhost-obsidian-cross-platform-syncing/16-pluginsetup-09.webp](/images/13-selfhost-obsidian-cross-platform-syncing/16-pluginsetup-09.webp)
+
+初期セットアップで、`adding a device`の方を選択します。
+
+![13-selfhost-obsidian-cross-platform-syncing/17-pluginsetup-10.webp](/images/13-selfhost-obsidian-cross-platform-syncing/17-pluginsetup-10.webp)
+
+セットアップURIの方を選択します。
+
+![13-selfhost-obsidian-cross-platform-syncing/18-pluginsetup-11.webp](/images/13-selfhost-obsidian-cross-platform-syncing/18-pluginsetup-11.webp)
+
+先ほど作成したセットアップURI、パスフレーズを入力します。
+
+![13-selfhost-obsidian-cross-platform-syncing/20-pluginsetup-13.webp](/images/13-selfhost-obsidian-cross-platform-syncing/20-pluginsetup-13.webp)
+
+フェッチする方針を画像のように入力します。  
+内容は、サーバー基準で初期化するという内容です。
+
+オプションで、設定も同期する設定を入れています。
+
+## まとめ
+
+Obsidian のコミュニティプラグインの、Selfhosted LiveSyncを用いてVaultを同期する設定を解説しました。  
+厳密には、Docker, Nginxをホストするサーバーの電気代がかかっているのですが、公式の有料プランと比較したらほぼ誤差かと思います。
+
+これにより、今までApple Notes, Notion, Discordと分散していたメモの集約先したので、根気よく移行していこうと思います。
+
+誰かのセットアップの助けになれば幸いです。  
+ここまで見ていただきありがとうございました。
+
+## 参考
+
+[obsidian-livesync | GitHub](https://github.com/vrtmrz/obsidian-livesync)
+
+[Obsidian の同期を解消する & Cloudflare 配下でホストする | naa0yama様](https://blog.naa0yama.com/p/18w10-azvs93f1/)
+
