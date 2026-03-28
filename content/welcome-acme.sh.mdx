@@ -1,0 +1,45 @@
+---
+title: 'acme.shとCloudflareで証明書を自動更新する設定[acme.sh]'
+description: dehydratedを使ってましたが、よりシンプルで堅牢なacme.shに乗り換えます
+date: 2026-03-29
+categories: ['工作','Linux','SSL']
+tags: ['acme.sh','Cloudflare','acme','Nginx']
+draft: true
+---
+
+## dehydratedからacme.shへ
+
+以前、dehydratedを使って証明書を自動更新していました。
+
+[Cloudflareでドメインを管理するブログのSSL証明書をより強固に自動更新したい[dehydrated]](/posts/welcome-dehydrated)
+
+しかし、一つ不満な点がありました。それは、CloudflareのAPIを叩くためのスクリプトが、dehydrated本体とは別のプラグインだった点です。  
+動き出してしまえば、更新などおそらく不要ではあるのですが、Let'sEncryptや、Cloudflareの権限モデルの変化など、将来的になにか変更があったときなどに、どれくらいのサポートが行われるのか不明瞭です。
+
+dehydratedをcertbotと比較して、以下の点を評価していました。
+
+- bashスクリプトであること
+- 余計な機能がないこと
+
+これを満たしつつ、acme.shは更に以下の点で優れています。
+
+- CloudflareAPIコネクタが公式で実装されている
+- bashのみならず、unixシェル(dash,sh)をサポートしている
+- パッケージマネージャ経由でのインストールに対応している(FreeBSDのpkg,ArchLinuxのpacman!)
+
+堅牢さでbashスクリプトであることを偉そうに言ってましたが、恥ずかしいです。  
+dash, sh は強すぎます笑
+
+ArchLinuxで使う以上、bashサポートさえあれば動きます。しかし、同じ対応をUbuntu(debian系はdash)でもやりたくなったときを考えると、より汎用性が高いのはacme.shと言えます。
+
+また、公式でCloudflareサポートはアツいです。何かあっても、`paru -Syu acme.sh`して再実行すればいい...  
+なんと素晴らしいことでしょう！
+
+まあ、余計な機能がついてないか?という批判はごもっともです。しかし、Cloudflareサポートは私にとっては不要な機能ではなく、むしろ必須の機能です。  
+これが公式で実装されているacme.shとdehydratedでは、やはりacme.shはよりよい選択肢と言わざるを得ません。
+
+ということで、acme.shをArchLinuxに導入します。
+
+## 手順
+
+
