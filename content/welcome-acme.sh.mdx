@@ -1,10 +1,9 @@
 ---
-title: 'acme.shとCloudflareで証明書を自動更新する設定[acme.sh]'
+title: 'acme.shとCloudflareで証明書を自動更新する設定'
 description: dehydratedを使ってましたが、よりシンプルで堅牢なacme.shに乗り換えます
-date: 2026-03-29
+date: 2026-03-30
 categories: ['工作','Linux','SSL']
 tags: ['ArchLinux','acme.sh','Cloudflare','acme','Nginx']
-draft: true
 ---
 
 ## dehydratedからacme.shへ
@@ -16,7 +15,9 @@ draft: true
 しかし、一つ不満な点がありました。それは、CloudflareのAPIを叩くためのスクリプトが、dehydrated本体とは別のプラグインだった点です。  
 動き出してしまえば、更新などおそらく不要ではあるのですが、Let'sEncryptや、Cloudflareの権限モデルの変化など、将来的になにか変更があったときなどに、どれくらいのサポートが行われるのか不明瞭です。
 
-dehydratedをcertbotと比較して、以下の点を評価していました。
+また、利用しているプラグインが古く、新しいCloudflareの認証形式のAPI Tokenに対応していませんでした。
+
+過去記事では、dehydratedをcertbotと比較して、以下の点を評価していました。
 
 - bashスクリプトであること
 - 余計な機能がないこと
@@ -27,18 +28,240 @@ dehydratedをcertbotと比較して、以下の点を評価していました。
 - bashのみならず、unixシェル(dash,sh)をサポートしている
 - パッケージマネージャ経由でのインストールに対応している(FreeBSDのpkg,ArchLinuxのpacman!)
 
-堅牢さでbashスクリプトであることを偉そうに言ってましたが、恥ずかしいです。  
+公式でCloudflareサポートはアツいです。何かあっても、`paru -Syu acme.sh`して再実行すればいい...  
+なんと素晴らしいことでしょう！
+
+堅牢さでbashスクリプトであることを偉そうに語ってましたが、お恥ずかしいです。  
 dash, sh は強すぎます笑
 
 ArchLinuxで使う以上、bashサポートさえあれば動きます。しかし、同じ対応をUbuntu(debian系はdash)でもやりたくなったときを考えると、より汎用性が高いのはacme.shと言えます。
 
-また、公式でCloudflareサポートはアツいです。何かあっても、`paru -Syu acme.sh`して再実行すればいい...  
-なんと素晴らしいことでしょう！
+また、dehydratedは証明書を新しく発行すると、リンクを張り替えるという挙動をするのですが、正直期限が切れた証明書を保持する理由はないので、その点の機能低下は評価に反映していません。
 
-まあ、余計な機能がついてないか?という批判はごもっともです。しかし、Cloudflareサポートは私にとっては不要な機能ではなく、むしろ必須の機能です。  
+ちなみにacme.shは、前記事にてこき下ろしたZeroSSLがスポンサーをしています笑
+
+「実装自体は巨大化してないか?」という批判はごもっともです。しかし、Cloudflareサポートは私にとっては不要な機能ではなく、むしろ必須の機能です。  
 これが公式で実装されているacme.shとdehydratedでは、やはりacme.shはよりよい選択肢と言わざるを得ません。
 
 ということで、acme.shをArchLinuxに導入します。
 
 ## 手順
+
+acme.shを、公式パッケージからインストールしてセットアップする手順です。  
+また、Nginxをリロードする設定も導入します。
+
+### 注意
+
+- root前提です
+- 更新スクリプト内にAPIトークンを保存します
+- `/etc/ssl/`以下に証明書を保存します
+
+### 1. acme.shをインストール
+
+acme.shをインストールします。
+
+```console
+># paru -S acme.sh
+resolving dependencies...
+looking for conflicting packages...
+
+Packages (1) acme.sh-3.1.2-1
+
+Total Download Size:   0.24 MiB
+Total Installed Size:  1.43 MiB
+
+:: Proceed with installation? [Y/n]  
+:: Retrieving packages...
+ acme.sh-3.1.2-1-any                                    247.9 KiB  1937 KiB/s 00:00 [################################################] 100%
+(1/1) checking keys in keyring                                                      [################################################] 100%
+(1/1) checking package integrity                                                    [################################################] 100%
+(1/1) loading package files                                                         [################################################] 100%
+(1/1) checking for file conflicts                                                   [################################################] 100%
+(1/1) checking available disk space                                                 [################################################] 100%
+:: Processing package changes...
+(1/1) installing acme.sh                                                            [################################################] 100%
+Optional dependencies for acme.sh
+    socat: for standalone mode
+    oath-toolkit: Used to compute the OTP for some DNS providers
+:: Running post-transaction hooks...
+(1/1) Arming ConditionNeedsUpdate...
+
+># acme.sh --version
+https://github.com/acmesh-official/acme.sh
+v3.1.2
+```
+
+### 2. APIトークン・アカウントIDを取得
+
+- 発行するドメインをゾーンに持つCloudflareのAPIトークンを取得
+
+Cloudflareのダッシュボードから、APIトークンを取得します。
+
+https://dash.cloudflare.com/profile/api-tokens からAPIトークンを取得します。
+
+![14-acme.sh/01-cf-api-token-setting.webp](/images/14-acme.sh/01-cf-api-token-setting.webp)
+
+画像のように権限設定します。  
+隠れているのは、実行するドメインと、IPアドレスです。
+
+注意点として、IP制限する場合、IPv4,IPv6の区別があります。
+
+得られたAPIトークンは、以下のコマンドで検証できます。
+
+```console
+># curl -fsS "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+-H "Authorization: Bearer <API_TOKEN>" \
+| jq -r '.result.status'
+---
+active
+```
+
+- アカウントIDを取得
+
+ダッシュボードから確認できます。
+
+隠す場所多くて面倒なのと簡単に見つけられるので公式ドキュメントで失礼します。
+
+https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/
+
+### 3. 証明書発行
+
+デフォルトCAがZeroSSLになっているので、Let'sEncryptに変更します。
+
+```console
+> # acme.sh --set-default-ca --server letsencrypt
+[Sun Mar 29 10:05:13 PM JST 2026] Changed default CA to: https://acme-v02.api.letsencrypt.org/directory
+```
+
+証明書を発行します。この証明書発行は、acme.sh用のディレクトリに証明書を保存します。最終的な配置先への配置とは別の工程になります。
+
+```console
+># export CF_API_TOKEN="<API_TOKEN>"
+># export CF_ACCOUNT_ID="<ACCOUNT_ID>"
+># acme.sh --server letsencrypt --issue \
+  --dns dns_cf \
+  -d "<DOMAIN>" \
+  -d "*.<DOMAIN>"
+[Mon Mar 30 12:10:23 AM JST 2026] Using CA: https://acme-v02.api.letsencrypt.org/directory
+[Mon Mar 30 12:10:23 AM JST 2026] Multi domain='DNS:<DOMAIN>,DNS:*.<DOMAIN>'
+[Mon Mar 30 12:10:26 AM JST 2026] Getting webroot for domain='<DOMAIN>'
+[Mon Mar 30 12:10:26 AM JST 2026] Getting webroot for domain='*.<DOMAIN>'
+[Mon Mar 30 12:10:26 AM JST 2026] Adding TXT value: <ACME_TXT_VALUE> for domain: _acme-challenge.<DOMAIN>
+[Mon Mar 30 12:10:28 AM JST 2026] Adding record
+[Mon Mar 30 12:10:29 AM JST 2026] Added, OK
+[Mon Mar 30 12:10:29 AM JST 2026] The TXT record has been successfully added.
+[Mon Mar 30 12:10:29 AM JST 2026] Adding TXT value: <ACME_TXT_VALUE> for domain: _acme-challenge.<DOMAIN>
+[Mon Mar 30 12:10:30 AM JST 2026] Adding record
+[Mon Mar 30 12:10:31 AM JST 2026] Added, OK
+[Mon Mar 30 12:10:31 AM JST 2026] The TXT record has been successfully added.
+[Mon Mar 30 12:10:31 AM JST 2026] Let's check each DNS record now. Sleeping for 20 seconds first.
+[Mon Mar 30 12:10:52 AM JST 2026] You can use '--dnssleep' to disable public dns checks.
+[Mon Mar 30 12:10:52 AM JST 2026] See: https://github.com/acmesh-official/acme.sh/wiki/dnscheck
+[Mon Mar 30 12:10:52 AM JST 2026] Checking <DOMAIN> for _acme-challenge.<DOMAIN>
+[Mon Mar 30 12:10:52 AM JST 2026] Success for domain <DOMAIN> '_acme-challenge.<DOMAIN>'.
+[Mon Mar 30 12:10:52 AM JST 2026] Checking <DOMAIN> for _acme-challenge.<DOMAIN>
+[Mon Mar 30 12:10:52 AM JST 2026] Success for domain <DOMAIN> '_acme-challenge.<DOMAIN>'.
+[Mon Mar 30 12:10:52 AM JST 2026] All checks succeeded
+[Mon Mar 30 12:10:52 AM JST 2026] Verifying: <DOMAIN>
+[Mon Mar 30 12:10:53 AM JST 2026] Pending. The CA is processing your order, please wait. (1/30)
+[Mon Mar 30 12:10:57 AM JST 2026] Success
+[Mon Mar 30 12:10:57 AM JST 2026] Verifying: *.<DOMAIN>
+[Mon Mar 30 12:10:57 AM JST 2026] Pending. The CA is processing your order, please wait. (1/30)
+[Mon Mar 30 12:11:01 AM JST 2026] Success
+[Mon Mar 30 12:11:01 AM JST 2026] Removing DNS records.
+[Mon Mar 30 12:11:01 AM JST 2026] Removing txt: <ACME_TXT_VALUE> for domain: _acme-challenge.<DOMAIN>
+[Mon Mar 30 12:11:03 AM JST 2026] Successfully removed
+[Mon Mar 30 12:11:03 AM JST 2026] Removing txt: <ACME_TXT_VALUE> for domain: _acme-challenge.<DOMAIN>
+[Mon Mar 30 12:11:05 AM JST 2026] Successfully removed
+[Mon Mar 30 12:11:05 AM JST 2026] Verification finished, beginning signing.
+[Mon Mar 30 12:11:05 AM JST 2026] Let's finalize the order.
+[Mon Mar 30 12:11:05 AM JST 2026] Le_OrderFinalize='https://acme-v02.api.letsencrypt.org/acme/finalize/<REDACTED>'
+[Mon Mar 30 12:11:07 AM JST 2026] Downloading cert.
+[Mon Mar 30 12:11:07 AM JST 2026] Le_LinkCert='https://acme-v02.api.letsencrypt.org/acme/cert/<REDACTED>'
+[Mon Mar 30 12:11:07 AM JST 2026] Cert success.
+<証明書本体>
+[Mon Mar 30 12:11:07 AM JST 2026] Your cert is in: /root/.acme.sh/<REDACTED>
+[Mon Mar 30 12:11:07 AM JST 2026] Your cert key is in: /root/.acme.sh/<REDACTED>
+[Mon Mar 30 12:11:07 AM JST 2026] The intermediate CA cert is in: /root/.acme.sh/<REDACTED>
+[Mon Mar 30 12:11:07 AM JST 2026] And the full-chain cert is in: /root/.acme.sh/<REDACTED>
+```
+
+※ デフォルトCAをLet'sEncryptに変更しましたが、宣言的に`--server letsencrypt`を行っています。
+
+
+### 4. Webサーバーを設定
+
+証明書配置予定のパスに、事前に設定を変更しておきます。
+
+当記事での配置先
+キー: `/etc/ssl/private/<DOMAIN>/privkey.pem`
+フルチェーン: `/etc/ssl/certs/<DOMAIN>/fullchain.pem`
+
+```console
+># vim /etc/nginx/conf.d/01_<DOMAIN>.conf # 例です
+># grep "ssl_certificate" /etc/nginx/conf.d/01_<DOMAIN>.conf
+    ssl_certificate     /etc/ssl/certs/<DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/ssl/private/<DOMAIN>/privkey.pem;
+```
+
+`nginx -t && systemctl reload nginx`
+を、証明書更新時に実行するように設定するため、事前に成功することを確認しておく必要があります。
+
+### 5. 証明書配置
+
+acme.shの機能を使い、証明書を設置します。
+
+```console
+># acme.sh --install-cert -d "<DOMAIN>" \
+  --key-file "/etc/ssl/private/<DOMAIN>/privkey.pem" \
+  --fullchain-file "/etc/ssl/certs/<DOMAIN>/fullchain.pem" \
+  --reloadcmd "nginx -t && systemctl reload nginx"
+[Mon Mar 30 12:56:16 AM JST 2026] The domain '<DOMAIN>' seems to already have an ECC cert, let's use it.
+[Mon Mar 30 12:56:16 AM JST 2026] Installing key to: /etc/ssl/private/<DOMAIN>/privkey.pem
+[Mon Mar 30 12:56:16 AM JST 2026] Installing full chain to: /etc/ssl/certs/<DOMAIN>/fullchain.pem
+[Mon Mar 30 12:56:16 AM JST 2026] Running reload cmd: nginx -t && systemctl reload nginx
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+[Mon Mar 30 12:56:16 AM JST 2026] Reload successful
+```
+
+`--reloadcmd`で指定したコマンドが、証明書更新時に実行される内容です。
+
+### 6. 自動更新設定
+
+スクリプトを作成し、cronに登録します。
+
+```console
+># vim /usr/local/bin/renew-cert.sh # 例です
+># chmod +x /usr/local/bin/renew-cert.sh
+># crontab -e
+># crontab -l | grep renew-cert.sh
+0 0 * * 0 /usr/local/bin/renew-cert.sh 2>&1
+># # 毎週日曜日 0時0分
+```
+
+```bash title="renew-cert.sh"
+#!/bin/sh
+set -eu
+
+DOMAIN="<DOMAIN>"
+
+CF_Token='<API_TOKEN>'
+CF_Account_ID='<ACCOUNT_ID>'
+
+export CF_Token
+export CF_Account_ID
+
+/usr/bin/acme.sh --server letsencrypt --renew -d "$DOMAIN"
+```
+
+心配であれば、`--force`を付けて期限を無視して再発行できます。
+
+以上で更新設定まで完了です。
+APIトークンの期限が切れたりしない限り稼働し続けます。
+
+## まとめ
+
+この記事では、acme.shを使い、Nginxで公開しているWebサイトの証明書をLet's Encryptで取得し、自動更新する設定を行いました。  
+dehydratedより強固な証明書発行プロセスを導入できたかと思います。
 
