@@ -1,0 +1,211 @@
+---
+title: "[Convertio代替]ConvertXをセルフホストして安全にファイル変換する"
+description: 安全と書いてるサイトの変換サービスを信頼しないわけではないのですが、やはりセルフホストしないと気が済みません。
+publishedAt: 2025-12-28
+updatedAt: 2025-12-28
+categories: ['工作','Linux','セルフホスト']
+tags: ['ConvertX','Docker','Nginx']
+---
+
+## はじめに
+
+画像やドキュメントを変換するオンラインサービス系は結構有りますよね。自分はよくConvertioやiLovePDFを利用しますが、公的書類なんかは流石にアップロードしたくありません。  
+WebUIを持った変換ソフトウェア系でセルフホストできるものを探していました。
+
+今回はConvertioの代替として、ConvertXというツールをセルフホストしてみました。
+
+## ConvertXとは
+
+[ConvertX](https://github.com/C4illin/ConvertX)は、「セルフホスト型オンラインファイルコンバーター」(Description直訳)です。
+
+様々なファイル形式の変換をサポートしており、セルフホストのWebインターフェースを通じて利用できます。
+
+| Converter                                                       | Use case         | Converts from | Converts to |
+| --------------------------------------------------------------- | ---------------- | ------------- | ----------- |
+| [Inkscape](https://inkscape.org/)                               | Vector images    | 7             | 17          |
+| [libjxl](https://github.com/libjxl/libjxl)                      | JPEG XL          | 11            | 11          |
+| [resvg](https://github.com/RazrFalcon/resvg)                    | SVG              | 1             | 1           |
+| [Vips](https://github.com/libvips/libvips)                      | Images           | 45            | 23          |
+| [libheif](https://github.com/strukturag/libheif)                | HEIF             | 2             | 4           |
+| [XeLaTeX](https://tug.org/xetex/)                               | LaTeX            | 1             | 1           |
+| [Calibre](https://calibre-ebook.com/)                           | E-books          | 26            | 19          |
+| [LibreOffice](https://www.libreoffice.org/)                     | Documents        | 41            | 22          |
+| [Dasel](https://github.com/TomWright/dasel)                     | Data Files       | 5             | 4           |
+| [Pandoc](https://pandoc.org/)                                   | Documents        | 43            | 65          |
+| [msgconvert](https://github.com/mvz/email-outlook-message-perl) | Outlook          | 1             | 1           |
+| [dvisvgm](https://dvisvgm.de/)                                  | Vector images    | 4             | 2           |
+| [ImageMagick](https://imagemagick.org/)                         | Images           | 245           | 183         |
+| [GraphicsMagick](http://www.graphicsmagick.org/)                | Images           | 167           | 130         |
+| [Assimp](https://github.com/assimp/assimp)                      | 3D Assets        | 77            | 23          |
+| [FFmpeg](https://ffmpeg.org/)                                   | Video            | ~472          | ~199        |
+| [Potrace](https://potrace.sourceforge.net/)                     | Raster to vector | 4             | 11          |
+| [VTracer](https://github.com/visioncortex/vtracer)              | Raster to vector | 8             | 1           |
+
+[README](https://github.com/C4illin/ConvertX/blob/main/README.md)から引用ですが、以上のように非常に多くの形式に対応しています。
+
+多くのライブラリを組み合わせて利用する関係上依存とかが面倒そうですが、Dockerイメージが提供されています。  
+神ですね。
+
+また、TypeScriptで書かれており、Bun + Elysiaベースです。新しすぎてもはや面白いです。
+
+Next.jsやHonoは強力な大企業の後ろ盾があるのに対して、Elysiaは...という感想でしたが、BunがAnthropicに買収されたため不安が払拭されました笑
+
+## 構成
+
+### ホスト方法
+
+Dockerを利用します。
+
+### アクセス方法
+
+Nginxで公開します。
+認証は、mTLS認証を利用します。
+
+## 手順
+
+1. Dockerコンテナのセットアップ
+
+公式からテンプレを借りてきて、適当なディレクトリにファイルを作成します。
+
+自分はアプリホスト用のユーザー(common)のアプリ用ディレクトリ(`~/apps`)に専用ディレクトリを作成しました。参考にされる場合は、その辺を好きに読み替えてください。
+
+サンプルの[compose.yaml](https://github.com/C4illin/ConvertX/blob/main/compose.yaml)から一部オプションを変更しました。
+
+実行コマンドは以下の通りです。
+
+```shellsession
+>$ mkdir -p ~/apps/convertx
+>$ cd ~/apps/convertx
+>$ vim compose.yml
+>$ cat compose.yml
+>$ docker compose up -d
+```
+
+```yml title="compose.yml"
+services:
+  convertx:
+    image: ghcr.io/c4illin/convertx
+    container_name: convertx
+    restart: unless-stopped
+    ports:
+      - 10010:3000
+    volumes:
+      - ./data:/app/data
+    environment:
+      - ACCOUNT_REGISTRATION=false
+      # - JWT_SECRET=-------------------------------------------------
+      - HTTP_ALLOWED=false
+      - ALLOW_UNAUTHENTICATED=true
+      - AUTO_DELETE_EVERY_N_HOURS=0
+      # - FFMPEG_ARGS=-hwaccel vulkan
+      # - WEBROOT=/convertx
+      # - HIDE_HISTORY=true
+      - TZ=Asia/Tokyo
+      # - UNAUTHENTICATED_USER_SHARING=true
+      - MAX_CONVERT_PROCESS=0
+```
+
+これだけでサービスのホスト自体は完了しています。  
+Dockerマジで神。
+
+10010ポートで待ち受けているのはただの個人の事情です。
+
+2. Nginxのセットアップ
+
+実行コマンドは以下の通りです。
+
+```shellsession
+># cd /etc/nginx/conf.d/
+># vim 10_convertx.domain.tld.conf
+># nginx -t
+---
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+---
+># systemctl reload nginx
+```
+
+mTLS認証を利用するため、自前で構築したプライベート認証局(CA)の証明書を指定しています。
+WebSocketのプロキシ設定はおそらく不要です。私はテンプレを使いまわしているので残ってしまっています。
+
+`client_max_body_size 0;`でアップロード上限を無制限にしています。適宜調整してください。私は認証をかけたので無制限にしました。
+デフォルトが1MBなので注意してください。
+
+```nginx title="10_convertx.domain.tld.conf"
+map $http_upgrade $connection_upgrade { 
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    server_name convertx.domain.tld;
+
+    client_max_body_size 0;
+
+    access_log /var/log/nginx/convertx.domain.tld_access.log main;
+    error_log  /var/log/nginx/convertx.domain.tld_error.log warn;
+
+    return 301 https://convertx.domain.tld$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name convertx.domain.tld;
+
+    ssl_certificate     /opt/dehydrated/certs/domain.tld/fullchain.pem;
+    ssl_certificate_key /opt/dehydrated/certs/domain.tld/privkey.pem;
+
+    client_max_body_size 0;
+
+    access_log /var/log/nginx/convertx.domain.tld_access.log main;
+    error_log  /var/log/nginx/convertx.domain.tld_error.log warn;
+
+    ssl_client_certificate /opt/domain_ca/ca.crt;
+    ssl_verify_client on;
+
+    location / {
+        proxy_pass http://localhost:10010;
+
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_set_header Host $host;
+
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+```
+ssl_client_certificate /opt/domain_ca/ca.crt;
+ssl_verify_client on;
+```
+
+以上の部分がmTLS認証の設定です。  
+`/opt/domain_ca/ca.crt`は自前で構築したプライベート認証局(CA)の証明書です。
+
+これだけでサービスのホストは完了しています。
+
+3. DNS設定
+
+`convertx.domain.tld`がNginxサーバーのIPアドレスを指すようにAレコードを設定します。
+
+4. 動作確認
+
+ブラウザで`https://convertx.domain.tld`にアクセスし、mTLS認証を突破すればConvertXのお目見えです。
+
+変換可能な形式が大量に表示されますが、対象の形式を入力することで絞り込みが可能です。  
+今回はwebpへ変換していますが、同じ形式への変換で複数のライブラリ(vips,ImageMagick,GraphicsMagick)が選択可能でした。
+
+![11_convertx/01-convertx.webp](/images/11_convertx/01-convertx.webp)
+![11_convertx/02-convertx.webp](/images/11_convertx/02-convertx.webp)
+![11_convertx/03-convertx.webp](/images/11_convertx/03-convertx.webp)
+
+変換自体も非常に高速で、あっという間に完了しました。
+
+これで安心して、しかも簡単にファイル変換が可能になりました:)

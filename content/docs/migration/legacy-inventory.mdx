@@ -1,0 +1,43 @@
+---
+title: 旧実装インベントリ
+description: 旧 worktree から段階的に移行・再設計する対象です。
+publishedAt: 2026-08-02
+updatedAt: 2026-08-02
+---
+
+## Content and navigation
+
+- 23 MDX: home 1、公開記事 17、draft 5
+- 83 WebP、OG 用 Shippori Mincho font、favicon
+- 公開 category 14、公開 tag 31
+- 記事一覧の年月グルーピング、新しい順の taxonomy 記事一覧
+- `工作`・`備忘録` の category 優先表示と、残りの件数順表示
+- 記事詳細、generated heading anchor、inline TOC
+- `draft`、`keywords`、`description`、手動 `publishedAt` / `updatedAt` schema
+- 404 と home document
+
+## Publishing surfaces
+
+- 旧 clean source の公開 surface は 67 URL: 固定 5、記事 17、category 14、tag 31
+- RSS route は旧実装に Index item 混入と file-order 並びの不具合がある
+- dirty `public/sitemap.xml` は draft 1 件と draft-only tag 7 件を公開 surface に漏らしている
+- dynamic Open Graph image は 1200 x 630、local font、home と article の 2 layout
+- 全公開 HTML の canonical URL と RSS alternate
+- scaffold の `llms.txt` / Markdown / search / docs OG は migration wiki 専用であり、production では非公開
+
+## Operations and integrations
+
+- Vercel Analytics / Speed Insights
+- static page、RSS、OG ごとの Cache-Control / CDN cache headers
+- Buy Me a Coffee 外部画像と `next/image` policy
+- `lucide-react` は current Next.js が既定で optimize するため追加 experimental config は不要
+- Tailwind と独自 typography / font / responsive design
+- 画像変換補助コマンドの安全な TypeScript/Bun 化
+
+## Migration accounting
+
+旧 worktree の最終監査境界は `migration/legacy` の `0fc249e063a266654f4689879b5d48d6ede863ed` です。dirty state は `M public/sitemap.xml` と `?? content/selfhost-iam-idp-with-authentik-rhel10.mdx` のまま保全しました。generated `.next` と stale `sitemap-0.xml` は source truth に使いません。
+
+本文 frontmatter より後ろの SHA-256 は 23/23 で一致し、83 WebP、font、favicon も byte-identical です。6 個の未参照画像も asset parity のため保持します。
+
+旧 config の `remark-math` / `rehype-katex` / Twoslash は全 23 本文に利用 marker がなく、current default MDX pipeline で同じ rendered meaning を保てるため、未使用 dependency として退役させました。再び数式または Twoslash directive を導入する時点で current preset-compatible API を再評価します。

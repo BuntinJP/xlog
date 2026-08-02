@@ -1,0 +1,32 @@
+diff --git a/dist/remark-heading-Dy-3rXdY.d.ts b/dist/remark-heading-Dy-3rXdY.d.ts
+index a1dbee54f1221dc208b1e10ac90f88b569464b31..a5244243796bd496b70be23f1a3c7b44a6291eb6 100644
+--- a/dist/remark-heading-Dy-3rXdY.d.ts
++++ b/dist/remark-heading-Dy-3rXdY.d.ts
+@@ -1,12 +1,11 @@
+ import { c as TOCItemType } from "./toc-CtW5lwA1.js";
+ import { Transformer } from "unified";
+ import { Heading, Root } from "mdast";
++import { Properties } from "hast";
+ //#region src/mdx-plugins/remark-heading.d.ts
+ declare module 'mdast' {
+   interface HeadingData extends Data {
+-    hProperties?: {
+-      id?: string;
+-    } & Record<string, unknown>;
++    hProperties?: Properties;
+   }
+ }
+ interface RemarkHeadingOptions {
+diff --git a/dist/remark-llms-BF5SHW_O.d.ts b/dist/remark-llms-BF5SHW_O.d.ts
+index 3be14fe9375012f65dc925db768bf0044dc40794..6446b74afb3db6ec4f6431345ddb6ad706c3d388 100644
+--- a/dist/remark-llms-BF5SHW_O.d.ts
++++ b/dist/remark-llms-BF5SHW_O.d.ts
+@@ -4,7 +4,7 @@ import { Info, State } from "mdast-util-to-markdown";
+ import { Processor, Transformer } from "unified";
+ import { Parents, Root } from "mdast";
+ //#region src/mdx-plugins/remark-llms.d.ts
+-interface LLMsOptions extends StringifyOptions {
++interface LLMsOptions extends Omit<StringifyOptions, 'filterElement'> {
+   /**
+    * export name for output Markdown.
+    *

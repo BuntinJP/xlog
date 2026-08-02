@@ -1,65 +1,70 @@
-import { Feed } from 'feed';
-import { getProdPages } from '@/lib/source';
+import { getPublishedPosts, latestUpdatedAt, toRfc822Date } from '@/lib/blog';
+import { rssCacheHeaders } from '@/lib/cache-policy';
+import { ogImagePath } from '@/lib/seo';
+import { appName, rssPath, siteDescription, siteUrl } from '@/lib/shared';
 
 export const dynamic = 'force-static';
 
-const escapeForXML = (str: string) => {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-};
+function xmlEscape(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+}
 
-export const GET = () => {
-  const baseUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000');
+function absoluteUrl(path: string): string {
+  return new URL(path, siteUrl).href;
+}
 
-  const feed = new Feed({
-    title: 'xlog',
-    description: 'Buntin-BadCompany-Blog',
-    id: baseUrl.href,
-    copyright: 'xlog',
-    link: baseUrl.href,
-    feed: new URL('/api/rss.xml', baseUrl).href,
-    language: 'ja',
-    updated: new Date(),
-    favicon: new URL('/favicon.ico', baseUrl).href,
-  });
+export function GET() {
+  const posts = getPublishedPosts();
+  const items = posts
+    .map((post) => {
+      const postUrl = absoluteUrl(post.url);
+      const imageUrl = absoluteUrl(ogImagePath(post.data.title, post.data.description));
+      const categories = post.data.categories
+        .map((category) => `<category>${xmlEscape(category)}</category>`)
+        .join('');
 
-  const posts = getProdPages();
+      return `<item>
+  <title>${xmlEscape(post.data.title)}</title>
+  <link>${xmlEscape(postUrl)}</link>
+  <guid isPermaLink="true">${xmlEscape(postUrl)}</guid>
+  <description>${xmlEscape(post.data.description)}</description>
+  <dc:creator>Buntin</dc:creator>
+  <pubDate>${toRfc822Date(post.data.publishedAt)}</pubDate>
+  <dc:date>${post.data.updatedAt}</dc:date>
+  ${categories}
+  <enclosure url="${xmlEscape(imageUrl)}" length="0" type="image/png" />
+</item>`;
+    })
+    .join('\n');
 
-  for (const post of posts) {
-    const imageParams = new URLSearchParams();
-    imageParams.set('title', post.data.title);
-    imageParams.set('description', post.data.description ?? '');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+  <title>${xmlEscape(appName)}</title>
+  <link>${xmlEscape(siteUrl)}</link>
+  <description>${xmlEscape(siteDescription)}</description>
+  <language>ja</language>
+  <lastBuildDate>${toRfc822Date(latestUpdatedAt(posts))}</lastBuildDate>
+  <atom:link href="${xmlEscape(absoluteUrl(rssPath))}" rel="self" type="application/rss+xml" />
+  <image>
+    <url>${xmlEscape(absoluteUrl('/favicon.ico'))}</url>
+    <title>${xmlEscape(appName)}</title>
+    <link>${xmlEscape(siteUrl)}</link>
+  </image>
+${items}
+</channel>
+</rss>`;
 
-    feed.addItem({
-      title: post.data.title,
-      description: post.data.description,
-      category: post.data.categories?.map((category) => {
-        return {
-          name: category,
-        };
-      }),
-      link: new URL(post.url, baseUrl).href,
-      image: {
-        title: post.data.title,
-        type: 'image/png',
-        url: escapeForXML(new URL(`/api/og?${imageParams}`, baseUrl).href),
-      },
-      date: post.data.date,
-      author: [
-        {
-          name: 'Buntin',
-        },
-      ],
-    });
-  }
-
-  return new Response(feed.rss2(), {
+  return new Response(xml, {
     headers: {
-      'Content-Type': 'application/xml',
+      ...rssCacheHeaders,
+      'Content-Type': 'application/rss+xml; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff',
     },
   });
-};
+}

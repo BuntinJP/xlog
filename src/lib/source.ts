@@ -1,85 +1,57 @@
 import { loader } from 'fumadocs-core/source';
-import { createMDXSource } from 'fumadocs-mdx';
-import { blog } from '@/.source';
-import { tagConfig } from '@/config';
+import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
+import { docsContentRoute, docsImageRoute, docsRoute } from './shared';
+import { defineDocs } from 'fumadocs-mdx/macro';
+import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
+import { z } from 'zod';
 
+const manualDateSchema = z.iso.date();
+
+const docs = defineDocs({
+  dir: 'content/docs',
+  docs: {
+    schema: pageSchema.extend({
+      publishedAt: manualDateSchema,
+      updatedAt: manualDateSchema,
+    }),
+    postprocess: {
+      includeProcessedMarkdown: true,
+    },
+  },
+  meta: {
+    schema: metaSchema,
+  },
+});
+
+// See https://fumadocs.dev/docs/headless/source-api for more info
 export const source = loader({
-  baseUrl: '/posts',
-  source: createMDXSource(blog, []),
+  baseUrl: docsRoute,
+  source: docs.toFumadocsSource(),
+  plugins: [lucideIconsPlugin()],
 });
 
-export const getDraftPages = () => source.getPages().filter((post) => post.data.draft);
+export function getPageImageUrl(page: (typeof source)['$inferPage']) {
+  const segments = [...page.slugs, 'image.png'];
 
-export const getProdPages = () => source.getPages().filter((post) => !post.data.draft);
-
-const posts = getProdPages();
-
-export type Posts = typeof posts;
-
-const tags = new Set<string>();
-for (const post of posts) {
-  if (post.data.tags) {
-    for (const tag of post.data.tags) {
-      tags.add(tag);
-    }
-  }
+  return {
+    segments,
+    url: '/' + [page.locale, ...docsImageRoute.split('/'), ...segments].filter(Boolean).join('/'),
+  };
 }
 
-export const tagsList = Array.from(tags).toSorted();
+export function getPageMarkdownUrl(page: (typeof source)['$inferPage']) {
+  const segments = [...page.slugs, 'content.md'];
 
-export const tagsWithPosts: {
-  name: string;
-  posts: Posts;
-}[] = [];
-
-for (const tag of tags) {
-  const filteredPosts = posts.filter((post) => post.data.tags?.includes(tag));
-  tagsWithPosts.push({ name: tag, posts: filteredPosts });
-}
-tagsWithPosts.sort((a, b) => a.name.localeCompare(b.name));
-
-const categories = new Set<string>();
-
-for (const post of posts) {
-  if (post.data.categories) {
-    for (const category of post.data.categories) {
-      categories.add(category);
-    }
-  }
+  return {
+    segments,
+    url: '/' + [page.locale, ...docsContentRoute.split('/'), ...segments].filter(Boolean).join('/'),
+  };
 }
 
-export const categoriesList = Array.from(categories).toSorted();
+export async function getLLMText(page: (typeof source)['$inferPage']) {
+  const processed = await page.data.getText('processed');
 
-export const categoriesWithPosts: {
-  name: string;
-  posts: Posts;
-}[] = [];
+  return `# ${page.data.title} (${page.url})
 
-for (const category of categories) {
-  const filteredPosts = posts.filter((post) => post.data.categories?.includes(category));
-  categoriesWithPosts.push({ name: category, posts: filteredPosts });
+${processed}`;
 }
-categoriesWithPosts.sort((a, b) => a.name.localeCompare(b.name));
-
-export const myCategoriesList = tagConfig.myCategoriesList as string[];
-
-export const withoutMyCategoriesList = categoriesList.filter((category) => {
-  for (const myCategory of myCategoriesList) {
-    if (category === myCategory) {
-      return false;
-    }
-  }
-  return true;
-});
-
-export const myCategoriesWithPosts: typeof categoriesWithPosts = [];
-
-export const withoutMyCategoriesWithPosts = categoriesWithPosts.filter((category) => {
-  for (const myCategory of myCategoriesList) {
-    if (category.name === myCategory) {
-      myCategoriesWithPosts.push(category);
-      return false;
-    }
-  }
-  return true;
-});

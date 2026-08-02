@@ -1,0 +1,232 @@
+---
+title: GitHub上でcompose.ymlを管理し、コミットに応じて自動適用する [Portainer BE]
+description: Portainer Business EditionのGitOps updatesを使い、GitHubで管理しているcompose.ymlをコミットに応じて自動反映させます。
+publishedAt: 2026-05-10
+updatedAt: 2026-05-10
+categories: ['工作','Linux','セルフホスト']
+tags: ['Portainer','Docker','GitHub','GitOps']
+---
+
+## はじめに
+
+自宅サーバーでDocker Composeを使っていると、`compose.yml` がいろんなディレクトリに散らばっていきます。  
+最初はそれでも問題ないのですが、後から見返す時にcompose.ymlの場所を忘れることになります。
+
+せっかくPortainerを使っているので、GitHub上のリポジトリを正として、コミットされた `compose.yml` をPortainer側で自動的に取り込ませる形にします。
+
+今回はPortainer Business EditionのGitOps updatesを利用します。  
+Portainer BE(Business Edition) は、コンパネからの接続先ノードが3個までなら、無料で利用可能です。  
+その接続先ノード上のコンテナの数にかかわらずです。コンテナ管理にかなりおすすめなので利用してみてください。
+
+## 目的
+
+GitHubにpushした内容がPortainer側のStackに自動で反映される状態を目指します。  
+副産物的に、RedeployをトリガーするwebhookURLが入手できます。
+
+## 前提
+
+以下の環境を前提にします。
+
+- Portainer Business Edition
+- Docker
+- GitHubに `compose.yml` を置くリポジトリがある
+- GitHubからPortainerへHTTPSでアクセス可能
+
+プライベートレポジトリの場合、PAT（Personal Access Token）で認証できます。
+
+## GitHubリポジトリの構成
+
+今回は例として、以下のような構成にします。
+
+```text
+BuntinJP/convertx
+└── compose.yml
+```
+
+[GitHub](https://github.com/BuntinJP/convertx)
+
+`compose.yml` は以下のようにしてみます。
+
+```yml title="compose.yml"
+services:
+  convertx:
+    image: ghcr.io/c4illin/convertx:latest
+    container_name: convertx
+    restart: unless-stopped
+    ports:
+      - "10010:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      ACCOUNT_REGISTRATION: ${ACCOUNT_REGISTRATION}
+      HTTP_ALLOWED: ${HTTP_ALLOWED}
+      ALLOW_UNAUTHENTICATED: ${ALLOW_UNAUTHENTICATED}
+      AUTO_DELETE_EVERY_N_HOURS: ${AUTO_DELETE_EVERY_N_HOURS}
+      TZ: ${TZ}
+```
+
+`latest` を使うか固定タグを使うかは好みが分かれるところです。  
+私は雑に運用しているものは `latest` を使いがちですが、本当に壊れると困るものは固定タグにした方がいいのは間違い無いです。
+
+また、GitHubに置く以上、秘密情報や本番固有の値を `compose.yml` に直接書かないようにしています。  
+GitHub Private repositoryだからOKというタイプですが、念の為分離します。
+
+ConvertXには大した秘密情報はないので、例として設定パラメータを環境変数から設定しています。
+
+## 環境変数の扱い
+
+Portainerでは、Stack作成時に環境変数を渡せます。  
+Gitリポジトリ側には `${TZ}` のようなプレースホルダーだけを書き、実際の値はPortainer側のEnvironment variablesに登録する形です。
+
+例えば、Portainer上で以下のように入力します。
+
+| Name | Value |
+| --- | --- |
+| `ACCOUNT_REGISTRATION` | `false` |
+| `HTTP_ALLOWED` | `false` |
+| `ALLOW_UNAUTHENTICATED` | `true` |
+| `AUTO_DELETE_EVERY_N_HOURS` | `0` |
+| `TZ` | `Asia/Tokyo` |
+
+Portainerの画面から1つずつ入力、もしくは`Load variables from .env file` で手元の `.env` を読み込ませることもできます。
+
+```dotenv title=".env"
+ACCOUNT_REGISTRATION=false
+HTTP_ALLOWED=false
+ALLOW_UNAUTHENTICATED=true
+AUTO_DELETE_EVERY_N_HOURS=0
+TZ=Asia/Tokyo
+```
+
+Portainerに登録した環境変数をまとめてコンテナへ渡したい場合、Compose側で `stack.env` を指定する方法もあります。
+
+```yml
+services:
+  app:
+    image: example/app:latest
+    env_file:
+      - stack.env
+```
+
+`stack.env` はPortainerがStackのEnvironment variablesから用意するファイルです。  
+ただし、Docker Swarmでは利用不可能みたいです。
+
+## PortainerでStackを作成する
+
+Portainerにログインし、対象のEnvironmentを選択します。
+
+次に、`Stacks` から `Add stack` を選択します。  
+Build methodは `Repository` を選択します。
+
+入力する内容は以下のような形です。
+
+| 項目 | 値 |
+| --- | --- |
+| Name | `convertx` |
+| Repository URL | `https://github.com/BuntinJP/convertx` |
+| Repository reference | `refs/heads/main` |
+| Compose path | `compose.yml` ※補完あり |
+
+Private repositoryを利用する場合は、Authenticationを有効にしてGitHubのユーザー名とPersonal access tokenを入力します。
+
+ここで、GitOps updatesまわりのパラメータも一緒に設定します。  
+`Re-pull image`、`Polling`、`Webhook`、`Force redeployment`、`Enable relative path volumes` はすべてStack作成時に設定できる項目です。  
+このうち `Polling` と `Webhook` は更新検知方式なので二者択一です。  
+それ以外は必要に応じて有効化するオプションです。
+
+今回の設定方針は以下のようにしました。
+
+| 項目 | 設定 | - |
+| --- | --- | --- |
+| GitOps updates | 有効 | GitHubの変更をStackへ反映 |
+| Re-pull image | 有効 | `latest` タグの更新を反映 |
+| 更新方式 | Webhook | push後すぐに反映するため |
+| Force redeployment | 有効 | 更新条件はGitHub Action側で制御 |
+| Enable relative path volumes | 有効 | `./data:/app/data` のような相対パスvolumeを使うため |
+
+![portainer-be-stack-creation-page-01](/images/15-manage-compose-yml-on-github-and-auto-apply-with-portainer-be/01-portainer-be-stack-creation-page-01.webp)
+![portainer-be-stack-creation-page-02](/images/15-manage-compose-yml-on-github-and-auto-apply-with-portainer-be/02-portainer-be-stack-creation-page-02.webp)
+
+PollingはPortainerが一定間隔でGitリポジトリを確認する方式です。  
+設定は楽ですが、最大でFetch intervalの分だけタイムラグがあります。
+
+今回はpush後の即時性を優先したいので、Webhookを利用します。  
+Webhookを使う場合、Portainerが生成するWebhook URLに対してPOSTできる必要があります。  
+Portainerを外部公開していない場合は、`/api/stack/webhook/***`を許可する等。
+
+## GitHub Actions
+
+Webhook方式にする場合、GitHub Actionsで以下のように設定します。
+
+```yml title=".github/workflows/portainer-redeploy.yml"
+name: Portainer redeploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'compose.yml'
+      - '.github/workflows/portainer-redeploy.yml'
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer redeploy webhook
+        run: |
+          curl -sS -o /tmp/portainer-webhook-response.txt -w "HTTP status: %{http_code}\n" -X POST "${PORTAINER_WEBHOOK_URL}"
+          cat /tmp/portainer-webhook-response.txt
+        env:
+          PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
+```
+
+`PORTAINER_WEBHOOK_URL` はGitHub ActionsのRepository secretsに保存します。  
+Webhook URLは実質的にデプロイ権限となるため、厳密な管理が必要です。
+
+HTTPステータスコードを明示的に出力する形にしています。  
+`HTTP status: 204` のように2xxが返っていれば、WebhookのPOST自体は成功しています。
+
+複数Stackを1つのリポジトリで管理する場合は、Stackごとのディレクトリで管理し、pathsもそれに合わせると無駄な再デプロイを減らせます。
+
+![github-actions-secret-portainer-webhook-url](/images/15-manage-compose-yml-on-github-and-auto-apply-with-portainer-be/03-github-actions-secret-portainer-webhook-url.webp)
+
+## 動作確認
+
+動作確認として、`compose.yml` のイメージタグを変更してpushします。
+
+現状
+
+![container-convertx-tag-latest](/images/15-manage-compose-yml-on-github-and-auto-apply-with-portainer-be/04-container-convertx-tag-latest.webp)
+
+今回は `ghcr.io/c4illin/convertx:latest` から `ghcr.io/c4illin/convertx:v0.17.0` に変更してみます。
+
+```diff title="compose.yml"
+ services:
+   convertx:
+-    image: ghcr.io/c4illin/convertx:latest
++    image: ghcr.io/c4illin/convertx:v0.17.0
+     container_name: convertx
+     restart: unless-stopped
+```
+
+今回はWebhook方式なので、GitHub Actionsの実行ログを確認します。  
+Actionsが成功していれば、PortainerのWebhook URLにPOSTできています。
+
+![github-actions-curl-recult](/images/15-manage-compose-yml-on-github-and-auto-apply-with-portainer-be/05-github-actions-curl-recult.webp)
+
+Portainer側では、Stackの画面から更新ログやコンテナの再作成状況を確認します。
+
+`latest` から `v0.17.0` へ正しく変更されてますね。
+
+![container-convertx-tag-v0-17-0](/images/15-manage-compose-yml-on-github-and-auto-apply-with-portainer-be/06-container-convertx-tag-v0.17.0.webp)
+
+## まとめ
+
+GitOps updatesを使うことで、GitHub上の `compose.yml` を正としてStackを管理できるようになりました。
+
+## 参考
+
+[Add a new stack | Portainer Documentation](https://docs.portainer.io/2.33-lts/user/docker/stacks/add)  
+[How do automatic updates for stacks/applications work? | Portainer Documentation](https://docs.portainer.io/faqs/troubleshooting/stacks-deployments-and-updates/how-do-automatic-updates-for-stacks-applications-work)  
+[Environment Variable Management in Docker: .env vs. stack.env | Portainer Documentation](https://docs.portainer.io/faqs/troubleshooting/stacks-deployments-and-updates/environment-variable-management-in-docker-.env-vs.-stack.env)

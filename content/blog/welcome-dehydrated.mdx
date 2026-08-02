@@ -1,0 +1,329 @@
+---
+title: 'Cloudflareでドメインを管理するブログのSSL証明書をより強固に自動更新したい[dehydrated]'
+description: SSL 証明書を certbot で cron するだけのチン 🙆 ス脳死構成ではなく、ちゃんと CloudflareAPI を利用した堅牢な証明書自動更新環境を作成したい。
+publishedAt: 2024-03-08
+updatedAt: 2024-03-08
+categories: ['工作','Linux','SSL']
+tags: ['dehydrated','Cloudflare','acme']
+keywords: ['dehydrated', "Let's Encrypt", 'certbot', 'SSL', 'Cloudflare', '証明書', '更新', 'スクリプト']
+---
+
+## お知らせ
+
+より改善版としての記事を公開しています。
+[acme.shとCloudflareで証明書を自動更新する設定[acme.sh]](/posts/welcome-acme.sh)
+
+## より強固に？？
+
+なんて言った？
+
+**SSL 証明書を certbot で cron するだけのチン 🙆 ス脳死構成ではなく、ちゃんと CloudflareAPI を利用した堅牢な証明書自動更新環境を作成したい。**
+
+何こいつ？って感じでしょうか。
+
+「脳死構成」とは、サーバー上で一時的に http を開けて `certbot -d example.com ...` みたいなコマンドを、そのまま cron に入れるとかです。  
+よく行われていると思います。確かに楽だとは思います。
+
+しかし、自分は、できるだけ単純で機械的に動くスタックの方が好きです。c
+
+今回はそんな自分が納得できた解決策を紹介します。
+
+## 環境
+
+証明書を取得する環境を紹介しておきます。
+
+ISP: Nuro 光 (So-net)  
+OS: ArchLinux
+
+ZTE 製の Nuro の ONU でポートマッピングを行い、宣言的にポートを解放しています。
+
+使用用途は主に、趣味での開発となります。
+ゲーム用のサーバーを立てたりもしています。
+
+また、Cloudflareで取得したドメインを向けています。
+
+まず、自宅回線でビジネスプランでもないので ISP から払い出された IP が変わることがあります。
+Nuro を導入して早 7 年ほど経ちますが、今の所1度しか変化していません。
+
+しかし、それでもやはりドメインと IP が機械的につながっていないと安心できない私は、Cloudflare API を利用したダイナミック DNS を利用しています。
+
+そうです。Cloudflare API を現時点で利用しているのです。
+
+## 今までの証明書更新
+
+まず大前提として、趣味用サーバーですので、有償証明書は論外です。というか、有償証明書はエンプラに売る商品でしかないと思っています。ステータスシンボルビジネスです。
+
+今までは、複数のサブドメインに対して、certbot で証明書をサーバー内から取得するものと、ZeroSSL を利用する 2 パターンが混在していました。
+
+> [certbot](https://certbot.eff.org/) - Let's Encrypt の公式クライアント
+
+> [ZeroSSL](https://zerossl.com/) - [ブラウザから無料で簡単に証明書を発行できる ZeroSSL | DevelopersIO](https://dev.classmethod.jp/articles/zerossl-a-free-and-easy-way-to-issue-certificates-from-your-browser/)
+
+ドメインごとに、何が使われているのかわかりにくく、かつ ZeroSSL については証明書の更新時の課金の強制感(うまくやれば(本来は)払わなくて良い)がうざかったので、やめました。ブラウザから手頃にとって来れるのは良いんですけどね。
+
+**で？**
+
+結局こいつらがやってるのは ACME プロトコルに準じた自動的な証明書の発行です。偉いのは CA であってこいつらでは決してありません。いや ZeroSSL はワンチャン偉いか？
+
+また、certbot は目的に対して不必要にで多機能なクライアントです。web サーバー機能まで持っちゃってます。
+
+自分はあまり好みではないです。自宅に知らない業者が定期的に上がり込んできて勝手にケーブリングしていくみたいな居心地の悪さがあります。
+
+以上が現状まとめ、となります。
+
+## 今後の証明書更新
+
+整理すると、要件は以下のようになります。
+
+- 無料で利用できること(Let'sEncrypt)
+- dns-01チャレンジを利用したい
+- certbot は少し多機能すぎる。ZeroSSL は論外
+
+以上の要件から、自分が出した答えは以下2つの構成です。
+
+**dehydrated**
+
+[github](https://github.com/dehydrated-io/dehydrated) - シェルで書かれた acme クライアント (必要な機能は全てありつつ非常に単純明快な構造をしています)
+
+**letsencrypt-cloudflare-hook**
+
+[github](https://github.com/kappataumu/letsencrypt-cloudflare-hook) - python 製 hooks スクリプト (dehydrated がチャレンジの TXT レコードを CloudflareAPI 経由で設定できます。)
+
+レゴで自分が欲しいところだけ組んだような感じですね。自分としてはこれらを見つけたとき結構本気で運命感じました。
+
+### dehydrated とは
+
+*dehydrated*は certbot と同じく ACME プロトコルに対応するクライアントです。単一のbashスクリプトです。この上なくシンプルでもはや美しいです。
+
+certbot と違い、証明書の取得のみを行います。証明書の設定などはユーザーが自分で行う必要があります。
+しかし、やることは証明書の更新なので、設定はすでに終わっているはずですよね。なので正直証明書の更新ごときで設定ファイルをいじるだのなんだのって話からおかしいんですよ。  
+
+certbotの設定ファイルを勝手に編集する機能はマジでなんのためにあるんですか？邪魔にしか感じません。
+
+**dehydrated にはそんな余計すぎる機能はありません。**
+
+本当にいらないです。そういう機能は。
+
+嫌ならアップデートするなよという反論は承知しています。  
+が、自分は趣味サーバーで重いサービスをホストしてるわけでもないので、頻繁にパッケージ全更新コマンドを実行します。
+
+その環境なのもあり、やっぱり余計な機能がないシンプルなソリューションが好きなのです。dehydrated はまさにそれを体現する神ツールということです。
+
+### letsencrypt-cloudflare-hook とは
+
+結構古いスクリプトです。しかし、機能は十分です。
+
+*letsencrypt-cloudflare-hook*は、dehydrated のプラグイン的なものです。レポジトリ名に dehydrated が含まれていないので分かりづらいですが。他のACMEクライアントでも利用できるようなのでこの名前になっているようです。
+
+dehydrated は、hooks という形で API のようなものを提供しています。dehydratedが証明書取得のためにチャレンジ情報を受けとり、それを何らかの形で利用しているドメインのAPI経由で登録したりするためのインターフェイスという位置づけです。
+
+そして、名前の通り、letsencrypt-cloudflare-hookはCloudflareAPIにチャレンジ情報を登録するためのhooksです。
+
+APIキーの登録のみで、dehydrated がチャレンジ情報を CloudflareAPI 経由で登録、削除してくれます。
+
+CloudflareではメールとAPIキーの組み合わせは非推奨となっています。しかし、新しいAPIトークン方式だと、ドメインごとにAPIエンドポイントの情報としてゾーンを指定する必要があります。本当は自動取得可能なパラメータですが、調べた限り自動取得まで行ってくれるhookスクリプトはありませんでした。
+
+dehydratedに取得対象のドメインを指定する`domains.txt`というファイルがあるのですが、そこにドメインを追加するだけで証明書発行を有効にしたかったので、今回は非推奨ながらAPIキー方式を採用しました。
+
+## 設定内容
+
+これを見に来ている方には使い方がわかっているツールの説明などいらないかと思いますが、私が設定した内容を解説しておきます。
+
+公式情報は[こちら](https://github.com/dehydrated-io/dehydrated)をどうぞ。
+
+1. dehydrated をインストール
+
+`/opt/dehydrated`に設置しました
+
+```
+># git clone git@github.com:dehydrated-io/dehydrated.git /opt/dehydrated                    
+---
+Cloning into '/opt/dehydrated'...
+remote: Enumerating objects: 2485, done.
+remote: Counting objects: 100% (162/162), done.
+remote: Compressing objects: 100% (41/41), done.
+remote: Total 2485 (delta 147), reused 122 (delta 121), pack-reused 2323 (from 3)
+Receiving objects: 100% (2485/2485), 938.95 KiB | 1.94 MiB/s, done.
+Resolving deltas: 100% (1561/1561), done.
+```
+
+2. letsencrypt-cloudflare-hook をインストール
+
+[公式](https://github.com/kappataumu/letsencrypt-cloudflare-hook)のサンプル通り、`hooks/cloudflare`に設置しました
+
+```
+># cd /opt/dehydrated/
+># git clone git@github.com:kappataumu/letsencrypt-cloudflare-hook.git hooks/cloudflare
+---
+Cloning into 'hooks/cloudflare'...
+remote: Enumerating objects: 158, done.
+remote: Counting objects: 100% (67/67), done.
+remote: Compressing objects: 100% (13/13), done.
+remote: Total 158 (delta 60), reused 54 (delta 54), pack-reused 91 (from 1)
+Receiving objects: 100% (158/158), 32.00 KiB | 4.00 MiB/s, done.
+Resolving deltas: 100% (83/83), done.
+```
+
+3. CloudflareからAPIキーを取得
+
+Cloudflareのダッシュボードから取得可能です
+
+[Get Global API key (legacy) · Cloudflare Fundamentals docs](https://developers.cloudflare.com/fundamentals/api/get-started/keys/)
+
+4. dehydrated の初期化・設定
+
+最初にアカウントキーの登録が必要です。
+
+```
+># cd /opt/dehydrated
+># ./dehydrated --register --accept-terms
+---
+#
+# !! WARNING !! No main config file found, using default config!
+#
++ Generating account key...
++ Registering account key with ACME server...
++ Fetching account URL...
++ Done!
+```
+
+dehydratedのconfigにCloudflareのAPIキーを登録しておきます
+
+```
+># cd /opt/dehydrated
+># cp docs/examples/config config
+># echo "export CF_EMAIL=EMAIL_HERE" >> config
+># echo "export CF_KEY=API_KEY_HERE" >> config
+```
+
+5. 対象ドメインを設定
+
+`/opt/dehydrated/domains.txt`に取得するドメインを記載します。  
+1行が1枚の証明書に対応しており、マルチドメイン(ワイルドカード含め)対応の証明書は1行にスペース区切りで記述することで対応可能です。
+
+```text title="domains.txt"
+code.example.com
+ubcode.example.com
+example.com
+```
+
+## 結果
+
+`./dehydrated -c -t dns-01 -k 'hooks/cloudflare/hook.py'`このようなコマンドで証明書を取得できます。
+
+```
+[::] buntin@example.com:/opt/dehydrated (master %) $ ./dehydrated -c -t dns-01 -k 'hooks/cloudflare/hook.py'
+## INFO: Using main config file /opt/dehydrated/config
+ + CloudFlare hook executing: startup_hook
+ + Creating chain cache directory /opt/dehydrated/chains
+Processing code.example.com
+ + Creating new directory /opt/dehydrated/certs/code.example.com ...
+ + Signing domains...
+ + Generating private key...
+ + Generating signing request...
+ + Requesting new certificate order from CA...
+ + Received 1 authorizations URLs from the CA
+ + Handling authorization for code.example.com
+ + 1 pending challenge(s)
+ + Deploying challenge tokens...
+ + CloudFlare hook executing: deploy_challenge
+ + Creating TXT record: code.example.com => 8FWozOTG6G7zCTs7zQJWQ34OK3sLFgJUzAGLjbscDPs
+ + Challenge: nONCKnH5i7U3CfAQN444-IjR8DhXYPdd1-2vSLH4F7A
+ + Unable to locate record named _acme-challenge.code.example.com
+ + TXT record created, CFID: 8bba036b11b3533c15ebb2ce30fc8a4f
+ + Settling down for 10s...
+ + Responding to challenge for code.example.com authorization...
+ + Challenge is valid!
+ + Cleaning challenge tokens...
+ + CloudFlare hook executing: clean_challenge
+ + Deleted TXT _acme-challenge.code.example.com, CFID 8bba036b11b3533c15ebb2ce30fc8a4f
+ + Requesting certificate...
+ + Checking certificate...
+ + Done!
+ + Creating fullchain.pem...
+ + CloudFlare hook executing: deploy_cert
+ + ssl_certificate: /opt/dehydrated/certs/code.example.com/fullchain.pem
+ + ssl_certificate_key: /opt/dehydrated/certs/code.example.com/privkey.pem
+ + Done!
+Processing ubcode.example.com
+ + Creating new directory /opt/dehydrated/certs/ubcode.example.com ...
+ + Signing domains...
+ + Generating private key...
+ + Generating signing request...
+ + Requesting new certificate order from CA...
+ + Received 1 authorizations URLs from the CA
+ + Handling authorization for ubcode.example.com
+ + 1 pending challenge(s)
+ + Deploying challenge tokens...
+ + CloudFlare hook executing: deploy_challenge
+ + Creating TXT record: ubcode.example.com => XuJ-ew6NftVdV1JbQrrBqJ6F-GL9yQf0zNwF0l5jhOg
+ + Challenge: GouLgn8g2KM5FPocZcMkMHmXtMOSKsS5d7MVSrx5qT4
+ + Unable to locate record named _acme-challenge.ubcode.example.com
+ + TXT record created, CFID: efc3b9608a42101d4b31c727a8d62678
+ + Settling down for 10s...
+ + The DNS response does not contain an answer to the question: _acme-challenge.ubcode.example.com. IN TXT. Retrying query...
+ + DNS not propagated, waiting 30s...
+ + The DNS response does not contain an answer to the question: _acme-challenge.ubcode.example.com. IN TXT. Retrying query...
+ + DNS not propagated, waiting 30s...
+ + Responding to challenge for ubcode.example.com authorization...
+ + Challenge is valid!
+ + Cleaning challenge tokens...
+ + CloudFlare hook executing: clean_challenge
+ + Deleted TXT _acme-challenge.ubcode.example.com, CFID efc3b9608a42101d4b31c727a8d62678
+ + Requesting certificate...
+ + Checking certificate...
+ + Done!
+ + Creating fullchain.pem...
+ + CloudFlare hook executing: deploy_cert
+ + ssl_certificate: /opt/dehydrated/certs/ubcode.example.com/fullchain.pem
+ + ssl_certificate_key: /opt/dehydrated/certs/ubcode.example.com/privkey.pem
+ + Done!
+Processing example.com
+ + Creating new directory /opt/dehydrated/certs/example.com ...
+ + Signing domains...
+ + Generating private key...
+ + Generating signing request...
+ + Requesting new certificate order from CA...
+ + Received 1 authorizations URLs from the CA
+ + Handling authorization for example.com
+ + 1 pending challenge(s)
+ + Deploying challenge tokens...
+ + CloudFlare hook executing: deploy_challenge
+ + Creating TXT record: example.com => TB2owBPoTysC6r1c5mUBnxZgKQuu4OmRDklPN9zADyQ
+ + Challenge: 2vebQ4X3RyqUzV1qUJXNbZPD15pvyPDpwLIERRa21BQ
+ + Unable to locate record named _acme-challenge.example.com
+ + TXT record created, CFID: ac73764513bc4e7a4812212c3e8cfc28
+ + Settling down for 10s...
+ + DNS not propagated, waiting 30s...
+ + DNS not propagated, waiting 30s...
+ + Responding to challenge for example.com authorization...
+ + Challenge is valid!
+ + Cleaning challenge tokens...
+ + CloudFlare hook executing: clean_challenge
+ + Deleted TXT _acme-challenge.example.com, CFID ac73764513bc4e7a4812212c3e8cfc28
+ + Requesting certificate...
+ + Checking certificate...
+ + Done!
+ + Creating fullchain.pem...
+ + CloudFlare hook executing: deploy_cert
+ + ssl_certificate: /opt/dehydrated/certs/example.com/fullchain.pem
+ + ssl_certificate_key: /opt/dehydrated/certs/example.com/privkey.pem
+ + Done!
+ + CloudFlare hook executing: exit_hook
+[::] buntin@example.com:/opt/dehydrated (master %) $ ls
+```
+
+証明書の更新はこれで終わりです。
+
+![03_welcome-dehydrated/welcome-dehydrated-info](/images/03_welcome-dehydrated/welcome-dehydrated-info.webp)
+唯々、神。以上です。(nginx への適用、リロードをお忘れなく)
+
+これでより安全で簡潔な証明書更新スクリプトが整理できました。
+
+毎回証明書更新のたびに新しい方法に手を出してきましたが、しばらくは変更いらないくらい堅牢なのができたと思います。
+
+あとは、`cd /opt/dehydrated/ && ./dehydrated -c -k 'hooks/cloudflare/hook.py' -t dns-01 && systemctl reload nginx`をcronに入れておくなどすればOKです。
+
+自分でDeno製のhooksを作りたいという願望がじわじわ来てるので、そのうち作ろうかと思います。(`-k "hooks/deno-dehydrated-hooks/hook.ts"`とかやってみたい)
+
+では！

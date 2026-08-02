@@ -1,29 +1,49 @@
-import '@/app/global.css';
-import { Analytics } from '@vercel/analytics/react';
+import { RootProvider } from 'fumadocs-ui/provider/next';
+import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import { RootProvider } from 'fumadocs-ui/provider';
-import type { Metadata } from 'next';
+// oxlint-disable-next-line import/no-unassigned-import -- Next.js requires the root stylesheet as a side-effect import.
+import './global.css';
 import { Shippori_Mincho } from 'next/font/google';
-import type { ReactNode } from 'react';
-import { BuyMeACoffee } from '@/components/BuyMeACoffee';
-import { Footer } from '@/components/Footer';
-import { Header } from '@/components/Header';
+import type { Metadata } from 'next';
+import { appName, rssPath, siteDescription, siteUrl } from '@/lib/shared';
+import { BuyMeACoffee } from '@/components/blog/buy-me-a-coffee';
+import { SiteFooter } from '@/components/blog/site-footer';
 
 const shipporiMincho = Shippori_Mincho({
   subsets: ['latin'],
   weight: '400',
 });
 
-export default function Layout({ children }: { children: ReactNode }) {
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: appName,
+  description: siteDescription,
+  alternates: {
+    types: {
+      'application/rss+xml': rssPath,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ja_JP',
+    siteName: appName,
+    title: appName,
+    description: siteDescription,
+    url: '/',
+    images: '/api/og',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: appName,
+    description: siteDescription,
+    images: '/api/og',
+  },
+};
+
+export default function Layout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang='ja' className={shipporiMincho.className} suppressHydrationWarning>
-      <body className='bg-[#282828] flex min-h-dvh flex-col'>
-        {process.env.NODE_ENV === 'production' && (
-          <>
-            <Analytics />
-            <SpeedInsights />
-          </>
-        )}
+    <html lang="ja" className={shipporiMincho.className} suppressHydrationWarning>
+      <body className="flex min-h-dvh flex-col bg-fd-background text-fd-foreground">
         <RootProvider
           theme={{
             enabled: true,
@@ -31,40 +51,19 @@ export default function Layout({ children }: { children: ReactNode }) {
             enableSystem: false,
             attribute: 'class',
           }}
-          search={{
-            enabled: false,
-          }}
+          search={{ enabled: false }}
         >
-          <div className='lg:grid lg:grid-cols-6'>
-            <div className='hidden lg:block lg:col-span-1'>{/* ad here (pc only) */}</div>
-            <div className='lg:col-span-4'>
-              <Header />
-              <div className='mx-6'>{children}</div>
-              <div className='mt-12'>{/* ad here */}</div>
-            </div>
-            <div className='hidden lg:block lg:col-span-1'>{/* ad here (pc only) */}</div>
-          </div>
-          <Footer />
+          {children}
+          <SiteFooter />
           <BuyMeACoffee />
         </RootProvider>
+        {process.env.NODE_ENV === 'production' ? (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        ) : null}
       </body>
     </html>
   );
 }
-
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
-  title: 'xlog',
-  description: 'Buntin-BadCompany-Blog',
-  openGraph: {
-    title: 'xlog',
-    description: 'Buntin-BadCompany-Blog',
-    images: '/api/og',
-    url: '/',
-  },
-  twitter: {
-    title: 'xlog',
-    description: 'Buntin-BadCompany-Blog',
-    images: '/api/og',
-  },
-};

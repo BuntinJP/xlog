@@ -1,0 +1,290 @@
+---
+title: Cloudflare Zero Trust, Tunnel で、コンテンツをセキュアに配信する
+description: Cloudflare Tunnelで公開したドメインを、Cloudflare Zero Trustでの認証により使えるようにします。
+publishedAt: 2025-04-10
+updatedAt: 2025-12-28
+categories: ['工作','Linux','Web']
+tags: ['ArchLinux','Nginx','Cloudflare','Zero Trust']
+---
+
+## はじめに
+
+#### (2025/12/28 追記) Cloudflareの最新のUIに合わせて内容を一部修正しました。
+
+以前死んだOracleLinux,RHEL9サーバーで、`raw.` というサブドメインを使い、画像や、公開鍵ファイル、CMS用のコンテンツなどを配信していました。  
+サーバーが死んでから、pdfとかを取ってくるのに結構重宝してたことに気づいたので、復活させます。
+mTLSは証明書の導入が面倒(スマホ等)なので、Github,GoogleのOAuth認証を利用したいと思っています。
+
+```
+secret-raw.domain.tld
+```
+
+みたいなドメイン名で、Github,Googleの認証を用いてサイトにログインし、Nginxの専用のバーチャルホストにアクセスできるのを目標とします。
+
+ちなみに、作業内容は[こちら](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/)のドキュメントにすべてまとめられています。
+
+## 注意
+
+Cloudflare Zero Trustを利用するためには、Cloudflareにネームサーバーを移管している必要があります。
+
+プランはなんでもOKです。私は無料プランです。
+
+## 対応方針
+
+以下のシナリオで行きます。
+
+1. Nginxでディレクトリインデックスを有効にした、リソース公開用VHを作成
+2. Cloudflareダッシュボードからトンネルを作成
+3. Cloudflare Tunnel経由でsecret-rawを公開
+3. ポリシーを作成
+4. アプリケーションを作成しポリシーを適用
+
+## 使用技術
+
+### Cloudflare Tunnel
+
+大昔OracleLinuxを使っていたときによく使っていたツールです。
+ngrokみたいな感じで、サーバー内にトンネルを通せるツールです。そのトンネルとCloudflareのプロキシネットワークを通じて、セキュアにサーバー内部のリソースを公開できます。
+
+Cloudflareのネットワークに依存するため、完全なTCPトンネルとしての利用は無理があるかもしれませんが、公式でSSH,VNC,RDPのブラウザレンダリングがサポートされているので、結構柔軟に使えます。
+
+そのため、22ポートを指定して、sshconfigでちょっとしたプロキシ設定を書くだけで、それを使ってSSHをすることもできます。
+
+### Cloudflare Zero Trust
+
+Zero Trustの基本概念などは、Cloudflareの記事を[参照](#参考)ください。
+
+GoogleやGithub等複数の認証プロバイダーを使用し、メールを識別子としてそれぞれユーザーを発行、ポリシーによってアプリケーションへのアクセスを管理できます。  
+これの何がすごいのかというと、サーバー側は普通のWebアプリケーションのホストと同じインターフェイスなのに対して、Cloudflare側でアクセス制御を行い、Zero Trust的なセキュリティを実現できる点です。
+
+また、疑似的なランチャーも展開できます。  
+https://???.cloudflareaccess.com/#/Launcher といったURLで、それぞれのユーザーが許可されているアプリケーション一覧のページにアクセスできます。  
+AWS access portalみたいな感じです。
+
+以下は、ほぼ保守されていない以前の環境のランチャーの例です。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-01](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-01.webp)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-02](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-02.webp)
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-03](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-access-launcher-sample-03.webp)
+
+### Nginx
+
+サーバー内部のWebサーバーとしてNginxを使用します。
+
+## 作業内容
+
+### 1. Nginxでディレクトリインデックスを有効にした、リソース公開用VHを作成
+
+内部用のVHは`/etc/nginx/conf.d/tunnels/`ディレクトリに配置し、ポートを`20001`から始まるように設計してみました。
+
+```console
+># cd /etc/nginx/
+># cp -p nginx.conf{,.$(date "+%Y%m%d")}
+># vim nginx.conf # /etc/nginx/conf.d/tunnelsディレクトリを読み込むように変更
+># diff nginx.conf.20250215 nginx.conf
+---
+34a35
+>     include /etc/nginx/conf.d/tunnels/*.conf;
+---
+># cd /etc/nginx/conf.d/tunnels
+># vim 01_secret-raw.conf
+># nginx -t
+--
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+---
+># systemctl reload nginx
+```
+
+```nginx title="secret-raw.conf"
+server {
+    listen 20001;
+    server_name secret-raw;
+
+    #ssl_certificate     /opt/dehydrated/certs/badcompany.tokyo/fullchain.pem;
+    #ssl_certificate_key /opt/dehydrated/certs/badcompany.tokyo/privkey.pem;
+
+    access_log /var/log/nginx/secret-raw_access.log main;
+    error_log  /var/log/nginx/secret-raw_error.log warn;
+
+    location / {
+        root /var/www/secret-raw;
+
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+    }
+}
+```
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/nginx-directory-index-test.webp)
+
+OKそうですね
+
+実際の使用環境では、`/var/www/secret-raw` には秘匿性の高い情報が入るはずなので扱い方に注意です(私の環境は参考にできたものではないためお気をつけください笑)  
+外部から20001番ポートに直接アクセスできないように、自宅回線(※天下の究極うんこISP Nuro光)のルーターによる、ポートアドレス変換の対象外にしています。
+iptablesが起動しており、20001ポートへはポリシーによってDROPされるようになっていますが、あまり意味はないです。
+
+これにより、サーバー側の準備が整いました。
+
+### 2. Cloudflare Zero Trust経由でアクセスできるようにする
+
+#### 注意 CloudflareにNSを移管する必要があります
+
+[冒頭の注意](#注意)は、ここに関係します。今回利用するCloudflareTunnel, ZeroTrustは、Cloudflareにネームサーバーを移して使えるCloudflare独自の機能なので、ここからはその前提ありきで進めていきます。  
+また、Cloudflareのアカウント権限周りは考えません。全権限を持っている前提の話です。開発環境では関係ない話だと思いますが念のため。
+
+#### 1. cloudflaredをインストール
+
+cloudflaredをインストールします。サーバーにはArchLinuxを使用しているため、paruでインストールしています。
+
+```console
+># paru -Syu cloudflared
+---
+:: Synchronizing package databases...
+ core is up to date
+ extra is up to date
+ multilib is up to date
+:: Starting full system upgrade...
+resolving dependencies...
+looking for conflicting packages...
+
+Packages (1) cloudflared-2025.2.0-1
+
+Total Download Size:    7.19 MiB
+Total Installed Size:  24.88 MiB
+
+:: Proceed with installation? [Y/n] 
+:: Retrieving packages...
+ cloudflared-2025.2.0-1...     7.2 MiB  9.75 MiB/s 00:01 [##############################] 100%
+(1/1) checking keys in keyring                           [##############################] 100%
+(1/1) checking package integrity                         [##############################] 100%
+(1/1) loading package files                              [##############################] 100%
+(1/1) checking for file conflicts                        [##############################] 100%
+(1/1) checking available disk space                      [##############################] 100%
+:: Processing package changes...
+(1/1) installing cloudflared                             [##############################] 100%
+:: Running post-transaction hooks...
+(1/1) Arming ConditionNeedsUpdate...
+:: Looking for PKGBUILD upgrades...
+:: Looking for AUR upgrades...
+:: Looking for devel upgrades...
+:: Resolving dependencies...
+:: Calculating conflicts...
+:: Calculating inner conflicts...
+```
+
+#### 1. IDプロバイダーを登録する
+
+Cloudflare Zero Trustで使用するIDプロバイダーを登録します。(Github, Google等)  
+
+詳しい設定方法はプロバイダーによって異なるので、設定への入り方のみ解説します。Google Cloudのプロジェクトの作成方法などは公式ドキュメントを見てください
+
+Cloudflare全体のダッシュボードから、「Zero Trust」を選択すると、ZeroTrustのダッシュボードに進みます。
+次に、「インテグレーション > IDプロバイダー」に進み、「IDプロバイダーを追加する」をクリックします。
+
+[公式ドキュメント](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/)に、各IDプロバイダーごとの設定方法があります。
+
+#### 3. Cloudflareダッシュボードからトンネルを作成
+
+CLIからやる方法もありますが、トンネルの情報をコンパネから触れるメリットがデカすぎるので、今回はコンパネで行きます。  
+グローバル・ローカル管理という名目でダッシュボードでも選択制となっていて、グローバル(コンパネ)推奨とはっきり書いてあります。  
+ここは、流石にベストプラクティスっぽい方を選んでおきます。
+
+ZeroTrustのダッシュボードに入ります。
+
+次に、「ネットワーク > コネクタ」に進み、「トンネルを作成する」をクリックします。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-02.webp)
+
+Cloudflaredを使用します  
+というか、WARPを使っている人ってどれくらいいるんですかね？
+他のネタでも言うと思いますが、Cloudflareのグローバルネットワークの力でゴリ押しているだけで、tailscaleの完全下位互換だと思うのですが。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-001.webp)
+
+トンネル名を決め、cloudflaredインストール後の手順の部分をシェルにコピペします
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-002-tunnel-config.webp)
+
+
+```console
+># sudo cloudflared service install KEYKEYKEYKEYKEY
+2025-03-26T04:25:48Z INF Using Systemd
+2025-03-26T04:25:49Z INF Linux service for cloudflared installed successfully
+```
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-003-connected.webp)
+
+これで、Cloudflare Tunnelの作成まで完了です。
+
+#### 4. Cloudflare Tunnel経由でsecret-rawを公開
+
+先程作成したCloudflare Tunnelの編集に入り、「公開されたアプリケーション ルート」に進みます。
+
+「公開されたアプリケーション ルートを追加する」をクリックします。
+
+ホスト名、サーバー内部からのアクセス先設定などを行います。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/public-application-creation-page.webp](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/public-application-creation-page.webp)
+
+ドメイン部分は自分の環境に合わせて設定してください。Cloudflareで管理しているドメインを選択可能です。
+
+ここまでで、Cloudflare Tunnel経由で、Nginxの20001ポートにアクセスできるようになりました。  
+この状態だと、アクセス制限無しで誰でもアクセスできてしまうので、次にアクセス制限をかけます。
+
+#### 5. Cloudflareダッシュボードからポリシーを作成
+
+アプリケーションに適用するアクセス制限を、ポリシーという形で定義します。
+
+ZeroTrustのダッシュボードから、「Access コントロール > ポリシー」に進み、「ポリシーを作成する」をクリックします。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-policy-creation-page.webp](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-policy-creation-page.webp)
+
+画像のように、許可したいユーザーの条件を設定します。画像の場合は、`m@example.com`、`test@example.com`というメールアドレスを許可する`member`というポリシーを作成しています。
+
+#### 6. アプリケーションを作成しポリシーを適用
+
+先程追加した「公開されたアプリケーション ルート」は、ただのドメインのついたトンネルです。Zero Trust的なアクセス制限は適用されていません。  
+そのドメインを「アプリケーション」として登録し、ポリシー適用することで、Zero Trust的なアクセスが可能になります。
+
+「Access コントロール > アプリケーション」に進み、「アプリケーションを作成する」をクリックします。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/application-creation-page.webp](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/application-creation-page.webp)
+
+アプリケーションの種類は、「セルフホスト」を選択します。
+
+「パブリックホストを追加」をクリックすると、ドメインを入力するフォームが出現するので、先程の公開したドメイン(Cloudflare Tunnelのドメイン)を入力します。
+
+Access ポリシーの部分で、先程作成したポリシーを選択します。「既存のポリシーを選択」から追加可能です。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/applicatoin-creation-page2.webp](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/applicatoin-creation-page2.webp)
+
+ログイン方法の部分で、GithubやGoogleなどのIDプロバイダーを選択します。「利用可能なすべてのIDプロバイダーを受け入れる」をオンにすると、すべてのIDプロバイダーから選択的に利用可能になります。
+
+最初のページ以外は、ランチャーの設定などです。好きに設定してください。
+
+#### 7. 確認
+
+secret-raw.domain.tldにアクセスしようとすると、以下のようなページに遷移します。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-0008-access-auth](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-0008-access-auth.webp)
+
+githubを選択すると、githubでの認証画面に移ります。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-009-oauth-page](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-009-oauth-page.webp)
+
+githubの認証が完了すると、メールアドレスの情報がCloudflareに渡されます。そのペイロードをもとに、パブリックホストのアクセス権限時に作成したルール、ポリシーに従ってアクセス可否が判断されます。
+
+※ 謎のドメイン隠しが多くて申し訳ないです。今年に入ってすぐあたりに、仲間内でセキュリティ的に問題があったため、一応隠しています。
+
+![06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw](/images/06_publish-web-with-cloudflare-zero-trust-and-tunnel/cf-zerotrust-tunnel-bc-006-secret-raw.webp)
+
+異なるメールで認証してみて、アクセスできないことも確認しておいたほうがいいです。
+
+これでサーバー内部向けに公開しているVHに、Cloudflare Zero Trust経由でセキュアにアクセスできるようになりました。
+
+## 参考
+
+[Cloudflare Tunnel · Cloudflare Zero Trust docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)  
+[ゼロトラストネットワークとは？ | Cloudflare](https://www.cloudflare.com/ja-jp/learning/security/glossary/what-is-zero-trust/)

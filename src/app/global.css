@@ -1,9 +1,51 @@
-@import "tailwindcss";
-@import "fumadocs-ui/css/neutral.css";
-@import "fumadocs-ui/css/preset.css";
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
 
-@layer base {
-  * {
-    @apply text-[#fbf1c7];
-  }
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+body {
+  background: #282828;
+}
+
+.blog-shell {
+  color: #fbf1c7;
+}
+
+.blog-shell :where(h1, h2, h3, h4, h5, h6, p, li, strong, em, code) {
+  color: inherit;
+}
+
+.blog-prose {
+  color: #fbf1c7;
+  overflow-wrap: anywhere;
+}
+
+.blog-prose :where(a) {
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+.blog-prose :is(h1, h2, h3, h4, h5, h6) > a {
+  color: inherit;
+}
+
+.blog-prose h1 {
+  line-height: 1.2 !important;
+}
+
+.blog-prose :where(a:hover) {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.blog-prose :where(strong, code, em, h1, h2, h3, h4, h5, h6) {
+  color: #fbf1c7;
 }

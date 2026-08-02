@@ -1,0 +1,30 @@
+diff --git a/bin/tsc6 b/bin/tsc6
+index 19c62bf7a0004aab7bd188aae51ff2564fdfc18d..20479177d56a8cb0e79af465730c6ac76317300f 100755
+--- a/bin/tsc6
++++ b/bin/tsc6
+@@ -1,2 +1,10 @@
+ #!/usr/bin/env node
+-require('../lib/tsc.js')
++const { spawnSync } = require('node:child_process');
++
++const result = spawnSync(
++  process.execPath,
++  [require.resolve('typescript6-runtime/bin/tsc'), ...process.argv.slice(2)],
++  { stdio: 'inherit' },
++);
++
++process.exit(result.status ?? 1);
+diff --git a/lib/tsserverlibrary.js b/lib/tsserverlibrary.js
+index 5128c03b4d33cd8005b7e10f5a1d2fc6787553be..beea704b58716e1290486f8c35330af01f3a53ad 100644
+--- a/lib/tsserverlibrary.js
++++ b/lib/tsserverlibrary.js
+@@ -1 +1 @@
+-module.exports = require("@typescript/old");
++module.exports = require("typescript6-runtime");
+diff --git a/lib/typescript.js b/lib/typescript.js
+index 5128c03b4d33cd8005b7e10f5a1d2fc6787553be..beea704b58716e1290486f8c35330af01f3a53ad 100644
+--- a/lib/typescript.js
++++ b/lib/typescript.js
+@@ -1 +1 @@
+-module.exports = require("@typescript/old");
++module.exports = require("typescript6-runtime");

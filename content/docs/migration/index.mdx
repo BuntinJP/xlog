@@ -1,0 +1,41 @@
+---
+title: 移行ルール
+description: xLog を最新 Fumadocs 標準構成へ再構築するための変更不能な原則です。
+publishedAt: 2026-08-02
+updatedAt: 2026-08-02
+---
+
+## ゴール
+
+旧 xLog の公開上の振る舞いと必要な独自機能を、最新の Fumadocs・Next.js・Tailwind CSS・Bun・Oxlint・TypeScript 7 を使って再構築します。移行先は公式ジェネレータの成果物を起点とし、旧アプリケーションの土台をコピーしません。
+
+## 移行順序
+
+1. 公式 scaffold が lint・型検査・build を通ることを証明する。
+2. コンテンツ schema と手動日付管理を確定する。
+3. 静的アセットと MDX コンテンツを移す。
+4. 記事一覧、記事詳細、カテゴリ、タグを標準 API 上で再実装する。
+5. metadata、OG、RSS、sitemap、robots を再実装する。
+6. analytics、cache headers、外部画像などの運用拡張を一つずつ戻す。
+7. 旧・新の route とレンダリングを比較し、差分を記録する。
+
+各段階で `bun run lint`、`bun run types:check`、`bun run types:check:compat`、`bun run build` を実行します。
+
+## 守るべき境界
+
+- 旧 worktree は読み取り専用です。未コミットの新規記事と sitemap を保全します。
+- `main` への push・merge・deploy は別の承認事項です。
+- 公式 API で表現できるものを独自ラッパーで置き換えません。
+- `any`、`@ts-ignore`、安全性のない型 assertion、広域 lint disable、`skipLibCheck: true` は禁止します。
+- 互換性のために厳密性を下げません。実現できない拡張は保留事項へ移します。
+- Bun 以外の lockfile を作りません。
+
+## 更新日の正
+
+記事・Wiki の公開日は `publishedAt`、内容の最終更新日は `updatedAt` とし、どちらも frontmatter に `YYYY-MM-DD` で手動記録します。Git 履歴、ファイル時刻、build 時刻、deploy 時刻から自動生成しません。
+
+既存コンテンツの本文または `updatedAt` 以外の semantic frontmatter を変更しながら `updatedAt` を変えない commit には、worktree 固有の pre-commit hook が警告を出します。警告は commit を遮断しませんが、日付を維持するなら変更が機械的である理由を確認します。
+
+## 完了の定義
+
+ローカル build の成功だけでは完了ではありません。全 route、content、asset、metadata、RSS、sitemap、OG、cache、analytics の同等性を確認し、保留事項を明示し、独立した複数モデルのレビューを解消して初めて移行候補になります。deploy と本番切替はさらに別の承認・検証段階です。

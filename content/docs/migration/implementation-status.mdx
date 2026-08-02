@@ -1,0 +1,90 @@
+---
+title: 実装・検証状況
+description: 旧 clean source に対する実装、意図的差分、検証証拠をまとめます。
+publishedAt: 2026-08-02
+updatedAt: 2026-08-03
+---
+
+## Implemented
+
+| Area | Result |
+| --- | --- |
+| Content | 23/23 MDX filename parity、本文 23/23 hash parity、home 1 + published 17 + drafts 5 |
+| Assets | WebP 83、font 1、favicon 1 を byte-identical に移送。77 references は全て存在 |
+| Frontmatter | Zod runtime/build validation、manual ISO `publishedAt` / `updatedAt`、draft / taxonomy / keywords |
+| Blog | home、年月 grouped posts、detail、draft development list、production draft hard-block |
+| Public shell | legacy centered header と常設 Posts / Categories / Tags、4/6 desktop width、16 px footer。Fumadocs HomeLayout controls は公開側から除外 |
+| Taxonomy | category 14、tag 31、優先 category、件数順、detail static params |
+| MDX | current Fumadocs default pipeline、StaticImport 対応 ImageZoom boundary、generated TOC |
+| Metadata | route canonical、RSS alternate、article keywords、OG/Twitter article metadata |
+| Publishing | deterministic RSS、Next metadata sitemap / robots、dynamic 1200 x 630 OG |
+| Operations | Vercel Analytics / Speed Insights production only、有効な公開 route だけに legacy three-layer cache policy |
+| Images | strict Buy Me a Coffee remote pattern、AVIF/WebP output policy |
+| Scripts | Bun/TypeScript converter、dry-run default、no shell、overwrite refusal、source は常に保持 |
+| Quality | TS7 authority、isolated TS6 check、strict settings、Oxlint、Bun-only lock、migration baseline CI gate |
+
+`next dev` / `next build` の generated route declarations が `.next/dev/types` と `.next/types` に同時残存すると duplicate declaration になるため、各 lint / type gate は Bun/TypeScript script でこの 2 個の明示的 generated directory と root の `tsconfig.tsbuildinfo` だけを削除してから `next typegen` を実行します。MDX virtual type の stale incremental result を避ける限定削除であり、source、lockfile、`.next` cache 全体は削除しません。
+
+## Exact public route accounting
+
+Production sitemap is intentionally the clean 67-route set:
+
+- fixed: `/`, `/posts`, `/categories`, `/tags`, `/api/rss.xml`
+- published posts: 17
+- category detail: 14
+- tag detail: 31
+
+Drafts are absent from production static params, taxonomy, RSS, and sitemap. Unknown article and taxonomy paths use explicit lookup failure and return 404. `dynamicParams = false` は current Next.js の catch-all static route で `NoFallbackError` を起こしたため使わず、build 後の unknown post / category / tag を 404 と server log の両方で検証します。
+
+## Intentional corrections
+
+- Legacy RSS accidentally emitted the home `Index` as an 18th item and used file order. New RSS emits exactly 17 published articles newest-first.
+- Dirty legacy sitemap leaked one draft and seven draft-only tags. New sitemap is source-derived and excludes all drafts.
+- Legacy article route did not hard-block a guessed draft URL. New production route does.
+- Legacy used build time for feed/sitemap freshness and Git time for article updates. New output uses only manual `updatedAt`.
+- Legacy category detail description called it a tag page. New description says category page.
+- Next.js encodes taxonomy URLs according to URL semantics instead of preserving invalid raw spaces/Unicode in XML.
+- Home / article remain large-image cards, while list / taxonomy metadata keeps the legacy image-less summary-card behavior. Article OG now additionally uses current `article` type with manual publish/update time, author, and taxonomy values.
+- Article OG query is accepted only when `title` and `description` exactly match one published article. Arbitrary、partial、duplicate、draft values return an uncached 404 instead of generating trusted-domain content.
+- Legacy catch-all headers also made 404 responses publicly cacheable. New policy preserves all three legacy cache values on the exact valid page/RSS/OG allowlist while unknown、draft、migration-only、invalid OG responses are `no-store`; public assets outside that allowlist use current Next.js defaults.
+- Image conversion never deletes the source. Removal is a separate, manually reviewed filesystem operation outside the converter.
+- `lucide-react` experimental optimization was omitted because current Next.js already optimizes it by default.
+- Unused math, KaTeX, Twoslash, `feed`, and `next-sitemap` dependencies were not carried forward.
+
+## Migration-only scaffold routes
+
+The migration wiki contains migration policy and internal validation details that are not part of the public blog. Local worktree paths and model-specific prompts remain in repository-only agent/review files. `/docs`, `/api/search`, `/llms.txt`, `/llms-full.txt`, `/llms.mdx/docs/*`, and `/og/docs/*` remain usable in development but return 404 in a production build. They are absent from sitemap and disallowed by robots. Global search stays disabled, matching the legacy site and preventing wiki-only search results on the blog.
+
+## Validation log
+
+Results are local pre-deployment evidence only. The table below was regenerated on 2026-08-03 JST from the current working tree after the public-shell parity remediation and final browser QA; it is not deployment proof.
+
+| Command | Result |
+| --- | --- |
+| `bun install --frozen-lockfile` | PASS; 293 installs / 456 packages、no changes |
+| `bun run verify:migration` | PASS; 23 content、17 published、5 drafts、83 WebP、77 references、67 routes と body/assets/font/favicon hashes |
+| `bun run lint` | PASS; clean route type regeneration + Oxlint deny-warnings、8 plugins、pinned safety rules、0 diagnostics |
+| `bun run types:check` | PASS; stale generated type dirs removed、Next route types generated、TS7 0 errors |
+| `bun run types:check:compat` | PASS; stale generated type dirs removed、Next route types generated、TS6 compatibility 0 errors |
+| `bun run build` | PASS; Next 16.2.12 Turbopack、compile / TypeScript / 76-of-76 static generation complete |
+| `bun run ci` | PASS; 2026-08-03 shell remediation 後も frozen install + lint + TS7 + TS6 + build canonical sequence |
+| `bun run images:convert png` / `heic` | PASS; no matching source、no writes |
+
+最初の canonical CI 試行は独立 read-only audit の `next start` が同じ `.next` lock を保持していたため `Another next build process is already running` で停止しました。その server を終了し、process がないことを確認して同じ command を再実行した結果が上の PASS です。code/build failure と混同しません。
+
+Development smoke は `/posts` と `/docs/migration` が 200、`src/proxy.ts` 経由の Wiki 表示も 200 でした。Production server smoke は次を確認しました。
+
+- public representative routes: 200
+- unknown page / post / category / tag、direct draft、`/docs`、LLM routes、search: 404。catch-all routes の server log に `NoFallbackError` なし
+- RSS: well-formed XML、17 items、Index 0、draft leak 0
+- sitemap: well-formed XML、67 URLs = posts 17 + categories 14 + tags 31 + fixed 5、draft leak 0
+- robots: host / sitemap と migration-only disallow
+- canonical: dot slug と encoded `Zero%20Trust` が production origin を指す
+- cache: valid page、RSS、OG の browser / CDN / Vercel CDN 3 layer が legacy policy と一致。unknown post、draft、Wiki、invalid OG は全 layer `no-store`、generic 404 も Next.js default `no-store`
+- OG input boundary: home と exact published article は 200 PNG、arbitrary text は 404 `no-store`
+- OG: `image/png`、1200 x 630、local Japanese font を visual smoke 済み
+- smoke 後に local `next dev` / `next start` / `next build` process は残していない
+
+live-vs-local browser QA と独立レビューの remediation は完了しました。2026-08-03 の再検証では live / local を同一 1280 x 720 tab で比較し、home、posts、categories、tags の document height、public content width、header/footer position が一致しました。390 x 844 の home、tags、長文記事も横 overflow 0、console warning / error 0 です。公開 header は static な Posts / Categories / Tags のみで、Fumadocs dropdown、repository link、theme control はありません。
+
+残る release gate は著者による historical `updatedAt` の確認と、承認後 deployment の実環境証明です。local build は deployment proof ではありません。

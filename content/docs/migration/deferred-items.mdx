@@ -1,0 +1,46 @@
+---
+title: 保留事項
+description: 公式 API と安全な再設計で満たせない要件を記録します。
+publishedAt: 2026-08-02
+updatedAt: 2026-08-02
+---
+
+## Active
+
+### TypeScript 7 and MDX programmatic API
+
+TypeScript 7.0.2 を authoritative CLI compiler として使用します。一方、TypeScript 7.0 は従来の programmatic API を提供せず、公式発表は MDX 系ツールを現時点の制約として明記しています。そのため `@typescript/typescript6` 6.0.2 を互換用途にのみ併設します。
+
+`@typescript/typescript6` の npm alias は Bun 1.3.14 で自己参照に誤解決されるため、compatibility package を `typescript6-runtime` 6.0.3 へ接続する最小 patch も保持しています。
+
+削除条件は、Next.js・Fumadocs MDX および利用ツールが TypeScript 7.1 以降の API を正式サポートし、TS6 alias と Bun compatibility patch を外した状態で install、lint、型検査、build、editor integration が通ることです。
+
+### Strict upstream declarations
+
+`skipLibCheck: false` と `exactOptionalPropertyTypes` を維持すると、Fumadocs Core 16.14.0 の公開 declaration に 2 件の不整合があります。また Fumadocs MDX 15.2.2 は optional Satteri preset の型を無条件 import し、未使用 preset の declaration 衝突を引き起こします。Core patch は公開型表現だけを修正します。MDX patch は Satteri import を permissive な placeholder 型へ置換しますが、runtime 実装は変更しません。この placeholder が有効な間は Satteri preset の設定を禁止し、Satteri を採用する場合は公式 package を導入して upstream 型を復元してから strict gate を通します。
+
+削除条件は、それぞれの upstream release で patch を外した TypeScript 7 / 6 両方の型検査が成功することです。
+
+### PostCSS configuration format
+
+Application、scripts、Next.js configuration、Oxlint configuration は TypeScript です。Tailwind CSS 4.3 の現行公式 PostCSS 手順と Fumadocs generator は `postcss.config.mjs` を指定しており、Next.js / Tailwind の公式資料で `postcss.config.ts` の読込保証を確認できません。そのため、この宣言的な upstream-required configuration だけを TypeScript-only 原則の例外として残します。
+
+削除条件は、使用中の Next.js と Tailwind CSS が TypeScript PostCSS config を公式サポートし、追加 loader なしで frozen install、lint、TS7 / TS6 type check、production build が成功することです。
+
+### Historical updatedAt editorial review
+
+旧 content は公開日の `date` しか持たず、更新日は Git 履歴から生成していました。Git・filesystem・build timestamp を新しい `updatedAt` の正にすることは禁止されているため、機械移行では各記事の `updatedAt` を `publishedAt` と同日に手動 seed しました。
+
+本文に明示的証拠がある `github-gpg-signing` は 2024-05-23、`publish-web-with-cloudflare-zero-trust-and-tunnel` は 2025-12-28 に修正済みです。残る記事は著者による editorial review が必要です。本文 hash は変えていないため、日付レビューだけを理由に本文を編集しません。
+
+完了条件は、著者が 23 frontmatter の日付を一次情報に基づいて確認し、必要な `updatedAt` だけを明示的に変更することです。
+
+### Deployment-only proof
+
+Vercel Analytics / Speed Insights の dashboard ingestion、Cloudflare と Vercel の実 response cache behavior、TLS/CDN propagation、production switch は deploy 後にしか証明できません。この migration は commit、push、deploy の承認を含まず、local component wiring と header configuration までを検証対象とします。
+
+完了条件は、承認された deployment 後に public route、response headers、analytics dashboards を別 gate として再検証することです。
+
+## Entry template
+
+保留項目には、旧機能、利用者への影響、試した公式 API、失敗の具体的証拠、安全でない workaround、再検討条件、関連 upstream issue を記録します。

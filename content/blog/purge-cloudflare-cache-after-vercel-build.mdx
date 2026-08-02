@@ -1,0 +1,249 @@
+---
+title: Vercelのビルド結果に応じて、自動的にCloudflareのキャッシュをパージする
+description: VercelとCloudflareを併用しているNext.jsサイトで、Vercelのデプロイ完了後にCloudflare CacheをGitHub Actionsから自動パージします。
+publishedAt: 2026-05-20
+updatedAt: 2026-05-20
+categories: ['工作','Web']
+tags: ['Vercel','Cloudflare','GitHub Actions','Next.js']
+draft: true
+---
+
+## はじめに
+
+このブログはNext.jsで作っています。
+Next.jsなので、デプロイ先としてはVercelがかなり自然です。
+しかも非営利の個人サイトなので、Vercelの無料枠で運用できます。
+
+ここまではかなり普通です。
+
+問題は、そこにCloudflareも噛ませていることです。
+VercelはNext.jsをネイティブに扱えるのでオリジンとして使い、CDNやDNS、その他の制御はCloudflareでやりたい。
+つまり、VercelとCloudflareを同時に使っています。
+
+この時点で、技術的な偏信者の香りがしてきます。
+Vercelだけでよくないですか？という問いは正しいです。
+ただ、Cloudflareを外すと落ち着かない体になっているので仕方ありません。
+ウチのCDNは基本Cloudflareです。
+
+さらに、CloudflareはデフォルトではHTMLをキャッシュしませんが、私はHTMLもキャッシュするようにしています。
+SSGされたブログならHTMLもキャッシュしたい、という思想です。
+思想と書くと聞こえがいいですが、だいたいトラブルの入口です。
+
+実際、GitHubにpushするとVercelは自動でビルド・デプロイしてくれます。
+しかし、Cloudflare側のHTMLキャッシュはそのまま残るため、Vercel上では新しい記事がデプロイされているのに、ブラウザから見ると記事が更新されないことがあります。
+
+今回はこれを回避するため、Vercelのデプロイ成功後にCloudflareのキャッシュを自動でパージします。
+
+## 記事の構成
+
+この記事は以下の流れで進めます。
+
+1. VercelとCloudflareを併用している構成を整理する
+2. なぜ記事が更新されないのかを確認する
+3. Cloudflare API Tokenを作成する
+4. GitHub SecretsにCloudflareの認証情報を保存する
+5. Vercelのデプロイ完了ステータスをGitHub Actionsで拾う
+6. デプロイ成功時だけCloudflareのキャッシュをパージする
+7. 運用時の注意点をまとめる
+
+ゴールは、`main` ブランチへのpush後、Vercelのデプロイが成功したタイミングでCloudflare Cacheが自動的にパージされる状態です。
+
+## 構成
+
+現在の構成は以下のような形です。
+
+```text
+GitHub
+  ↓ push
+Vercel
+  ↓ build / deploy
+Cloudflare
+  ↓ cached HTML / assets
+Browser
+```
+
+GitHubにpushするとVercelが自動でビルドします。
+Vercelのデプロイ自体が成功しても、Cloudflareに古いHTMLが残っていると、利用者には古いページが返ります。
+
+Cloudflareのキャッシュ設定でHTMLを対象にしていなければ、この問題は起きにくいです。
+ただ、私はHTMLもキャッシュしています。
+そしてキャッシュしたなら、更新時に消す責任があります。
+キャッシュは速くするための機能ですが、消し忘れるとただの古い真実配布装置になります。
+
+## 方針
+
+Vercelのデプロイ完了後にCloudflare APIを叩きます。
+
+GitHub Actionsには `status` イベントがあります。
+これはGitHub上のCommit statusが変わったときにWorkflowを起動できます。
+VercelはGitHub連携していると、デプロイ結果をCommit statusとしてGitHubに反映します。
+
+そのため、以下の条件に合うときだけCloudflareのキャッシュをパージします。
+
+- Commit statusのstateが `success`
+- statusのcontextがVercelのもの
+- 対象ブランチが `main`
+
+Vercelのデプロイが失敗したときにキャッシュを消しても意味がないので、成功時だけにします。
+
+## Cloudflare API Tokenを作成する
+
+CloudflareのダッシュボードからAPI Tokenを作成します。
+
+必要な権限は、対象ZoneのCache Purgeです。
+グローバルAPIキーではなく、可能な限り権限を絞ったAPI Tokenを使います。
+
+例として、以下のような権限にします。
+
+| 項目 | 値 |
+| --- | --- |
+| Permissions | `Zone` / `Cache Purge` / `Purge` |
+| Zone Resources | 対象ドメインのみ |
+
+Zone IDも後で使います。
+Cloudflareの対象ドメイン画面の右側、またはAPIから確認できます。
+
+## GitHub Secretsに保存する
+
+GitHubのRepository secretsに以下を保存します。
+
+| Secret名 | 内容 |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | CloudflareのAPI Token |
+| `CLOUDFLARE_ZONE_ID` | 対象ZoneのZone ID |
+
+API TokenをWorkflowファイルに直接書くのは当然ダメです。
+CloudflareのTokenが漏れると、少なくともキャッシュ操作はされ放題になります。
+キャッシュを消されるだけならまだ軽傷ですが、権限を広く作っていた場合は普通に危険です。
+
+## GitHub Actionsを作成する
+
+以下のWorkflowを追加します。
+
+```yml title=".github/workflows/purge-cloudflare-cache.yml"
+name: Purge Cloudflare cache after Vercel deployment
+
+on:
+  status:
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.state == 'success' &&
+      contains(github.event.context, 'Vercel') &&
+      contains(github.event.branches.*.name, 'main')
+    steps:
+      - name: Purge Cloudflare cache
+        run: |
+          curl -fsS -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+```
+
+`github.event.context` に含まれるVercelの文字列は環境によって違う可能性があります。
+最初はWorkflowを一度動かして、イベント内容を確認した方がいいです。
+
+確認用には以下のようなステップを一時的に入れます。
+
+```yml
+- name: Dump status event
+  run: cat "$GITHUB_EVENT_PATH"
+```
+
+ただし、ログに出してよい情報かは確認してください。
+イベントペイロード自体にSecretは入らないはずですが、雑にログを出す癖はあまりよくないです。
+
+## contextの調整
+
+VercelのCommit status contextが例えば `Vercel` ではなく `Vercel - xlog` のような名前になっている場合、条件を具体化できます。
+
+```yml
+if: >-
+  github.event.state == 'success' &&
+  github.event.context == 'Vercel' &&
+  contains(github.event.branches.*.name, 'main')
+```
+
+複数のVercel Projectが同じリポジトリに紐づいている場合は、`context` や `target_url` も見て条件を絞った方がいいです。
+適当に `success` だけを見ると、Vercel以外のCI成功でもCloudflareのキャッシュを消すことになります。
+
+まあ個人ブログならそれでも大きな問題ではありません。
+しかし、自分で作った雑な自動化ほど、忘れた頃に一番しょうもない形で効いてきます。
+
+## purge_everythingにするか
+
+今回は `purge_everything: true` にしています。
+ブログ全体の更新頻度が高くなく、Cloudflare Cacheを丸ごと消しても問題が小さいためです。
+
+より丁寧にやるなら、URL単位でパージします。
+
+```json
+{
+  "files": [
+    "https://www.example.com/",
+    "https://www.example.com/posts/example"
+  ]
+}
+```
+
+ただ、Next.jsのビルド結果から変更されたURLだけを正確に拾うのは少し面倒です。
+このブログ規模なら、全部消す方が運用が簡単です。
+技術的に美しいかというと微妙ですが、趣味サイトの運用で一番大事なのは継続できることです。
+
+## 動作確認
+
+記事を1つ更新して `main` にpushします。
+
+```shellsession
+>$ git add content/example.mdx
+>$ git commit -m "Update article"
+>$ git push origin main
+```
+
+その後、以下を確認します。
+
+1. VercelのDeploymentが成功している
+2. GitHub上のCommit statusがsuccessになっている
+3. GitHub Actionsの `Purge Cloudflare cache after Vercel deployment` が実行されている
+4. Cloudflare APIのレスポンスがsuccessになっている
+5. ブラウザから新しい記事が表示される
+
+Cloudflare APIが成功すると、レスポンスに `success: true` が返ります。
+失敗する場合は、Zone IDの間違い、API Tokenの権限不足、Workflowの発火条件の間違いを確認します。
+
+## 注意点
+
+GitHub Actionsの `status` イベントは、Commit statusが変わるたびに発火します。
+そのため、条件を絞らないと不要なタイミングでもWorkflowが起動します。
+
+また、Vercel側がCommit statusではなくCheck runやDeployment statusとして情報を出している場合は、`check_run` や `deployment_status` イベントを使う方が合う可能性があります。
+まずは自分のリポジトリでVercelがGitHubに何を出しているか確認するのが大事です。
+
+Cloudflareのキャッシュ設定も見直しておきます。
+HTMLをキャッシュする場合、更新の速さとキャッシュ効率はトレードオフになります。
+何でもキャッシュすれば速くなる、という雑な考えはかなり危険です。
+ただ、私は雑に速くしたくなるタイプなので、こういう後始末のWorkflowを書くことになります。
+
+## まとめ
+
+VercelとCloudflareを併用しているNext.jsサイトで、Vercelのデプロイ成功後にCloudflare Cacheを自動パージする構成を作りました。
+
+Vercelだけに寄せればもっと素直です。
+Cloudflareだけに寄せても構成は単純になります。
+それでもVercelのNext.js対応とCloudflareのCDNを両方使いたいので、間にGitHub Actionsを挟んで整合性を取ることにしました。
+
+自分でもかなり偏った構成だと思います。
+ただ、偏った構成でも、更新後に古い記事が表示され続けるよりはずっと健全です。
+キャッシュを有効にしたなら、パージも自動化しておくべきですね。
+
+## 参考
+
+[Events that trigger workflows | GitHub Docs](https://docs.github.com/enterprise-cloud@latest/actions/using-workflows/events-that-trigger-workflows#status)  
+[REST API endpoints for commit statuses | GitHub Docs](https://docs.github.com/rest/commits/statuses)  
+[Purge Cached Content | Cloudflare API](https://developers.cloudflare.com/api/operations/zone-purge)

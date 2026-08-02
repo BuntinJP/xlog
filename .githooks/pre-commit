@@ -1,0 +1,6 @@
+#!/bin/sh
+
+bun run frontmatter:warn || {
+  echo "[frontmatter] warning: date check failed to run; commit is not blocked." >&2
+  exit 0
+}
