@@ -39,7 +39,7 @@ Behavior-only comparison also covers `/api/rss.xml`, single `/sitemap.xml`, spli
 - 404 adds an explicit home link and `robots: noindex, nofollow`.
 - Draft leakage, RSS Index item, raw invalid sitemap URLs, and category-description typo are correctness fixes and must not be treated as regressions.
 - Migration wiki and its LLM/search/OG helpers are development-only and intentionally absent from production.
-- Legacy catch-all caching is narrowed to known-valid public routes. Canonical static image URLs include an explicit renderer version and article `updatedAt`; unknown、draft、migration-only、invalid OG responses remain `no-store` so a CDN cannot retain a temporary or attacker-selected 404/image.
+- Legacy catch-all caching is narrowed to known-valid public routes. Canonical static image URLs include an explicit renderer version and article `updatedAt`; an exact generated path manifest prevents stale dates and otherwise invalid image paths from receiving long-lived caching. Unknown、draft、migration-only、invalid OG responses remain `no-store` so a CDN cannot retain a temporary or attacker-selected 404/image.
 
 ## Acceptance
 

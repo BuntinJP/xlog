@@ -10,7 +10,7 @@ import {
 import { isPublicCacheablePathname } from '@/lib/migration-baseline';
 import { isMigrationWikiEnabled } from '@/lib/migration-wiki';
 import { docsContentRoute, docsRoute } from '@/lib/shared';
-import { isVersionedSocialImagePathname } from '@/lib/social-image-config';
+import { isCacheableSocialImagePathname } from '@/lib/social-image-cache';
 
 const docsRewriter = rewritePath(`${docsRoute}{/*path}`, `${docsContentRoute}{/*path}/content.md`);
 const suffixRewriter = rewritePath(
@@ -29,7 +29,7 @@ export default function proxy(request: NextRequest) {
 
   if (!isDocsRequest) {
     if (pathname.startsWith('/generated/social-images/')) {
-      const headers = isVersionedSocialImagePathname(pathname)
+      const headers = isCacheableSocialImagePathname(pathname)
         ? socialImageCacheHeaders
         : noStoreHeaders;
       return withHeaders(NextResponse.next(), headers);

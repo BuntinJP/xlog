@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join, relative, sep } from 'node:path';
+import { generatedArticleSocialImagePaths } from '../src/generated/social-image-paths';
 import {
   draftPostSlugs,
   migrationBaseline,
@@ -8,6 +9,7 @@ import {
   publishedPostSlugs,
   publishedTagNames,
 } from '../src/lib/migration-baseline';
+import { articleSocialImagePath } from '../src/lib/social-image-config';
 
 type ParsedContent = Readonly<{
   body: string;
@@ -213,6 +215,11 @@ async function main(): Promise<void> {
     drafts.map(({ slug }) => slug),
     draftPostSlugs,
     'draft post slugs',
+  );
+  assertExactList(
+    generatedArticleSocialImagePaths,
+    published.map(({ slug, updatedAt }) => articleSocialImagePath(slug, updatedAt)),
+    'generated social image path manifest',
   );
   assertExactList(
     Array.from(new Set(published.flatMap(({ categories }) => categories))),
