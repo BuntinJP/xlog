@@ -8,6 +8,11 @@ import type { Metadata } from 'next';
 import { appName, rssPath, siteDescription, siteUrl } from '@/lib/shared';
 import { BuyMeACoffee } from '@/components/blog/buy-me-a-coffee';
 import { SiteFooter } from '@/components/blog/site-footer';
+import {
+  siteSocialImagePath,
+  socialImageContentType,
+  socialImageSize,
+} from '@/lib/social-image-config';
 
 const shipporiMincho = Shippori_Mincho({
   subsets: ['latin'],
@@ -30,11 +35,20 @@ export const metadata: Metadata = {
     title: appName,
     description: siteDescription,
     url: '/',
+    images: [
+      {
+        url: siteSocialImagePath,
+        alt: 'xlog.systems',
+        type: socialImageContentType,
+        ...socialImageSize,
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: appName,
     description: siteDescription,
+    images: [{ url: siteSocialImagePath, alt: 'xlog.systems', ...socialImageSize }],
   },
 };
 

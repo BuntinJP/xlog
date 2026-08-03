@@ -5,21 +5,13 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { TermBadge } from '@/components/blog/term-badge';
 import { getMDXComponents } from '@/components/mdx';
-import {
-  formatJapaneseDate,
-  getDraftPosts,
-  getPublishedPosts,
-  getVisiblePost,
-} from '@/lib/blog';
+import { formatJapaneseDate, getVisiblePost } from '@/lib/blog';
 import { appName, rssPath } from '@/lib/shared';
-
-function singleSlug(slugs: readonly string[]): string {
-  const slug = slugs[0];
-  if (slug === undefined || slugs.length !== 1) {
-    throw new Error(`Blog posts must use exactly one URL segment: ${slugs.join('/')}`);
-  }
-  return slug;
-}
+import {
+  articleSocialImagePath,
+  socialImageContentType,
+  socialImageSize,
+} from '@/lib/social-image-config';
 
 export default async function PostPage({ params }: PageProps<'/posts/[slug]'>) {
   const { slug } = await params;
@@ -64,14 +56,6 @@ export default async function PostPage({ params }: PageProps<'/posts/[slug]'>) {
   );
 }
 
-export function generateStaticParams(): { slug: string }[] {
-  const posts =
-    process.env.NODE_ENV === 'production'
-      ? getPublishedPosts()
-      : [...getPublishedPosts(), ...getDraftPosts()];
-  return posts.map((post) => ({ slug: singleSlug(post.slugs) }));
-}
-
 export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): Promise<Metadata> {
   const { slug } = await params;
   const post = getVisiblePost([slug]);
@@ -79,6 +63,7 @@ export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): 
 
   const publishedTime = `${post.data.publishedAt}T00:00:00+09:00`;
   const modifiedTime = `${post.data.updatedAt}T00:00:00+09:00`;
+  const socialImage = articleSocialImagePath(slug, post.data.updatedAt);
 
   return {
     title: post.data.title,
@@ -92,6 +77,14 @@ export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): 
       title: post.data.title,
       description: post.data.description,
       url: post.url,
+      images: [
+        {
+          url: socialImage,
+          alt: post.data.title,
+          type: socialImageContentType,
+          ...socialImageSize,
+        },
+      ],
       publishedTime,
       modifiedTime,
       tags: [...post.data.tags, ...post.data.categories],
@@ -100,6 +93,7 @@ export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): 
       card: 'summary_large_image',
       title: post.data.title,
       description: post.data.description,
+      images: [{ url: socialImage, alt: post.data.title, ...socialImageSize }],
     },
     alternates: {
       canonical: post.url,

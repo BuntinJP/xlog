@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
-import { socialImageCacheHeaders } from './cache-policy';
 import { socialImageSize } from './social-image-config';
 
 type SocialImageCopy = Readonly<{
@@ -62,7 +61,6 @@ export async function renderSocialImage(copy: SocialImageCopy): Promise<ImageRes
     </div>,
     {
       ...socialImageSize,
-      headers: socialImageCacheHeaders,
       fonts: [
         {
           name: 'Shippori Mincho',

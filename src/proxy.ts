@@ -4,11 +4,13 @@ import { NextResponse } from 'next/server';
 import {
   noStoreHeaders,
   seoDocumentCacheHeaders,
+  socialImageCacheHeaders,
   staticPageCacheHeaders,
 } from '@/lib/cache-policy';
 import { isPublicCacheablePathname } from '@/lib/migration-baseline';
 import { isMigrationWikiEnabled } from '@/lib/migration-wiki';
 import { docsContentRoute, docsRoute } from '@/lib/shared';
+import { isVersionedSocialImagePathname } from '@/lib/social-image-config';
 
 const docsRewriter = rewritePath(`${docsRoute}{/*path}`, `${docsContentRoute}{/*path}/content.md`);
 const suffixRewriter = rewritePath(
@@ -21,25 +23,16 @@ function withHeaders(response: NextResponse, headers: Readonly<Record<string, st
   return response;
 }
 
-function hasMetadataFingerprint(request: NextRequest): boolean {
-  const entries = Array.from(request.nextUrl.searchParams.entries());
-  const entry = entries[0];
-  return (
-    entries.length === 1 &&
-    entry !== undefined &&
-    /^[0-9a-f]{16}$/.test(entry[0]) &&
-    entry[1] === ''
-  );
-}
-
 export default function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isDocsRequest = pathname === docsRoute || pathname.startsWith(`${docsRoute}/`);
 
   if (!isDocsRequest) {
-    if (/\/(?:opengraph-image|twitter-image)(?:-[a-z0-9]+)?(?:\/[^/]*)?$/.test(pathname)) {
-      const headers = hasMetadataFingerprint(request) ? undefined : noStoreHeaders;
-      return headers === undefined ? NextResponse.next() : withHeaders(NextResponse.next(), headers);
+    if (pathname.startsWith('/generated/social-images/')) {
+      const headers = isVersionedSocialImagePathname(pathname)
+        ? socialImageCacheHeaders
+        : noStoreHeaders;
+      return withHeaders(NextResponse.next(), headers);
     }
 
     const headers =
@@ -79,5 +72,6 @@ export const config = {
     '/docs/:path*',
     '/sitemap.xml',
     '/robots.txt',
+    '/generated/social-images/:path*',
   ],
 };

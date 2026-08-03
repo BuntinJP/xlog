@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import { appName, rssPath } from './shared';
-import { socialImageContentType, socialImageSize } from './social-image-config';
+import {
+  siteSocialImagePath,
+  socialImageContentType,
+  socialImageSize,
+} from './social-image-config';
 
 export function listingMetadata(title: string, description: string, path: string): Metadata {
   return {
@@ -15,7 +19,7 @@ export function listingMetadata(title: string, description: string, path: string
       url: path,
       images: [
         {
-          url: '/opengraph-image',
+          url: siteSocialImagePath,
           alt: 'xlog.systems',
           type: socialImageContentType,
           ...socialImageSize,
@@ -26,7 +30,7 @@ export function listingMetadata(title: string, description: string, path: string
       card: 'summary_large_image',
       title,
       description,
-      images: [{ url: '/twitter-image', alt: 'xlog.systems', ...socialImageSize }],
+      images: [{ url: siteSocialImagePath, alt: 'xlog.systems', ...socialImageSize }],
     },
     alternates: {
       canonical: path,

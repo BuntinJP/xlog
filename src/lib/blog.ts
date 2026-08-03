@@ -79,6 +79,14 @@ export function getPublishedPosts(): readonly BlogPost[] {
   return allPages.filter((page) => isPost(page) && !page.data.draft).toSorted(byPublishedDateDescending);
 }
 
+export function getSinglePostSlug(post: BlogPost): string {
+  const slug = post.slugs[0];
+  if (slug === undefined || post.slugs.length !== 1) {
+    throw new Error(`Blog posts must use exactly one URL segment: ${post.slugs.join('/')}`);
+  }
+  return slug;
+}
+
 export function getDraftPosts(): readonly BlogPost[] {
   return allPages.filter((page) => isPost(page) && page.data.draft).toSorted(byPublishedDateDescending);
 }

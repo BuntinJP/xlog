@@ -1,0 +1,109 @@
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { dirname, extname, join, parse } from 'node:path';
+import { renderSocialImage } from '../src/lib/social-image';
+import {
+  articleSocialImagePath,
+  siteSocialImagePath,
+} from '../src/lib/social-image-config';
+
+type PostCopy = Readonly<{
+  description: string;
+  slug: string;
+  title: string;
+  updatedAt: string;
+}>;
+
+const outputRoot = join(process.cwd(), 'public', 'generated', 'social-images');
+
+function fail(message: string): never {
+  throw new Error(`[social-images] ${message}`);
+}
+
+function frontmatter(source: string, filename: string): string {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(source);
+  return match?.[1] ?? fail(`${filename}: YAML frontmatter is missing or malformed`);
+}
+
+function scalar(source: string, field: string, filename: string): string {
+  const raw = new RegExp(`^${field}:\\s*(.*?)\\s*$`, 'm').exec(source)?.[1];
+  if (raw === undefined || raw.length === 0) return fail(`${filename}: ${field} is required`);
+
+  const first = raw[0];
+  const last = raw.at(-1);
+  return (first === "'" || first === '"') && last === first ? raw.slice(1, -1) : raw;
+}
+
+function isDraft(source: string, filename: string): boolean {
+  const raw = /^draft:\s*(.*?)\s*$/m.exec(source)?.[1];
+  if (raw === undefined || raw === 'false') return false;
+  if (raw === 'true') return true;
+  return fail(`${filename}: draft must be true or false`);
+}
+
+function outputPath(publicPath: string): string {
+  const prefix = '/generated/social-images/';
+  if (!publicPath.startsWith(prefix)) return fail(`unexpected public path: ${publicPath}`);
+  return join(process.cwd(), 'public', ...publicPath.slice(1).split('/'));
+}
+
+async function writeSocialImage(path: string, copy: Readonly<{ description?: string; title: string }>) {
+  const response = await renderSocialImage(copy);
+  if (!response.ok) fail(`${path}: renderer returned HTTP ${String(response.status)}`);
+
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, new Uint8Array(await response.arrayBuffer()));
+}
+
+async function readPublishedPosts(): Promise<readonly PostCopy[]> {
+  const contentDirectory = join(process.cwd(), 'content', 'blog');
+  const filenames = (await readdir(contentDirectory))
+    .filter((filename) => extname(filename) === '.mdx' && filename !== 'index.mdx')
+    .toSorted();
+
+  const posts = await Promise.all(
+    filenames.map(async (filename): Promise<PostCopy | undefined> => {
+      const source = await readFile(join(contentDirectory, filename), 'utf8');
+      const data = frontmatter(source, filename);
+      if (isDraft(data, filename)) return undefined;
+
+      const slug = parse(filename).name;
+      if (!/^[a-z0-9][a-z0-9._-]*$/.test(slug)) return fail(`${filename}: unsupported URL slug`);
+
+      const updatedAt = scalar(data, 'updatedAt', filename);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(updatedAt)) {
+        return fail(`${filename}: updatedAt must use YYYY-MM-DD`);
+      }
+
+      return {
+        slug,
+        title: scalar(data, 'title', filename),
+        description: scalar(data, 'description', filename),
+        updatedAt,
+      };
+    }),
+  );
+
+  return posts.filter((post): post is PostCopy => post !== undefined);
+}
+
+async function main(): Promise<void> {
+  const posts = await readPublishedPosts();
+  await rm(outputRoot, { recursive: true, force: true });
+
+  await Promise.all([
+    writeSocialImage(outputPath(siteSocialImagePath), { title: 'xlog.systems' }),
+    ...posts.map((post) =>
+      writeSocialImage(outputPath(articleSocialImagePath(post.slug, post.updatedAt)), {
+        title: post.title,
+        description: post.description,
+      }),
+    ),
+  ]);
+
+  console.log(`[social-images] generated ${String(posts.length + 1)} static PNG files`);
+}
+
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

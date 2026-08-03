@@ -9,8 +9,8 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
+    "build": "bun run social-images:generate && next build",
+    "dev": "bun run social-images:generate && next dev",
     "start": "next start",
     "types:prepare": "bun scripts/prepare-typegen.ts",
     "types:generate": "bun run types:prepare && next typegen",
@@ -21,6 +21,7 @@
     "verify:migration": "bun scripts/verify-migration.ts",
     "frontmatter:warn": "bun scripts/warn-stale-frontmatter.ts",
     "images:convert": "bun scripts/convert-images.ts",
+    "social-images:generate": "bun scripts/generate-social-images.ts",
     "check": "bun run verify:migration && bun run lint && bun run types:check && bun run types:check:compat && bun run build",
     "ci": "bun install --frozen-lockfile && bun run check"
   },

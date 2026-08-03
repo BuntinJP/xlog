@@ -40,14 +40,16 @@ Production public surface is 67 routes, while the page-only sitemap is intention
 ## Intentional corrections
 
 - Legacy RSS accidentally emitted the home `Index` as an 18th item and used file order. New RSS emits exactly 17 published articles newest-first.
+- Legacy RSS item enclosures pointed at a request-time OG endpoint and declared an invalid zero-byte length. They are intentionally omitted; the feed keeps its channel image and every article page exposes versioned social-image metadata.
 - Dirty legacy sitemap leaked one draft and seven draft-only tags. New sitemap is source-derived and excludes all drafts.
 - Legacy article route did not hard-block a guessed draft URL. New production route does.
 - Legacy used build time for feed/sitemap freshness and Git time for article updates. New output uses only manual `updatedAt`.
 - Legacy category detail description called it a tag page. New description says category page.
 - Next.js encodes taxonomy URLs according to URL semantics instead of preserving invalid raw spaces/Unicode in XML.
 - Home / list / taxonomy use a build-time common large image; each published article gets dedicated build-time Open Graph and Twitter images. Article metadata additionally uses current `article` type with manual publish/update time, author, taxonomy, dynamic image alt, and 1200 x 630 dimensions.
-- Article social images use `generateImageMetadata`; the manual `updatedAt` is the image ID, so a material frontmatter update changes the canonical image URL. Only published posts generate images. The old arbitrary query-string `/api/og` generator was removed and now returns 404.
-- Legacy catch-all headers also made 404 responses publicly cacheable. New policy gives exact valid page、RSS、sitemap、robots、and fingerprinted SSG image requests explicit browser / Cloudflare / shared CDN / Vercel policy while unknown、draft、migration-only、invalid image requests are `no-store`; public assets outside that allowlist use current Next.js defaults.
+- A TypeScript prebuild generates 18 physical PNG assets: one common image plus one dedicated image for each of 17 published articles. Open Graph and Twitter reuse the same byte-identical article asset. The manual `updatedAt` and explicit renderer version are both in the filename, so content or design updates change the canonical image URL. Drafts never generate an asset.
+- Next.js 16 reports dynamic metadata image routes as SSG even when no concrete article image body exists in its prerender manifest. The migration therefore does not rely on that ambiguous route mode; `bun run social-images:generate` creates the actual files before both dev and build, and the build fails if generation fails.
+- Legacy catch-all headers also made 404 responses publicly cacheable. New policy gives exact valid page、RSS、sitemap、robots、and versioned static image requests explicit browser / Cloudflare / shared CDN / Vercel policy while unknown、draft、migration-only、invalid image paths are `no-store`; public assets outside that allowlist use current Next.js defaults.
 - Image conversion never deletes the source. Removal is a separate, manually reviewed filesystem operation outside the converter.
 - `lucide-react` experimental optimization was omitted because current Next.js already optimizes it by default.
 - Unused math, KaTeX, Twoslash, `feed`, and `next-sitemap` dependencies were not carried forward.
@@ -67,7 +69,8 @@ Results are local pre-deployment evidence only. The table below was regenerated 
 | `bun run lint` | PASS; clean route type regeneration + Oxlint deny-warnings、8 plugins、pinned safety rules、0 diagnostics |
 | `bun run types:check` | PASS; stale generated type dirs removed、Next route types generated、TS7 0 errors |
 | `bun run types:check:compat` | PASS; stale generated type dirs removed、Next route types generated、TS6 compatibility 0 errors |
-| `bun run build` | PASS; Next 16.2.12 Turbopack、compile / TypeScript / 77-of-77 static generation complete。root images は static、17 article images x Open Graph / Twitter は SSG |
+| `bun run social-images:generate` | PASS; published frontmatter 17件から common 1 + article 17 = physical PNG 18 files、all 1200 x 630 |
+| `bun run build` | PASS; social image prebuild + Next 16.2.12 Turbopack、compile / TypeScript / 75-of-75 static generation complete |
 | `bun run ci` | PASS; 2026-08-03 SEO / SSG remediation 後の frozen install + lint + TS7 + TS6 + build canonical sequence |
 | `bun run images:convert png` / `heic` | PASS; no matching source、no writes |
 
@@ -81,9 +84,9 @@ Development smoke は `/posts` と `/docs/migration` が 200、`src/proxy.ts` �
 - sitemap: well-formed XML、single 66 URLs = posts 17 + categories 14 + tags 31 + fixed pages 4、RSS / draft leak 0、split sitemap 404
 - robots: host / sitemap と migration-only disallow
 - canonical: dot slug と encoded `Zero%20Trust` が production origin を指す
-- cache: valid page、RSS、SEO documents、fingerprinted SSG images は browser / Cloudflare / shared CDN / Vercel CDN policy。unknown post、draft、Wiki、invalid OG ID は全 layer `no-store`、generic 404 も `no-store`
-- OG input boundary: generated home / published article URLs は 200 PNG、removed `/api/og`、invalid article image ID は 404 `no-store`
-- OG: `image/png`、1200 x 630、dynamic article alt、local Japanese font、bounds を visual smoke 済み
+- cache: valid page、RSS、SEO documents、versioned static images は browser / Cloudflare / shared CDN / Vercel CDN policy。unknown post、draft、Wiki、invalid OG path は全 layer `no-store`、generic 404 も `no-store`
+- OG input boundary: generated common / published article assets は 200 PNG、removed `/api/og`、invalid static image path は 404 `no-store`
+- OG: physical `image/png`、1200 x 630、dynamic article alt、local Japanese font、bounds を visual smoke 済み
 - smoke 後に local `next dev` / `next start` / `next build` process は残していない
 
 live-vs-local browser QA と独立レビューの remediation は完了しました。2026-08-03 の再検証では live / local を同一 1280 x 720 tab で比較し、home、posts、categories、tags の document height、public content width、header/footer position が一致しました。390 x 844 の home、tags、長文記事も横 overflow 0、console warning / error 0 です。公開 header は static な Posts / Categories / Tags のみで、Fumadocs dropdown、repository link、theme control はありません。
