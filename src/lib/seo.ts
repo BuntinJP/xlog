@@ -1,12 +1,6 @@
 import type { Metadata } from 'next';
 import { appName, rssPath } from './shared';
-
-export function ogImagePath(title: string, description: string): string {
-  const params = new URLSearchParams();
-  params.set('title', title);
-  params.set('description', description);
-  return `/api/og?${params.toString()}`;
-}
+import { socialImageContentType, socialImageSize } from './social-image-config';
 
 export function listingMetadata(title: string, description: string, path: string): Metadata {
   return {
@@ -19,10 +13,20 @@ export function listingMetadata(title: string, description: string, path: string
       title,
       description,
       url: path,
+      images: [
+        {
+          url: '/opengraph-image',
+          alt: 'xlog.systems',
+          type: socialImageContentType,
+          ...socialImageSize,
+        },
+      ],
     },
     twitter: {
+      card: 'summary_large_image',
       title,
       description,
+      images: [{ url: '/twitter-image', alt: 'xlog.systems', ...socialImageSize }],
     },
     alternates: {
       canonical: path,

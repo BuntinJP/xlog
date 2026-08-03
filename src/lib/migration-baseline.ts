@@ -85,6 +85,7 @@ export const migrationBaseline = {
   imageManifestSha256: '762722ac7017c205c2d8301ae43c9c8ac0688dcc8853182017850ee066cfd1c8',
   imageReferenceCount: 77,
   publicRouteCount: 67,
+  sitemapUrlCount: 66,
   unreferencedImageCount: 6,
 };
 

@@ -11,12 +11,19 @@ import {
   getPublishedPosts,
   getVisiblePost,
 } from '@/lib/blog';
-import { ogImagePath } from '@/lib/seo';
 import { appName, rssPath } from '@/lib/shared';
 
-export default async function PostPage({ params }: PageProps<'/posts/[...slug]'>) {
+function singleSlug(slugs: readonly string[]): string {
+  const slug = slugs[0];
+  if (slug === undefined || slugs.length !== 1) {
+    throw new Error(`Blog posts must use exactly one URL segment: ${slugs.join('/')}`);
+  }
+  return slug;
+}
+
+export default async function PostPage({ params }: PageProps<'/posts/[slug]'>) {
   const { slug } = await params;
-  const post = getVisiblePost(slug);
+  const post = getVisiblePost([slug]);
   if (post === undefined) notFound();
 
   const MDX = post.data.body;
@@ -57,20 +64,19 @@ export default async function PostPage({ params }: PageProps<'/posts/[...slug]'>
   );
 }
 
-export function generateStaticParams(): { slug: string[] }[] {
+export function generateStaticParams(): { slug: string }[] {
   const posts =
     process.env.NODE_ENV === 'production'
       ? getPublishedPosts()
       : [...getPublishedPosts(), ...getDraftPosts()];
-  return posts.map((post) => ({ slug: post.slugs }));
+  return posts.map((post) => ({ slug: singleSlug(post.slugs) }));
 }
 
-export async function generateMetadata({ params }: PageProps<'/posts/[...slug]'>): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): Promise<Metadata> {
   const { slug } = await params;
-  const post = getVisiblePost(slug);
+  const post = getVisiblePost([slug]);
   if (post === undefined) notFound();
 
-  const image = ogImagePath(post.data.title, post.data.description);
   const publishedTime = `${post.data.publishedAt}T00:00:00+09:00`;
   const modifiedTime = `${post.data.updatedAt}T00:00:00+09:00`;
 
@@ -86,7 +92,6 @@ export async function generateMetadata({ params }: PageProps<'/posts/[...slug]'>
       title: post.data.title,
       description: post.data.description,
       url: post.url,
-      images: image,
       publishedTime,
       modifiedTime,
       tags: [...post.data.tags, ...post.data.categories],
@@ -95,7 +100,6 @@ export async function generateMetadata({ params }: PageProps<'/posts/[...slug]'>
       card: 'summary_large_image',
       title: post.data.title,
       description: post.data.description,
-      images: image,
     },
     alternates: {
       canonical: post.url,

@@ -30,13 +30,11 @@ export const metadata: Metadata = {
     title: appName,
     description: siteDescription,
     url: '/',
-    images: '/api/og',
   },
   twitter: {
     card: 'summary_large_image',
     title: appName,
     description: siteDescription,
-    images: '/api/og',
   },
 };
 

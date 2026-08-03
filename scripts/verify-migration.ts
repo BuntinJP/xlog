@@ -290,9 +290,12 @@ async function main(): Promise<void> {
   const publicRouteCount =
     5 + publishedPostSlugs.length + publishedCategoryNames.length + publishedTagNames.length;
   assertEqual(publicRouteCount, migrationBaseline.publicRouteCount, 'public route count');
+  const sitemapUrlCount =
+    4 + publishedPostSlugs.length + publishedCategoryNames.length + publishedTagNames.length;
+  assertEqual(sitemapUrlCount, migrationBaseline.sitemapUrlCount, 'sitemap URL count');
 
   console.log(
-    `[migration] verified content=${content.length} published=${published.length} drafts=${drafts.length} images=${imagePaths.length} references=${referencedImages.size} routes=${publicRouteCount}`,
+    `[migration] verified content=${content.length} published=${published.length} drafts=${drafts.length} images=${imagePaths.length} references=${referencedImages.size} routes=${publicRouteCount} sitemap=${sitemapUrlCount}`,
   );
 }
 

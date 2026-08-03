@@ -1,6 +1,5 @@
 import { getPublishedPosts, latestUpdatedAt, toRfc822Date } from '@/lib/blog';
 import { rssCacheHeaders } from '@/lib/cache-policy';
-import { ogImagePath } from '@/lib/seo';
 import { appName, rssPath, siteDescription, siteUrl } from '@/lib/shared';
 
 export const dynamic = 'force-static';
@@ -23,7 +22,6 @@ export function GET() {
   const items = posts
     .map((post) => {
       const postUrl = absoluteUrl(post.url);
-      const imageUrl = absoluteUrl(ogImagePath(post.data.title, post.data.description));
       const categories = post.data.categories
         .map((category) => `<category>${xmlEscape(category)}</category>`)
         .join('');
@@ -37,7 +35,6 @@ export function GET() {
   <pubDate>${toRfc822Date(post.data.publishedAt)}</pubDate>
   <dc:date>${post.data.updatedAt}</dc:date>
   ${categories}
-  <enclosure url="${xmlEscape(imageUrl)}" length="0" type="image/png" />
 </item>`;
     })
     .join('\n');

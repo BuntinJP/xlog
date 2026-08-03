@@ -1,23 +1,34 @@
 export const staticPageCacheHeaders: Readonly<Record<string, string>> = {
   'Cache-Control': 'public, max-age=1800, stale-while-revalidate=60',
+  'Cloudflare-CDN-Cache-Control': 'public, max-age=302400, stale-while-revalidate=86400',
   'CDN-Cache-Control': 'public, s-maxage=302400, stale-while-revalidate=86400',
   'Vercel-CDN-Cache-Control': 'public, s-maxage=604800, stale-while-revalidate=604800',
 };
 
-export const ogCacheHeaders: Readonly<Record<string, string>> = {
+export const seoDocumentCacheHeaders: Readonly<Record<string, string>> = {
+  'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
+  'Cloudflare-CDN-Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+  'CDN-Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=604800, stale-while-revalidate=604800',
+};
+
+export const socialImageCacheHeaders: Readonly<Record<string, string>> = {
   'Cache-Control': 'public, max-age=2592000, stale-while-revalidate=86400',
+  'Cloudflare-CDN-Cache-Control': 'public, max-age=2592000, stale-while-revalidate=86400',
   'CDN-Cache-Control': 'public, s-maxage=2592000, stale-while-revalidate=86400',
   'Vercel-CDN-Cache-Control': 'public, s-maxage=2592000, stale-while-revalidate=86400',
 };
 
 export const rssCacheHeaders: Readonly<Record<string, string>> = {
   'Cache-Control': 'public, max-age=3600, stale-while-revalidate=300',
+  'Cloudflare-CDN-Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
   'CDN-Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
   'Vercel-CDN-Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
 };
 
 export const noStoreHeaders: Readonly<Record<string, string>> = {
   'Cache-Control': 'private, no-store, max-age=0',
+  'Cloudflare-CDN-Cache-Control': 'no-store',
   'CDN-Cache-Control': 'no-store',
   'Vercel-CDN-Cache-Control': 'no-store',
 };

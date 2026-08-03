@@ -1,7 +1,11 @@
 import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { noStoreHeaders, staticPageCacheHeaders } from '@/lib/cache-policy';
+import {
+  noStoreHeaders,
+  seoDocumentCacheHeaders,
+  staticPageCacheHeaders,
+} from '@/lib/cache-policy';
 import { isPublicCacheablePathname } from '@/lib/migration-baseline';
 import { isMigrationWikiEnabled } from '@/lib/migration-wiki';
 import { docsContentRoute, docsRoute } from '@/lib/shared';
@@ -17,12 +21,33 @@ function withHeaders(response: NextResponse, headers: Readonly<Record<string, st
   return response;
 }
 
+function hasMetadataFingerprint(request: NextRequest): boolean {
+  const entries = Array.from(request.nextUrl.searchParams.entries());
+  const entry = entries[0];
+  return (
+    entries.length === 1 &&
+    entry !== undefined &&
+    /^[0-9a-f]{16}$/.test(entry[0]) &&
+    entry[1] === ''
+  );
+}
+
 export default function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isDocsRequest = pathname === docsRoute || pathname.startsWith(`${docsRoute}/`);
 
   if (!isDocsRequest) {
-    const headers = isPublicCacheablePathname(pathname) ? staticPageCacheHeaders : noStoreHeaders;
+    if (/\/(?:opengraph-image|twitter-image)(?:-[a-z0-9]+)?(?:\/[^/]*)?$/.test(pathname)) {
+      const headers = hasMetadataFingerprint(request) ? undefined : noStoreHeaders;
+      return headers === undefined ? NextResponse.next() : withHeaders(NextResponse.next(), headers);
+    }
+
+    const headers =
+      pathname === '/sitemap.xml' || pathname === '/robots.txt'
+        ? seoDocumentCacheHeaders
+        : isPublicCacheablePathname(pathname)
+          ? staticPageCacheHeaders
+          : noStoreHeaders;
     return withHeaders(NextResponse.next(), headers);
   }
 

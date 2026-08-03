@@ -83,11 +83,19 @@ export function getDraftPosts(): readonly BlogPost[] {
   return allPages.filter((page) => isPost(page) && page.data.draft).toSorted(byPublishedDateDescending);
 }
 
-export function getVisiblePost(slugs: string[]): BlogPost | undefined {
+export function getPublishedPost(slugs: string[]): BlogPost | undefined {
   const page = blogSource.getPage(slugs);
-  if (page === undefined || !isPost(page)) return undefined;
-  if (page.data.draft && process.env.NODE_ENV === 'production') return undefined;
+  if (page === undefined || !isPost(page) || page.data.draft) return undefined;
   return page;
+}
+
+export function getVisiblePost(slugs: string[]): BlogPost | undefined {
+  const publishedPost = getPublishedPost(slugs);
+  if (publishedPost !== undefined) return publishedPost;
+  if (process.env.NODE_ENV === 'production') return undefined;
+
+  const draft = blogSource.getPage(slugs);
+  return draft !== undefined && isPost(draft) && draft.data.draft ? draft : undefined;
 }
 
 function createTaxonomy(field: 'categories' | 'tags'): readonly TaxonomyEntry[] {
