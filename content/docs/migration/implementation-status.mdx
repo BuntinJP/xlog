@@ -2,7 +2,7 @@
 title: 実装・検証状況
 description: 旧 clean source に対する実装、意図的差分、検証証拠をまとめます。
 publishedAt: 2026-08-02
-updatedAt: 2026-08-03
+updatedAt: 2026-08-05
 ---
 
 ## Implemented
@@ -22,6 +22,32 @@ updatedAt: 2026-08-03
 | Images | strict Buy Me a Coffee remote pattern、AVIF/WebP output policy |
 | Scripts | Bun/TypeScript converter、dry-run default、no shell、overwrite refusal、source は常に保持 |
 | Quality | TS7 authority、isolated TS6 check、strict settings、Oxlint、Bun-only lock、migration baseline CI gate |
+
+## Production date audit
+
+The production article pages at `https://www.xlog.systems/posts/<slug>` were inspected on 2026-08-05. `publishedAt` and `updatedAt` remain explicit frontmatter values; no Git timestamp or filesystem timestamp is used. When production omits the final-updated label, `updatedAt` intentionally equals `publishedAt`.
+
+| Slug | Published | Last updated |
+| --- | --- | --- |
+| `arch-setup-syslog-ng-for-maillog` | 2024-12-16 | 2026-03-22 |
+| `bitwarden-as-ssh-agent` | 2025-11-30 | 2026-03-22 |
+| `build-mailserver-with-sendgrid-arch` | 2025-01-12 | 2026-03-22 |
+| `directory-tree-without-tree-command` | 2025-05-25 | 2026-03-22 |
+| `enable-sudo-in-windows` | 2025-12-21 | 2026-03-22 |
+| `fix-wezterm-aiagents-input-newline` | 2026-03-03 | 2026-03-22 |
+| `github-gpg-signing` | 2024-03-01 | 2026-03-22 |
+| `ignore-dns-send-mail-using-s-nail` | 2025-01-19 | 2026-03-29 |
+| `manage-compose-yml-on-github-and-auto-apply-with-portainer-be` | 2026-05-10 | 2026-05-10 (production has no separate final-updated label) |
+| `publish-web-with-cloudflare-zero-trust-and-tunnel` | 2025-04-10 | 2026-03-22 |
+| `redirect-multiple-domains-with-only-cloudflare` | 2025-10-19 | 2026-03-22 |
+| `selfhost-convertx` | 2025-12-28 | 2026-03-29 |
+| `selfhost-obsidian-cross-platform-syncing` | 2026-03-22 | 2026-03-29 |
+| `setup-logrotate-syslog-ng-archlinux` | 2025-02-10 | 2026-03-22 |
+| `welcome-acme.sh` | 2026-03-30 | 2026-03-30 (production has no separate final-updated label) |
+| `welcome-dehydrated` | 2024-03-08 | 2026-03-30 |
+| `xlog-from-hugo-to-nextjs` | 2024-03-26 | 2026-03-22 |
+
+Draft pages have no production article page to use as authoritative date evidence. Their existing explicit dates are retained and documented as a release-time verification item if a draft is published.
 
 `next dev` / `next build` の generated route declarations が `.next/dev/types` と `.next/types` に同時残存すると duplicate declaration になるため、各 lint / type gate は Bun/TypeScript script でこの 2 個の明示的 generated directory と root の `tsconfig.tsbuildinfo` だけを削除してから `next typegen` を実行します。MDX virtual type の stale incremental result を避ける限定削除であり、source、lockfile、`.next` cache 全体は削除しません。
 
