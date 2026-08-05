@@ -9,7 +9,7 @@ updatedAt: 2026-08-05
 
 ### Draft article date provenance
 
-Draft articles are intentionally absent from the production site, so their production `updatedAt` values cannot be audited. Their explicit frontmatter dates are retained without inference. Before publishing a draft, the author must confirm both `publishedAt` and `updatedAt`; the commit warning remains the enforcement reminder.
+Draft articles are intentionally absent from the production site, so whether they have actually been updated cannot be audited against production. Their existing frontmatter dates are retained without inference. Before publishing a draft, the author must confirm `publishedAt` and either confirm an actual `updatedAt` or remove it when the article has never been updated; the commit warning remains the enforcement reminder.
 
 ### TypeScript 7 and MDX programmatic API
 
@@ -41,7 +41,7 @@ Vercel Analytics / Speed Insights の dashboard ingestion、Cloudflare と Verce
 
 ### Published article date provenance
 
-2026-08-05 に公開17記事の本番表示を全件監査し、15記事の明示的な最終更新日を frontmatter へ移行しました。本番に最終更新日ラベルがない `manage-compose-yml-on-github-and-auto-apply-with-portainer-be` と `welcome-acme.sh` だけは、`updatedAt` と `publishedAt` が同日である状態を意図的に維持します。公開記事の監査結果は実装・検証状況の表を正とし、未公開5 draft の出典確認だけを Active 項目として残します。
+2026-08-05 に公開17記事の本番表示を全件監査し、15記事の明示的な最終更新日を frontmatter へ移行しました。本番に最終更新日ラベルがない `manage-compose-yml-on-github-and-auto-apply-with-portainer-be` と `welcome-acme.sh` は、未更新という事実を表すため `updatedAt` を持ちません。公開記事の監査結果は実装・検証状況の表を正とし、未公開5 draft の出典確認だけを Active 項目として残します。
 
 ## Entry template
 

@@ -5,6 +5,7 @@ import { generatedArticleSocialImagePaths } from '../src/generated/social-image-
 import {
   draftPostSlugs,
   migrationBaseline,
+  neverUpdatedPostSlugs,
   publishedCategoryNames,
   publishedPostSlugs,
   publishedTagNames,
@@ -19,7 +20,7 @@ type ParsedContent = Readonly<{
   publishedAt: string;
   slug: string;
   tags: readonly string[];
-  updatedAt: string;
+  updatedAt?: string;
 }>;
 
 function fail(message: string): never {
@@ -57,6 +58,15 @@ function readRawField(frontmatter: string, field: string): string | undefined {
 function readRequiredScalar(frontmatter: string, field: string, filename: string): string {
   const raw = readRawField(frontmatter, field);
   if (raw === undefined || raw.length === 0) return fail(`${filename}: ${field} is required`);
+  const first = raw[0];
+  const last = raw.at(-1);
+  if ((first === "'" || first === '"') && last === first) return raw.slice(1, -1);
+  return raw;
+}
+
+function readOptionalScalar(frontmatter: string, field: string): string | undefined {
+  const raw = readRawField(frontmatter, field);
+  if (raw === undefined || raw.length === 0) return undefined;
   const first = raw[0];
   const last = raw.at(-1);
   if ((first === "'" || first === '"') && last === first) return raw.slice(1, -1);
@@ -163,6 +173,10 @@ function manifestDigest(entries: readonly Readonly<{ hash: string; path: string 
   return sha256(entries.map(({ hash, path }) => `${path}\0${hash}\n`).join(''));
 }
 
+function normalizedBodyForHash(body: string): string {
+  return `${body.replace(/\s+$/, '')}\n`;
+}
+
 async function readContent(): Promise<readonly ParsedContent[]> {
   const directory = join(process.cwd(), 'content', 'blog');
   const filenames = (await readdir(directory))
@@ -181,12 +195,16 @@ async function readContent(): Promise<readonly ParsedContent[]> {
       readRequiredScalar(frontmatter, 'title', filename);
       readRequiredScalar(frontmatter, 'description', filename);
       const publishedAt = readRequiredScalar(frontmatter, 'publishedAt', filename);
-      const updatedAt = readRequiredScalar(frontmatter, 'updatedAt', filename);
+      const updatedAt = readOptionalScalar(frontmatter, 'updatedAt');
       if (!isValidIsoDate(publishedAt)) fail(`${filename}: publishedAt is not a valid ISO date`);
-      if (!isValidIsoDate(updatedAt)) fail(`${filename}: updatedAt is not a valid ISO date`);
-      if (updatedAt < publishedAt) fail(`${filename}: updatedAt is earlier than publishedAt`);
+      if (updatedAt !== undefined && !isValidIsoDate(updatedAt)) {
+        fail(`${filename}: updatedAt is not a valid ISO date`);
+      }
+      if (updatedAt !== undefined && updatedAt < publishedAt) {
+        fail(`${filename}: updatedAt is earlier than publishedAt`);
+      }
 
-      return {
+      const parsed: ParsedContent = {
         body,
         categories: readStringArray(frontmatter, 'categories', filename),
         draft: readDraft(frontmatter, filename),
@@ -194,8 +212,9 @@ async function readContent(): Promise<readonly ParsedContent[]> {
         publishedAt,
         slug: filename.slice(0, -'.mdx'.length),
         tags: readStringArray(frontmatter, 'tags', filename),
-        updatedAt,
       };
+      if (updatedAt === undefined) return parsed;
+      return Object.assign(parsed, { updatedAt });
     }),
   );
 }
@@ -217,8 +236,15 @@ async function main(): Promise<void> {
     'draft post slugs',
   );
   assertExactList(
+    published.filter(({ updatedAt }) => updatedAt === undefined).map(({ slug }) => slug),
+    neverUpdatedPostSlugs,
+    'published posts without updatedAt',
+  );
+  assertExactList(
     generatedArticleSocialImagePaths,
-    published.map(({ slug, updatedAt }) => articleSocialImagePath(slug, updatedAt)),
+    published.map(({ publishedAt, slug, updatedAt }) =>
+      articleSocialImagePath(slug, updatedAt ?? publishedAt),
+    ),
     'generated social image path manifest',
   );
   assertExactList(
@@ -233,7 +259,7 @@ async function main(): Promise<void> {
   );
 
   const bodyManifest = content
-    .map(({ body, filename }) => ({ hash: sha256(body), path: filename }))
+    .map(({ body, filename }) => ({ hash: sha256(normalizedBodyForHash(body)), path: filename }))
     .toSorted((left, right) => left.path.localeCompare(right.path));
   assertEqual(
     manifestDigest(bodyManifest),

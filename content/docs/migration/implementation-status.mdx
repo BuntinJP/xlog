@@ -9,9 +9,9 @@ updatedAt: 2026-08-05
 
 | Area | Result |
 | --- | --- |
-| Content | 23/23 MDX filename parity、本文 23/23 hash parity、home 1 + published 17 + drafts 5 |
+| Content | 23/23 MDX filename parity、末尾空白を正規化した本文 23/23 hash parity、home 1 + published 17 + drafts 5 |
 | Assets | WebP 83、font 1、favicon 1 を byte-identical に移送。77 references は全て存在 |
-| Frontmatter | Zod runtime/build validation、manual ISO `publishedAt` / `updatedAt`、draft / taxonomy / keywords |
+| Frontmatter | Zod runtime/build validation、manual ISO `publishedAt`、実更新時だけの optional `updatedAt`、draft / taxonomy / keywords |
 | Blog | home、年月 grouped posts、detail、draft development list、production draft hard-block |
 | Public shell | legacy centered header と常設 Posts / Categories / Tags、4/6 desktop width、16 px footer。Fumadocs HomeLayout controls は公開側から除外 |
 | Taxonomy | category 14、tag 31、優先 category、件数順、detail static params |
@@ -25,7 +25,7 @@ updatedAt: 2026-08-05
 
 ## Production date audit
 
-The production article pages at `https://www.xlog.systems/posts/<slug>` were inspected on 2026-08-05. `publishedAt` and `updatedAt` remain explicit frontmatter values; no Git timestamp or filesystem timestamp is used. When production omits the final-updated label, `updatedAt` intentionally equals `publishedAt`.
+The production article pages at `https://www.xlog.systems/posts/<slug>` were inspected on 2026-08-05. `publishedAt` is required manual frontmatter. `updatedAt` is present only when production shows an actual final-updated date; no Git timestamp or filesystem timestamp is used. Missing `updatedAt` means the article has never been updated, so the page and `article:modified_time` both omit the update claim.
 
 | Slug | Published | Last updated |
 | --- | --- | --- |
@@ -37,13 +37,13 @@ The production article pages at `https://www.xlog.systems/posts/<slug>` were ins
 | `fix-wezterm-aiagents-input-newline` | 2026-03-03 | 2026-03-22 |
 | `github-gpg-signing` | 2024-03-01 | 2026-03-22 |
 | `ignore-dns-send-mail-using-s-nail` | 2025-01-19 | 2026-03-29 |
-| `manage-compose-yml-on-github-and-auto-apply-with-portainer-be` | 2026-05-10 | 2026-05-10 (production has no separate final-updated label) |
+| `manage-compose-yml-on-github-and-auto-apply-with-portainer-be` | 2026-05-10 | — (never updated; production has no final-updated label) |
 | `publish-web-with-cloudflare-zero-trust-and-tunnel` | 2025-04-10 | 2026-03-22 |
 | `redirect-multiple-domains-with-only-cloudflare` | 2025-10-19 | 2026-03-22 |
 | `selfhost-convertx` | 2025-12-28 | 2026-03-29 |
 | `selfhost-obsidian-cross-platform-syncing` | 2026-03-22 | 2026-03-29 |
 | `setup-logrotate-syslog-ng-archlinux` | 2025-02-10 | 2026-03-22 |
-| `welcome-acme.sh` | 2026-03-30 | 2026-03-30 (production has no separate final-updated label) |
+| `welcome-acme.sh` | 2026-03-30 | — (never updated; production has no final-updated label) |
 | `welcome-dehydrated` | 2024-03-08 | 2026-03-30 |
 | `xlog-from-hugo-to-nextjs` | 2024-03-26 | 2026-03-22 |
 
@@ -61,7 +61,7 @@ Production public surface is 67 routes, while the page-only sitemap is intention
 - tag detail: 31
 - RSS: `/api/rss.xml` is advertised through `<link rel="alternate">` and `robots.txt` points only to `/sitemap.xml`; RSS is not mixed into the page sitemap
 
-`generateSitemaps` は export しないため、`sitemap-0.xml` / `sitemap-1.xml` の分割は発生しません。Google が無視する `priority` / `changefreq` は出力せず、frontmatter の手動 `updatedAt` だけを正確な `lastmod` として出力します。Drafts are absent from production static params, taxonomy, RSS, and sitemap. Unknown article and taxonomy paths use explicit lookup failure and return 404. `dynamicParams = false` は current Next.js static route で `NoFallbackError` を起こしたため使わず、build 後の unknown post / category / tag を 404 と server log の両方で検証します。
+`generateSitemaps` は export しないため、`sitemap-0.xml` / `sitemap-1.xml` の分割は発生しません。Google が無視する `priority` / `changefreq` は出力しません。記事の正確な `lastmod` は、実更新がある場合は手動 `updatedAt`、未更新なら手動 `publishedAt` を使います。この fallback は sitemap / RSS / versioned OG path の技術的な鮮度基準であり、記事が更新済みだとは表現しません。Drafts are absent from production static params, taxonomy, RSS, and sitemap. Unknown article and taxonomy paths use explicit lookup failure and return 404. `dynamicParams = false` は current Next.js static route で `NoFallbackError` を起こしたため使わず、build 後の unknown post / category / tag を 404 と server log の両方で検証します。
 
 ## Intentional corrections
 
@@ -69,11 +69,11 @@ Production public surface is 67 routes, while the page-only sitemap is intention
 - Legacy RSS item enclosures pointed at a request-time OG endpoint and declared an invalid zero-byte length. They are intentionally omitted; the feed keeps its channel image and every article page exposes versioned social-image metadata.
 - Dirty legacy sitemap leaked one draft and seven draft-only tags. New sitemap is source-derived and excludes all drafts.
 - Legacy article route did not hard-block a guessed draft URL. New production route does.
-- Legacy used build time for feed/sitemap freshness and Git time for article updates. New output uses only manual `updatedAt`.
+- Legacy used build time for feed/sitemap freshness and Git time for article updates. New output uses only manual `updatedAt ?? publishedAt`, while update UI and `article:modified_time` use `updatedAt` only when it exists.
 - Legacy category detail description called it a tag page. New description says category page.
 - Next.js encodes taxonomy URLs according to URL semantics instead of preserving invalid raw spaces/Unicode in XML.
 - Home / list / taxonomy use a build-time common large image; each published article gets dedicated build-time Open Graph and Twitter images. Article metadata additionally uses current `article` type with manual publish/update time, author, taxonomy, dynamic image alt, and 1200 x 630 dimensions.
-- A TypeScript prebuild generates 18 physical PNG assets: one common image plus one dedicated image for each of 17 published articles. Open Graph and Twitter reuse the same byte-identical article asset. The manual `updatedAt` and explicit renderer version are both in the filename, so content or design updates change the canonical image URL. Drafts never generate an asset. The same prebuild writes a tracked exact-path manifest, and migration verification rejects any drift from published frontmatter; only those exact canonical paths receive long-lived CDN cache headers.
+- A TypeScript prebuild generates 18 physical PNG assets: one common image plus one dedicated image for each of 17 published articles. Open Graph and Twitter reuse the same byte-identical article asset. The manual `updatedAt ?? publishedAt` freshness date and explicit renderer version are both in the filename, so content or design updates change the canonical image URL. Drafts never generate an asset. The same prebuild writes a tracked exact-path manifest, and migration verification rejects any drift from published frontmatter; only those exact canonical paths receive long-lived CDN cache headers.
 - Next.js 16 reports dynamic metadata image routes as SSG even when no concrete article image body exists in its prerender manifest. The migration therefore does not rely on that ambiguous route mode; `bun run social-images:generate` creates the actual files before both dev and build, and the build fails if generation fails.
 - Legacy catch-all headers also made 404 responses publicly cacheable. New policy gives exact valid page、RSS、sitemap、robots、and versioned static image requests explicit browser / Cloudflare / shared CDN / Vercel policy while unknown、draft、migration-only、invalid image paths are `no-store`; public assets outside that allowlist use current Next.js defaults.
 - Image conversion never deletes the source. Removal is a separate, manually reviewed filesystem operation outside the converter.
@@ -86,7 +86,7 @@ The migration wiki contains migration policy and internal validation details tha
 
 ## Validation log
 
-Results are local pre-deployment evidence only. The table below was regenerated on 2026-08-03 JST from the current working tree after the public-shell parity remediation、SEO document hardening、and SSG social-image migration; it is not deployment proof.
+Results are local pre-deployment evidence only. The table below was regenerated on 2026-08-05 JST from the current working tree after the public-shell parity remediation、SEO document hardening、SSG social-image migration、and optional update-date correction; it is not deployment proof.
 
 | Command | Result |
 | --- | --- |
@@ -97,7 +97,7 @@ Results are local pre-deployment evidence only. The table below was regenerated 
 | `bun run types:check:compat` | PASS; stale generated type dirs removed、Next route types generated、TS6 compatibility 0 errors |
 | `bun run social-images:generate` | PASS; published frontmatter 17件から common 1 + article 17 = physical PNG 18 files、all 1200 x 630 |
 | `bun run build` | PASS; social image prebuild + Next 16.2.12 Turbopack、compile / TypeScript / 75-of-75 static generation complete |
-| `bun run ci` | PASS; 2026-08-03 SEO / SSG remediation 後の frozen install + lint + TS7 + TS6 + build canonical sequence |
+| `bun run ci` | PASS; 2026-08-05 optional update-date correction 後の frozen install + migration verification + Oxlint + TS7 + TS6 + 75-page build canonical sequence |
 | `bun run images:convert png` / `heic` | PASS; no matching source、no writes |
 
 最初の canonical CI 試行は独立 read-only audit の `next start` が同じ `.next` lock を保持していたため `Another next build process is already running` で停止しました。その server を終了し、process がないことを確認して同じ command を再実行した結果が上の PASS です。code/build failure と混同しません。
@@ -110,6 +110,7 @@ Development smoke は `/posts` と `/docs/migration` が 200、`src/proxy.ts` �
 - sitemap: well-formed XML、single 66 URLs = posts 17 + categories 14 + tags 31 + fixed pages 4、RSS / draft leak 0、split sitemap 404
 - robots: host / sitemap と migration-only disallow
 - canonical: dot slug と encoded `Zero%20Trust` が production origin を指す
+- article dates: 未更新2記事は最終更新日表示と `article:modified_time` がともに 0、更新済み代表記事は両方を出力。sitemap / RSS / OG path は未更新時だけ `publishedAt` fallback
 - cache: valid page、RSS、SEO documents、versioned static images は browser / Cloudflare / shared CDN / Vercel CDN policy。unknown post、draft、Wiki、invalid OG path は全 layer `no-store`、generic 404 も `no-store`
 - OG input boundary: generated common / published article assets は 200 PNG、removed `/api/og`、invalid static image path は 404 `no-store`
 - OG: physical `image/png`、1200 x 630、dynamic article alt、local Japanese font、bounds を visual smoke 済み
@@ -117,4 +118,4 @@ Development smoke は `/posts` と `/docs/migration` が 200、`src/proxy.ts` �
 
 live-vs-local browser QA と独立レビューの remediation は完了しました。2026-08-03 の再検証では live / local を同一 1280 x 720 tab で比較し、home、posts、categories、tags の document height、public content width、header/footer position が一致しました。390 x 844 の home、tags、長文記事も横 overflow 0、console warning / error 0 です。公開 header は static な Posts / Categories / Tags のみで、Fumadocs dropdown、repository link、theme control はありません。
 
-公開17記事の historical `updatedAt` 監査は完了しました。残る release gate は、draft を公開する場合の著者による日付確認と、承認後 deployment の実環境証明です。local build は deployment proof ではありません。
+公開17記事の日付監査は完了しました。15記事は historical `updatedAt` を保持し、本番で最終更新日表示がない2記事は `updatedAt` を持たないことを baseline で固定しています。残る release gate は、draft を公開する場合の著者による日付確認と、承認後 deployment の実環境証明です。local build は deployment proof ではありません。

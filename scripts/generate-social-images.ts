@@ -8,9 +8,9 @@ import {
 
 type PostCopy = Readonly<{
   description: string;
+  lastModifiedAt: string;
   slug: string;
   title: string;
-  updatedAt: string;
 }>;
 
 const outputRoot = join(process.cwd(), 'public', 'generated', 'social-images');
@@ -32,6 +32,21 @@ function scalar(source: string, field: string, filename: string): string {
   const first = raw[0];
   const last = raw.at(-1);
   return (first === "'" || first === '"') && last === first ? raw.slice(1, -1) : raw;
+}
+
+function optionalScalar(source: string, field: string): string | undefined {
+  const raw = new RegExp(`^${field}:\\s*(.*?)\\s*$`, 'm').exec(source)?.[1];
+  if (raw === undefined || raw.length === 0) return undefined;
+
+  const first = raw[0];
+  const last = raw.at(-1);
+  return (first === "'" || first === '"') && last === first ? raw.slice(1, -1) : raw;
+}
+
+function assertIsoDate(value: string, field: string, filename: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    fail(`${filename}: ${field} must use YYYY-MM-DD`);
+  }
 }
 
 function isDraft(source: string, filename: string): boolean {
@@ -70,16 +85,16 @@ async function readPublishedPosts(): Promise<readonly PostCopy[]> {
       const slug = parse(filename).name;
       if (!/^[a-z0-9][a-z0-9._-]*$/.test(slug)) return fail(`${filename}: unsupported URL slug`);
 
-      const updatedAt = scalar(data, 'updatedAt', filename);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(updatedAt)) {
-        return fail(`${filename}: updatedAt must use YYYY-MM-DD`);
-      }
+      const publishedAt = scalar(data, 'publishedAt', filename);
+      const updatedAt = optionalScalar(data, 'updatedAt');
+      assertIsoDate(publishedAt, 'publishedAt', filename);
+      if (updatedAt !== undefined) assertIsoDate(updatedAt, 'updatedAt', filename);
 
       return {
         slug,
         title: scalar(data, 'title', filename),
         description: scalar(data, 'description', filename),
-        updatedAt,
+        lastModifiedAt: updatedAt ?? publishedAt,
       };
     }),
   );
@@ -102,7 +117,7 @@ async function writePathManifest(paths: readonly string[]): Promise<void> {
 
 async function main(): Promise<void> {
   const posts = await readPublishedPosts();
-  const articlePaths = posts.map((post) => articleSocialImagePath(post.slug, post.updatedAt));
+  const articlePaths = posts.map((post) => articleSocialImagePath(post.slug, post.lastModifiedAt));
   await rm(outputRoot, { recursive: true, force: true });
   await writePathManifest(articlePaths);
 

@@ -2,7 +2,7 @@
 title: 旧実装インベントリ
 description: 旧 worktree から段階的に移行・再設計する対象です。
 publishedAt: 2026-08-02
-updatedAt: 2026-08-02
+updatedAt: 2026-08-05
 ---
 
 ## Content and navigation
@@ -13,7 +13,7 @@ updatedAt: 2026-08-02
 - 記事一覧の年月グルーピング、新しい順の taxonomy 記事一覧
 - `工作`・`備忘録` の category 優先表示と、残りの件数順表示
 - 記事詳細、generated heading anchor、inline TOC
-- `draft`、`keywords`、`description`、手動 `publishedAt` / `updatedAt` schema
+- `draft`、`keywords`、`description`、手動 `publishedAt` と実更新時だけの optional `updatedAt` schema
 - 404 と home document
 
 ## Publishing surfaces
@@ -38,6 +38,6 @@ updatedAt: 2026-08-02
 
 旧 worktree の最終監査境界は `migration/legacy` の `0fc249e063a266654f4689879b5d48d6ede863ed` です。dirty state は `M public/sitemap.xml` と `?? content/selfhost-iam-idp-with-authentik-rhel10.mdx` のまま保全しました。generated `.next` と stale `sitemap-0.xml` は source truth に使いません。
 
-本文 frontmatter より後ろの SHA-256 は 23/23 で一致し、83 WebP、font、favicon も byte-identical です。6 個の未参照画像も asset parity のため保持します。
+本文 frontmatter より後ろは末尾空白だけを正規化した SHA-256 が 23/23 で一致し、83 WebP、font、favicon は byte-identical です。6 個の未参照画像も asset parity のため保持します。
 
 旧 config の `remark-math` / `rehype-katex` / Twoslash は全 23 本文に利用 marker がなく、current default MDX pipeline で同じ rendered meaning を保てるため、未使用 dependency として退役させました。再び数式または Twoslash directive を導入する時点で current preset-compatible API を再評価します。

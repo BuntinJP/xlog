@@ -1,4 +1,9 @@
-import { getPublishedPosts, latestUpdatedAt, toRfc822Date } from '@/lib/blog';
+import {
+  getPublishedPosts,
+  latestPostModifiedAt,
+  postLastModifiedAt,
+  toRfc822Date,
+} from '@/lib/blog';
 import { rssCacheHeaders } from '@/lib/cache-policy';
 import { appName, rssPath, siteDescription, siteUrl } from '@/lib/shared';
 
@@ -33,7 +38,7 @@ export function GET() {
   <description>${xmlEscape(post.data.description)}</description>
   <dc:creator>Buntin</dc:creator>
   <pubDate>${toRfc822Date(post.data.publishedAt)}</pubDate>
-  <dc:date>${post.data.updatedAt}</dc:date>
+  <dc:date>${postLastModifiedAt(post)}</dc:date>
   ${categories}
 </item>`;
     })
@@ -46,7 +51,7 @@ export function GET() {
   <link>${xmlEscape(siteUrl)}</link>
   <description>${xmlEscape(siteDescription)}</description>
   <language>ja</language>
-  <lastBuildDate>${toRfc822Date(latestUpdatedAt(posts))}</lastBuildDate>
+  <lastBuildDate>${toRfc822Date(latestPostModifiedAt(posts))}</lastBuildDate>
   <atom:link href="${xmlEscape(absoluteUrl(rssPath))}" rel="self" type="application/rss+xml" />
   <image>
     <url>${xmlEscape(absoluteUrl('/favicon.ico'))}</url>

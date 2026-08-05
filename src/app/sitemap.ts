@@ -3,7 +3,8 @@ import {
   categoriesWithPosts,
   getHomePage,
   getPublishedPosts,
-  latestUpdatedAt,
+  latestPostModifiedAt,
+  postLastModifiedAt,
   tagsWithPosts,
   termPath,
 } from '@/lib/blog';
@@ -19,7 +20,7 @@ function timestamp(isoDate: string): string {
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getPublishedPosts();
-  const latest = latestUpdatedAt(posts);
+  const latest = latestPostModifiedAt(posts);
   const homeUpdatedAt = getHomePage()?.data.updatedAt ?? latest;
 
   const fixedRoutes: MetadataRoute.Sitemap = [
@@ -31,17 +32,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const postRoutes: MetadataRoute.Sitemap = posts.map((post) => ({
     url: absoluteUrl(post.url),
-    lastModified: timestamp(post.data.updatedAt),
+    lastModified: timestamp(postLastModifiedAt(post)),
   }));
 
   const categoryRoutes: MetadataRoute.Sitemap = categoriesWithPosts.map((category) => ({
     url: absoluteUrl(termPath('/categories', category.name)),
-    lastModified: timestamp(latestUpdatedAt(category.posts)),
+    lastModified: timestamp(latestPostModifiedAt(category.posts)),
   }));
 
   const tagRoutes: MetadataRoute.Sitemap = tagsWithPosts.map((tag) => ({
     url: absoluteUrl(termPath('/tags', tag.name)),
-    lastModified: timestamp(latestUpdatedAt(tag.posts)),
+    lastModified: timestamp(latestPostModifiedAt(tag.posts)),
   }));
 
   return [...fixedRoutes, ...postRoutes, ...categoryRoutes, ...tagRoutes].toSorted((left, right) =>

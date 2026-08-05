@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { TermBadge } from '@/components/blog/term-badge';
 import { getMDXComponents } from '@/components/mdx';
-import { formatJapaneseDate, getVisiblePost } from '@/lib/blog';
+import { formatJapaneseDate, getVisiblePost, postLastModifiedAt } from '@/lib/blog';
 import { appName, rssPath } from '@/lib/shared';
 import {
   articleSocialImagePath,
@@ -19,8 +19,6 @@ export default async function PostPage({ params }: PageProps<'/posts/[slug]'>) {
   if (post === undefined) notFound();
 
   const MDX = post.data.body;
-  const showUpdatedAt = post.data.updatedAt !== post.data.publishedAt;
-
   return (
     <main>
       <DocsBody className="blog-prose">
@@ -33,7 +31,7 @@ export default async function PostPage({ params }: PageProps<'/posts/[slug]'>) {
             投稿日:{' '}
             <time dateTime={post.data.publishedAt}>{formatJapaneseDate(post.data.publishedAt)}</time>
           </span>
-          {showUpdatedAt ? (
+          {post.data.updatedAt !== undefined ? (
             <span>
               最終更新日:{' '}
               <time dateTime={post.data.updatedAt}>{formatJapaneseDate(post.data.updatedAt)}</time>
@@ -62,8 +60,9 @@ export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): 
   if (post === undefined) notFound();
 
   const publishedTime = `${post.data.publishedAt}T00:00:00+09:00`;
-  const modifiedTime = `${post.data.updatedAt}T00:00:00+09:00`;
-  const socialImage = articleSocialImagePath(slug, post.data.updatedAt);
+  const modifiedTime =
+    post.data.updatedAt === undefined ? undefined : `${post.data.updatedAt}T00:00:00+09:00`;
+  const socialImage = articleSocialImagePath(slug, postLastModifiedAt(post));
 
   return {
     title: post.data.title,
@@ -86,7 +85,7 @@ export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): 
         },
       ],
       publishedTime,
-      modifiedTime,
+      ...(modifiedTime === undefined ? {} : { modifiedTime }),
       tags: [...post.data.tags, ...post.data.categories],
     },
     twitter: {

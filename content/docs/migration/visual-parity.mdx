@@ -2,7 +2,7 @@
 title: 本番対ローカル QA
 description: https://www.xlog.systems と production local build を比較する route と viewport の固定 matrix です。
 publishedAt: 2026-08-02
-updatedAt: 2026-08-03
+updatedAt: 2026-08-05
 ---
 
 ## Comparison boundary
@@ -25,7 +25,7 @@ updatedAt: 2026-08-03
 | `/tags` | desktop + mobile | chip wrapping、count order、31 public tags |
 | `/tags/Zero%20Trust` | mobile | spaced taxonomy URL、lookup、canonical |
 | `/does-not-exist` | desktop + mobile | 404 status、noindex、home link |
-| `/generated/social-images/site-<version>.png` と published article の `<updatedAt>-<version>.png` | 1200 x 630 | physical build asset、Japanese glyphs、bounds、article layout、dynamic alt、PNG |
+| `/generated/social-images/site-<version>.png` と published article の `<updatedAt-or-publishedAt>-<version>.png` | 1200 x 630 | physical build asset、Japanese glyphs、bounds、article layout、dynamic alt、PNG |
 
 Behavior-only comparison also covers `/api/rss.xml`, single `/sitemap.xml`, split sitemap 404, `/robots.txt`, a direct draft URL, unknown taxonomy, removed `/api/og` と invalid image ID の uncached 404、response cache headers, and production-only migration-wiki 404s.
 
@@ -39,7 +39,7 @@ Behavior-only comparison also covers `/api/rss.xml`, single `/sitemap.xml`, spli
 - 404 adds an explicit home link and `robots: noindex, nofollow`.
 - Draft leakage, RSS Index item, raw invalid sitemap URLs, and category-description typo are correctness fixes and must not be treated as regressions.
 - Migration wiki and its LLM/search/OG helpers are development-only and intentionally absent from production.
-- Legacy catch-all caching is narrowed to known-valid public routes. Canonical static image URLs include an explicit renderer version and article `updatedAt`; an exact generated path manifest prevents stale dates and otherwise invalid image paths from receiving long-lived caching. Unknown、draft、migration-only、invalid OG responses remain `no-store` so a CDN cannot retain a temporary or attacker-selected 404/image.
+- Legacy catch-all caching is narrowed to known-valid public routes. Canonical static image URLs include an explicit renderer version and article `updatedAt ?? publishedAt`; an exact generated path manifest prevents stale dates and otherwise invalid image paths from receiving long-lived caching. Unknown、draft、migration-only、invalid OG responses remain `no-store` so a CDN cannot retain a temporary or attacker-selected 404/image.
 
 ## Acceptance
 

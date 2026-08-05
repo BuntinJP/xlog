@@ -10,14 +10,14 @@ export const blogFrontmatterSchema = pageSchema
   .extend({
     description: z.string().trim().min(1),
     publishedAt: isoDateSchema,
-    updatedAt: isoDateSchema,
+    updatedAt: isoDateSchema.optional(),
     tags: termsSchema,
     categories: termsSchema,
     keywords: termsSchema,
     draft: z.boolean().default(false),
   })
   .superRefine((frontmatter, context) => {
-    if (frontmatter.updatedAt < frontmatter.publishedAt) {
+    if (frontmatter.updatedAt !== undefined && frontmatter.updatedAt < frontmatter.publishedAt) {
       context.addIssue({
         code: 'custom',
         message: 'updatedAt must be on or after publishedAt',
@@ -168,9 +168,15 @@ export function findTag(name: string): TaxonomyEntry | undefined {
   return tagsWithPosts.find((entry) => entry.name === name);
 }
 
-export function latestUpdatedAt(posts: readonly BlogPost[]): string {
-  const latest = posts.map((post) => post.data.updatedAt).toSorted().at(-1);
-  if (latest === undefined) throw new Error('latestUpdatedAt requires at least one published post');
+export function postLastModifiedAt(post: BlogPost): string {
+  return post.data.updatedAt ?? post.data.publishedAt;
+}
+
+export function latestPostModifiedAt(posts: readonly BlogPost[]): string {
+  const latest = posts.map(postLastModifiedAt).toSorted().at(-1);
+  if (latest === undefined) {
+    throw new Error('latestPostModifiedAt requires at least one published post');
+  }
   return latest;
 }
 

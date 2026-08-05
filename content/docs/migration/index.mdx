@@ -2,7 +2,7 @@
 title: 移行ルール
 description: xLog を最新 Fumadocs 標準構成へ再構築するための変更不能な原則です。
 publishedAt: 2026-08-02
-updatedAt: 2026-08-02
+updatedAt: 2026-08-05
 ---
 
 ## ゴール
@@ -32,9 +32,9 @@ updatedAt: 2026-08-02
 
 ## 更新日の正
 
-記事・Wiki の公開日は `publishedAt`、内容の最終更新日は `updatedAt` とし、どちらも frontmatter に `YYYY-MM-DD` で手動記録します。Git 履歴、ファイル時刻、build 時刻、deploy 時刻から自動生成しません。
+記事・Wiki の公開日は `publishedAt` として frontmatter に `YYYY-MM-DD` で必ず手動記録します。記事の `updatedAt` は実際に内容を更新した場合だけ手動記録し、未更新ならフィールド自体を持たせません。未更新記事では最終更新日表示と `article:modified_time` を出しません。Wiki は変更履歴を残す運用文書なので `updatedAt` を必須とします。Git 履歴、ファイル時刻、build 時刻、deploy 時刻から日付を自動生成しません。
 
-既存コンテンツの本文または `updatedAt` 以外の semantic frontmatter を変更しながら `updatedAt` を変えない commit には、worktree 固有の pre-commit hook が警告を出します。警告は commit を遮断しませんが、日付を維持するなら変更が機械的である理由を確認します。
+既存コンテンツの本文または `updatedAt` 以外の semantic frontmatter を変更しながら `updatedAt` を変えない commit には、worktree 固有の pre-commit hook が警告を出します。未更新記事で `updatedAt` がないまま変更した場合も警告します。警告は commit を遮断しませんが、日付を維持するなら変更が機械的である理由を確認します。
 
 ## 完了の定義
 

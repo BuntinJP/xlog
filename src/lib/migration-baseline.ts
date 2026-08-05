@@ -26,6 +26,11 @@ export const draftPostSlugs: readonly string[] = [
   'welcome-ipfs',
 ];
 
+export const neverUpdatedPostSlugs: readonly string[] = [
+  'manage-compose-yml-on-github-and-auto-apply-with-portainer-be',
+  'welcome-acme.sh',
+];
+
 export const publishedCategoryNames: readonly string[] = [
   'git・github',
   'Linux',
@@ -78,7 +83,7 @@ export const publishedTagNames: readonly string[] = [
 ];
 
 export const migrationBaseline = {
-  bodyManifestSha256: '3028717f6542fd3772a4c5f30127431023d37232b364902b4470ff217416155e',
+  bodyManifestSha256: '79bcd35e943a82e32544e4398e042b33434786c362fdc505396c86648a15ff3b',
   faviconSha256: 'b187c8cae21d70a96c3cc1ba40432bd1254d05371eec4da5692182a9cdd0980d',
   fontSha256: '596c059724737174387f4903697789552218e7fe3e3cd17044be28401e4f0b8d',
   imageCount: 83,

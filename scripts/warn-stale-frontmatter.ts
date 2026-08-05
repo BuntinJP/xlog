@@ -74,8 +74,12 @@ for (const path of paths) {
 
   const nextPublishedAt = readField(next.frontmatter, 'publishedAt');
   const nextUpdatedAt = readField(next.frontmatter, 'updatedAt');
-  if (nextPublishedAt === undefined || nextUpdatedAt === undefined) {
-    warnings.push(`${path}: publishedAt and updatedAt must both be set manually`);
+  if (nextPublishedAt === undefined) {
+    warnings.push(`${path}: publishedAt must be set manually`);
+    continue;
+  }
+  if (path.startsWith('content/docs/') && nextUpdatedAt === undefined) {
+    warnings.push(`${path}: migration wiki pages require a manual updatedAt`);
     continue;
   }
 
@@ -89,8 +93,12 @@ for (const path of paths) {
   const contentChanged = previous.body !== next.body;
   const semanticFrontmatterChanged =
     frontmatterWithoutUpdatedAt(previous.frontmatter) !== frontmatterWithoutUpdatedAt(next.frontmatter);
-  if ((contentChanged || semanticFrontmatterChanged) && previousUpdatedAt === nextUpdatedAt) {
-    warnings.push(`${path}: body or semantic frontmatter changed but updatedAt is still ${nextUpdatedAt}`);
+  if (contentChanged || semanticFrontmatterChanged) {
+    if (nextUpdatedAt === undefined) {
+      warnings.push(`${path}: body or semantic frontmatter changed but updatedAt is still absent`);
+    } else if (previousUpdatedAt === nextUpdatedAt) {
+      warnings.push(`${path}: body or semantic frontmatter changed but updatedAt is still ${nextUpdatedAt}`);
+    }
   }
 }
 
