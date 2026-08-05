@@ -31,19 +31,17 @@ Application、scripts、Next.js configuration、Oxlint configuration は TypeScr
 
 削除条件は、使用中の Next.js と Tailwind CSS が TypeScript PostCSS config を公式サポートし、追加 loader なしで frozen install、lint、TS7 / TS6 type check、production build が成功することです。
 
-### Historical updatedAt editorial review
-
-旧 content は公開日の `date` しか持たず、更新日は Git 履歴から生成していました。Git・filesystem・build timestamp を新しい `updatedAt` の正にすることは禁止されているため、機械移行では各記事の `updatedAt` を `publishedAt` と同日に手動 seed しました。
-
-本文に明示的証拠がある `github-gpg-signing` は 2024-05-23、`publish-web-with-cloudflare-zero-trust-and-tunnel` は 2025-12-28 に修正済みです。残る記事は著者による editorial review が必要です。本文 hash は変えていないため、日付レビューだけを理由に本文を編集しません。
-
-完了条件は、著者が 23 frontmatter の日付を一次情報に基づいて確認し、必要な `updatedAt` だけを明示的に変更することです。
-
 ### Deployment-only proof
 
 Vercel Analytics / Speed Insights の dashboard ingestion、Cloudflare と Vercel の実 response cache behavior、TLS/CDN propagation、production switch は deploy 後にしか証明できません。この migration は commit、push、deploy の承認を含まず、local component wiring と header configuration までを検証対象とします。
 
 完了条件は、承認された deployment 後に public route、response headers、analytics dashboards を別 gate として再検証することです。
+
+## Resolved
+
+### Published article date provenance
+
+2026-08-05 に公開17記事の本番表示を全件監査し、15記事の明示的な最終更新日を frontmatter へ移行しました。本番に最終更新日ラベルがない `manage-compose-yml-on-github-and-auto-apply-with-portainer-be` と `welcome-acme.sh` だけは、`updatedAt` と `publishedAt` が同日である状態を意図的に維持します。公開記事の監査結果は実装・検証状況の表を正とし、未公開5 draft の出典確認だけを Active 項目として残します。
 
 ## Entry template
 
