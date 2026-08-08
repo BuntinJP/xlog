@@ -47,7 +47,7 @@ Type gate は Next.js が残す production / development route declaration の�
 bun run social-images:generate
 ```
 
-OG画像のURLには記事の最終変更日が含まれるため、更新時にURLが変わり、長期CDNキャッシュを安全に利用できます。公開ページ一覧も同じfront matterから生成し、下書きや存在しないパスを共有キャッシュの対象にしません。
+OG画像のURLには記事の最終変更日が含まれるため、更新時にURLが変わり、長期CDNキャッシュを安全に利用できます。公開ページ一覧も同じYAML parserとfront matter schemaから生成し、下書きや存在しないパスを共有キャッシュの対象にしません。
 
 ## Image conversion
 

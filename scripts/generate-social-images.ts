@@ -1,5 +1,7 @@
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, extname, join, parse } from 'node:path';
+import { parse as parseYaml } from 'yaml';
+import { parseBlogFrontmatter } from '../src/lib/blog-frontmatter';
 import { renderSocialImage } from '../src/lib/social-image';
 import {
   articleSocialImagePath,
@@ -33,106 +35,13 @@ function frontmatter(source: string, filename: string): string {
   return match?.[1] ?? fail(`${filename}: YAML frontmatter is missing or malformed`);
 }
 
-function scalar(source: string, field: string, filename: string): string {
-  const raw = new RegExp(`^${field}:\\s*(.*?)\\s*$`, 'm').exec(source)?.[1];
-  if (raw === undefined || raw.length === 0) return fail(`${filename}: ${field} is required`);
-
-  const first = raw[0];
-  const last = raw.at(-1);
-  return (first === "'" || first === '"') && last === first ? raw.slice(1, -1) : raw;
-}
-
-function optionalScalar(source: string, field: string): string | undefined {
-  const raw = new RegExp(`^${field}:\\s*(.*?)\\s*$`, 'm').exec(source)?.[1];
-  if (raw === undefined || raw.length === 0) return undefined;
-
-  const first = raw[0];
-  const last = raw.at(-1);
-  return (first === "'" || first === '"') && last === first ? raw.slice(1, -1) : raw;
-}
-
-function parseInlineStringArray(raw: string, field: string, filename: string): readonly string[] {
-  let cursor = 0;
-  const values: string[] = [];
-
-  const skipWhitespace = () => {
-    while (/\s/.test(raw[cursor] ?? '')) cursor += 1;
-  };
-
-  skipWhitespace();
-  if (raw[cursor] !== '[') return fail(`${filename}: ${field} must be an inline string array`);
-  cursor += 1;
-
-  while (cursor < raw.length) {
-    skipWhitespace();
-    if (raw[cursor] === ']') {
-      cursor += 1;
-      skipWhitespace();
-      if (cursor !== raw.length) return fail(`${filename}: ${field} has trailing syntax`);
-      return values;
-    }
-
-    const quote = raw[cursor];
-    if (quote !== "'" && quote !== '"') {
-      return fail(`${filename}: ${field} entries must be quoted strings`);
-    }
-    cursor += 1;
-
-    let value = '';
-    let closed = false;
-    while (cursor < raw.length) {
-      const character = raw[cursor];
-      if (character === quote) {
-        if (quote === "'" && raw[cursor + 1] === "'") {
-          value += "'";
-          cursor += 2;
-          continue;
-        }
-        cursor += 1;
-        closed = true;
-        break;
-      }
-      if (character === '\\' && quote === '"') {
-        const escaped = raw[cursor + 1];
-        if (escaped === undefined) return fail(`${filename}: ${field} has an incomplete escape`);
-        value += escaped;
-        cursor += 2;
-        continue;
-      }
-      value += character;
-      cursor += 1;
-    }
-
-    if (!closed || value.length === 0) return fail(`${filename}: ${field} has an invalid entry`);
-    values.push(value);
-    skipWhitespace();
-
-    if (raw[cursor] === ',') {
-      cursor += 1;
-      continue;
-    }
-    if (raw[cursor] !== ']') return fail(`${filename}: ${field} entries must be comma-separated`);
+function parseFrontmatter(source: string, filename: string) {
+  try {
+    const value: unknown = parseYaml(frontmatter(source, filename));
+    return parseBlogFrontmatter(value, filename);
+  } catch (error: unknown) {
+    return fail(`${filename}: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  return fail(`${filename}: ${field} is missing its closing bracket`);
-}
-
-function stringArray(source: string, field: string, filename: string): readonly string[] {
-  const raw = new RegExp(`^${field}:\\s*(.*?)\\s*$`, 'm').exec(source)?.[1];
-  return raw === undefined ? [] : parseInlineStringArray(raw, field, filename);
-}
-
-function assertIsoDate(value: string, field: string, filename: string): void {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    fail(`${filename}: ${field} must use YYYY-MM-DD`);
-  }
-}
-
-function isDraft(source: string, filename: string): boolean {
-  const raw = /^draft:\s*(.*?)\s*$/m.exec(source)?.[1];
-  if (raw === undefined || raw === 'false') return false;
-  if (raw === 'true') return true;
-  return fail(`${filename}: draft must be true or false`);
 }
 
 function outputPath(publicPath: string): string {
@@ -158,24 +67,19 @@ async function readPublishedPosts(): Promise<readonly PostCopy[]> {
   const posts = await Promise.all(
     filenames.map(async (filename): Promise<PostCopy | undefined> => {
       const source = await readFile(join(contentDirectory, filename), 'utf8');
-      const data = frontmatter(source, filename);
-      if (isDraft(data, filename)) return undefined;
+      const data = parseFrontmatter(source, filename);
+      if (data.draft) return undefined;
 
       const slug = parse(filename).name;
       if (!/^[a-z0-9][a-z0-9._-]*$/.test(slug)) return fail(`${filename}: unsupported URL slug`);
 
-      const publishedAt = scalar(data, 'publishedAt', filename);
-      const updatedAt = optionalScalar(data, 'updatedAt');
-      assertIsoDate(publishedAt, 'publishedAt', filename);
-      if (updatedAt !== undefined) assertIsoDate(updatedAt, 'updatedAt', filename);
-
       return {
-        categories: stringArray(data, 'categories', filename),
+        categories: data.categories,
         slug,
-        tags: stringArray(data, 'tags', filename),
-        title: scalar(data, 'title', filename),
-        description: scalar(data, 'description', filename),
-        lastModifiedAt: updatedAt ?? publishedAt,
+        tags: data.tags,
+        title: data.title,
+        description: data.description,
+        lastModifiedAt: data.updatedAt ?? data.publishedAt,
       };
     }),
   );
