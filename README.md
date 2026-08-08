@@ -1,49 +1,57 @@
 # xlog
 
-xlog を current Fumadocs / Next.js scaffold 上へ再構築する migration worktree です。旧 application shell は移植せず、公開 blog、taxonomy、RSS、SEO、OG、assets、運用拡張を公式 API で再実装しています。
+Fumadocs、Next.js、Tailwind CSS、TypeScript で構築した [xlog.systems](https://www.xlog.systems/) のソースです。パッケージ管理とスクリプト実行には Bun を使用します。
 
 ## Local development
 
-この repository の package manager と script runtime は Bun 1.3.14 です。他の package manager の lockfile は作成しません。
-
 ```bash
 bun install --frozen-lockfile
+git config core.hooksPath .githooks
 bun run dev
 ```
 
-ローカルサイトは通常 `http://localhost:3000` で開きます。migration wiki は開発時だけ `/docs` で閲覧でき、production build では 404 になります。
+ローカルサイトは通常 `http://localhost:3000` で開きます。他の package manager の lockfile は作成しません。
 
 ## Verification
 
-個別 gate:
-
 ```bash
 bun run lint
-bun run verify:migration
 bun run types:check
 bun run types:check:compat
 bun run build
 ```
 
-CI と同じ canonical gate:
+CI と同じ一括チェックは次のコマンドです。
 
 ```bash
 bun run ci
 ```
 
-`types:check` は TypeScript 7 の authoritative checker、`types:check:compat` は Fumadocs / Next MDX tooling のために隔離した TypeScript 6 compatibility check です。
+`types:check` は TypeScript 7 の正式な型チェックです。Fumadocs / Next.js の MDX生成処理が TypeScript のプログラムAPIを利用するため、`types:check:compat` では隔離した TypeScript 6 互換チェックも実行します。型制約を回避するための `any` や型チェックの無効化は行いません。
 
-`verify:migration` は監査済み legacy baseline に対して content/body、draft/public taxonomy、image references、asset hashes、公開 route 数を検証し、`check` と `ci` の先頭でも実行されます。
-
-Type gate は Next.js が残す production / development route declaration の衝突を避けるため、`.next/types` と `.next/dev/types` だけを再生成します。`bun run dev` / `bun run start` / `bun run build` と type gate / `bun run ci` を同時実行しないでください。
+Type gate は Next.js が残す production / development route declaration の衝突を避けるため、`.next/types` と `.next/dev/types` だけを再生成します。`bun run dev`、`bun run start`、`bun run build` と型チェックまたは `bun run ci` を同時実行しないでください。
 
 ## Content dates
 
-全 MDX は `publishedAt` と `updatedAt` を `YYYY-MM-DD` で手動管理します。Git 履歴、filesystem timestamp、build time、deploy time から生成しません。
+ブログ記事の `publishedAt` は必須で、公開日を `YYYY-MM-DD` 形式で手動設定します。実際に公開後の内容を変更したときだけ `updatedAt` を手動設定し、一度も更新していない記事ではフィールド自体を省略します。Git履歴、filesystem timestamp、build time、deploy timeから日付を自動生成しません。
+
+`.githooks/pre-commit` は本文または意味のあるfront matterを変更したのに `updatedAt` が未設定・未変更の場合に警告します。警告は内容と日付を人が確認するためのもので、コミット自体は止めません。
+
+下書きを公開するときは、`draft: false` にする前に `publishedAt` が実際の公開日か確認し、公開後の更新実績がなければ `updatedAt` を付けないでください。
+
+## Static social images and caching
+
+`bun run dev` と `bun run build` の前に、公開記事のOG画像と公開ページのCDNキャッシュ対象一覧を静的生成します。個別に再生成する場合は次を実行します。
+
+```bash
+bun run social-images:generate
+```
+
+OG画像のURLには記事の最終変更日が含まれるため、更新時にURLが変わり、長期CDNキャッシュを安全に利用できます。公開ページ一覧も同じfront matterから生成し、下書きや存在しないパスを共有キャッシュの対象にしません。
 
 ## Image conversion
 
-変換 script は preview-only が既定です。上書きは拒否し、変換成功後も入力 source を削除しません。
+変換スクリプトはpreview-onlyが既定です。上書きは拒否し、変換成功後も入力ファイルを削除しません。
 
 ```bash
 bun run images:convert png
@@ -52,12 +60,10 @@ bun run images:convert png --write
 bun run images:convert heic --write
 ```
 
-PNG は `cwebp`、HEIC は `heif-convert` と `cwebp` を command argument array で呼び出します。
+PNGは `cwebp`、HEICは `heif-convert` と `cwebp` をcommand argument arrayで呼び出します。
 
-## Migration authority
+## Upstream compatibility
 
-- Repository rules: `AGENTS.md`
-- Migration wiki source: `content/docs/migration/`
-- Implementation and parity status: `content/docs/migration/implementation-status.mdx`
-- Live-vs-local QA matrix: `content/docs/migration/visual-parity.mdx`
-- Deferred work: `content/docs/migration/deferred-items.mdx`
+- TypeScript 7を正式なcheckerとし、MDX生成用のTypeScript 6 runtimeだけを分離しています。
+- `@typescript/typescript6`、`fumadocs-core`、`fumadocs-mdx` のpatchは、strict modeおよびTypeScript 7で上流型宣言を安全に利用するために必要です。依存更新時はpatchの必要性を再確認してください。
+- `postcss.config.mjs` はTailwind CSS / Next.jsの設定読込に必要な上流互換のため、TypeScript-only方針の設定ファイル例外です。

@@ -1,2 +1,2 @@
-# Preserve author-significant Markdown hard breaks in the migrated uncommitted draft.
-content/blog/selfhost-iam-idp-with-authentik-rhel10.mdx whitespace=-blank-at-eol
+# Preserve author-significant Markdown hard breaks.
+content/blog/*.mdx whitespace=-blank-at-eol

@@ -1,8 +1,0 @@
----
-description: Mandatory xLog migration and review rules
-alwaysApply: true
----
-
-Read and follow `AGENTS.md` before inspecting or changing this repository.
-
-For reviews, remain read-only and report findings with severity, exact file and line, impact, and a concrete remediation. Verify claims against the legacy worktree at `/Users/larchel/gits/xlog` without modifying it.

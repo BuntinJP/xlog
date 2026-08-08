@@ -18,11 +18,10 @@
     "types:check:compat": "bun run types:generate && tsc6 --noEmit",
     "lint": "bun run types:generate && oxlint --deny-warnings .",
     "lint:fix": "bun run types:generate && oxlint --fix .",
-    "verify:migration": "bun scripts/verify-migration.ts",
     "frontmatter:warn": "bun scripts/warn-stale-frontmatter.ts",
     "images:convert": "bun scripts/convert-images.ts",
     "social-images:generate": "bun scripts/generate-social-images.ts",
-    "check": "bun run verify:migration && bun run lint && bun run types:check && bun run types:check:compat && bun run build",
+    "check": "bun run lint && bun run types:check && bun run types:check:compat && bun run build",
     "ci": "bun install --frozen-lockfile && bun run check"
   },
   "dependencies": {
@@ -33,7 +32,6 @@
     "fumadocs-mdx": "15.2.2",
     "fumadocs-ui": "npm:@fumadocs/base-ui@16.14.0",
     "lucide-react": "1.28.0",
-    "negotiator": "1.0.0",
     "next": "16.2.12",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -42,7 +40,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
     "@types/mdx": "2.0.14",
-    "@types/negotiator": "0.6.4",
     "@types/node": "26.1.2",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",

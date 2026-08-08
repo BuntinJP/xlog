@@ -78,10 +78,6 @@ for (const path of paths) {
     warnings.push(`${path}: publishedAt must be set manually`);
     continue;
   }
-  if (path.startsWith('content/docs/') && nextUpdatedAt === undefined) {
-    warnings.push(`${path}: migration wiki pages require a manual updatedAt`);
-    continue;
-  }
 
   const previousResult = git(['show', `HEAD:${path}`]);
   if (previousResult.status !== 0) continue;

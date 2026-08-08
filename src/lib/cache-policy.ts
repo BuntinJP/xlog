@@ -32,7 +32,3 @@ export const noStoreHeaders: Readonly<Record<string, string>> = {
   'CDN-Cache-Control': 'no-store',
   'Vercel-CDN-Cache-Control': 'no-store',
 };
-
-export function migrationNotFoundResponse(): Response {
-  return new Response('Not Found', { status: 404, headers: noStoreHeaders });
-}
