@@ -1,0 +1,14 @@
+diff --git a/dist/core-BmvJhZxm.d.ts b/dist/core-BmvJhZxm.d.ts
+index c23fd4abfe5684b6cc698a7a7a462804955205ae..60f6daa3bab3ccd08c7ab6dbdcbc8f8122e78fc3 100644
+--- a/dist/core-BmvJhZxm.d.ts
++++ b/dist/core-BmvJhZxm.d.ts
+@@ -7,7 +7,8 @@ import { FC } from "react";
+ import { ProcessorOptions } from "@mdx-js/mdx";
+ import { StandardSchemaV1 } from "@standard-schema/spec";
+ import { Root } from "mdast";
+-import { SatteriPresetOptions, SatteriPresetOptions as SatteriPresetOptions$1 } from "@fumadocs/satteri/preset";
++type SatteriPresetOptions = Readonly<Record<string, unknown>>;
++type SatteriPresetOptions$1 = SatteriPresetOptions;
+ import { TOCItemType } from "fumadocs-core/toc";
+ import { MDXProps } from "mdx/types";
+ import { FSWatcher } from "chokidar";

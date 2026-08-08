@@ -1,0 +1,2 @@
+# Preserve author-significant Markdown hard breaks.
+content/blog/*.mdx whitespace=-blank-at-eol

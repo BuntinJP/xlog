@@ -1,0 +1,431 @@
+---
+title: "IAM(IdP)もセルフホストしてみる 01 [Authentik]"
+description: GoogleやGitHubでログインすれば良いのは間違いないのですが、OSS代替があるならIAMもIdPもセルフホストしてみたくなります。
+publishedAt: 2026-05-17
+updatedAt: 2026-05-17
+categories: ['工作','Linux','セルフホスト']
+tags: ['Authentik','IAM','IdP','OIDC','RHEL10','PostgreSQL','Valkey','Portainer']
+draft: true
+---
+
+## はじめに
+
+セルフホストできるIdPであるAuthentikというOSSがあることを知りました。
+
+IAM,IdPは、基本的にはGoogle WorkspaceかGitHub、あるいはCloudflare Accessあたりが主に利用されるかと思います。  
+はい、安全性、可用性、復旧性、運用コスト、あらゆる面でそれらの方が圧倒的に上です。
+
+ただ、セルフホスト狂の私はOSS代替があれば試さずにはいられません。  
+ということで、ホストしてみます。
+
+今回はRHEL10上にPostgreSQLを用意し、PortainerからGitHub上の `compose.yml` を使ってAuthentikを起動してみます。  
+DBはコンテナではなく、ホスト側の専用サービスを利用します。
+
+## モチベーション
+
+大前提、ログイン基盤は、GoogleかGitHubで良いのは間違いないです。  
+しかし、IdPをセルフホストすると、以下のようなことができます。
+
+- SSOを独自ドメインでホスト可能
+- OIDC/SAML/LDAP系の雰囲気を自分の環境で触れる
+- Cloudflare AccessやPortainerなど全て集約可能
+
+もちろん、ここで落ちると全部にログイン出来なくなる可能性があります。  
+しかし、上には書いていませんが、SSOにGoogle等を利用すると、その利用しているプラットフォームからログアウトするときに、勝手にGoogleもログアウトされるというクソだるい現象が発生することがあります。現にPortainerはそうなります笑
+
+それも完全に塞ぐことができ、自分が実際に利用しているガチのサービスと、お遊びリソースを完全に隔離可能です。  
+今回、自分にはそれがかなり魅力的に感じました。
+
+## 構成
+
+構成は以下のようにします。
+
+```text
+Client
+ │
+Nginx
+ │ 
+Authentik (Docker)
+ └── PostgreSQL(RHEL10)
+```
+
+Authentik本体はDockerで動かします。  
+PostgreSQLはRHEL10側にインストールし、Authentik専用のDB、ロール、接続情報を用意します。
+
+Portainerから作成するため、compose定義はGitHubリポジトリに置きます。  
+秘密情報や環境固有の値はGitHubに直接書かず、PortainerのEnvironment variablesから渡します。
+
+## 前提
+
+この記事では以下を前提にします。
+
+- RHEL10
+- PortainerでDocker管理
+- GitHubで `compose.yml` を管理
+- PostgreSQLは外部DBを利用する
+- メールサーバーへの認証情報が存在する(オプション)
+- `Authentik 2026.2.2` を利用
+
+Authentikはバージョンによって公式composeの形が変わります。  
+以前はRedis/Valkeyが必要でしたが、最近のバージョンで不要になりました。  
+今回は、`2026.2.2`を利用しました。
+
+## 手順
+
+### PostgreSQLをインストールする
+
+RHEL10側にPostgreSQLをインストールします。
+
+```console
+># dnf install -y postgresql-server
+># postgresql-setup --initdb
+># systemctl enable --now postgresql.service
+># systemctl status postgresql.service
+```
+
+`postgresql-setup --initdb` は初回だけ実行します。
+
+認証設定を調整するため、 `pg_hba.conf` を確認・編集します。  
+
+```console
+># vim /var/lib/pgsql/data/pg_hba.conf
+># systemctl reload postgresql.service
+```
+
+```text title="pg_hba.conf"
+local   all             postgres                                peer
+local   all             all                                     scram-sha-256
+host    all             all             127.0.0.1/32            scram-sha-256
+host    all             all             ::1/128                 scram-sha-256
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            ident
+host    replication     all             ::1/128                 ident
+```
+
+`postgres`のみ`peer`、それ以外は `scram-sha-256(PW認証)`に設定しました。
+
+### Authentik専用DBと専用ユーザーを作成する
+
+#### PostgreSQL
+
+PostgreSQLにAuthentik専用のDBとロールを作成します。  
+普段から利用しているスクリプトを使いました。
+
+```console
+>$ CONFIRM_CREATE_POSTGRES_DB=hogehoge ./create-app-database-postgres.sh --db-name hogehoge --execute
+CREATE ROLE
+CREATE ROLE
+CREATE ROLE
+CREATE ROLE
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+CREATE DATABASE
+REVOKE
+GRANT
+GRANT
+GRANT
+POSTGRES_DB=hogehoge
+POSTGRES_SECRET_REF=secret://postgres/app/hogehoge
+POSTGRES_OWNER_ROLE=hogehoge_owner
+POSTGRES_ADMIN_ROLE=hogehoge_admin
+POSTGRES_ADMIN_PASSWORD=HOGEHOGE
+POSTGRES_READONLY_ROLE=hogehoge_readonly
+POSTGRES_READONLY_PASSWORD=HOGEHOGE
+POSTGRES_BACKUP_ROLE=hogehoge_backup
+POSTGRES_BACKUP_PASSWORD=HOGEHOGE
+printed PostgreSQL secret env to stdout
+BEGIN
+ALTER ROLE
+ALTER ROLE
+ALTER ROLE
+COMMIT
+REVOKE
+REVOKE
+ALTER SCHEMA
+GRANT
+GRANT
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+done database=hogehoge
+```
+
+接続テスト
+
+```console
+>$ vim .env.postgres
+>$ cat .env.postgres
+---
+POSTGRES_DB=hogehoge
+POSTGRES_SECRET_REF=secret://postgres/app/hogehoge
+POSTGRES_OWNER_ROLE=hogehoge_owner
+POSTGRES_ADMIN_ROLE=hogehoge_admin
+POSTGRES_ADMIN_PASSWORD=HOGEHOGE
+POSTGRES_READONLY_ROLE=hogehoge_readonly
+POSTGRES_READONLY_PASSWORD=HOGEHOGE
+POSTGRES_BACKUP_ROLE=hogehoge_backup
+POSTGRES_BACKUP_PASSWORD=HOGEHOGE
+---
+>$ set -a
+>$ source .env.postgres
+>$ set +a
+>$ psql   -h 127.0.0.1   -p 5432   -U "$POSTGRES_ADMIN_ROLE"   -d "$POSTGRES_DB"
+---
+Password for user hogehoge_admin: HOGEHOGE
+psql (16.13)
+Type "help" for help.
+
+hogehoge=> SELECT * FROM version();
+                                                    version
+---------------------------------------------------------------------------------------------------------------
+ PostgreSQL 16.13 on x86_64-redhat-linux-gnu, compiled by gcc (GCC) 14.3.1 20250617 (Red Hat 14.3.1-2), 64-bit
+(1 row)
+
+hogehoge=> \q
+```
+
+Authentik は migration の過程で `CREATE SCHEMA` を実行するため、`CREATE` privilege が必要になります。  
+以上で作成したDB・ロールのうち、対象データベースに `CONNECT`, `TEMPORARY`, `CREATE` を付与した `{db_name}_admin` を利用します。
+
+以下は利用したスクリプトです。
+
+[create-app-database-postgres.sh | Gist](https://gist.github.com/BuntinJP/3bd5d379475441e916ae378e0cd04e69)
+
+### GitHubリポジトリにcompose.ymlを作成する
+
+PortainerからStackとして作成するため、GitHub側に `compose.yml` を置きます。
+
+今回は例として以下のような構成にします。
+
+```text
+BuntinJP/Authentik
+└── compose.yml
+```
+
+`compose.yml` には外部DBの接続先やsecretを直接書かず、Portainerの環境変数から渡します。
+
+```yml title="compose.yml"
+x-authentik-common-environment: &authentik-common-environment
+  AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
+  AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
+  AUTHENTIK_DISABLE_UPDATE_CHECK: ${AUTHENTIK_DISABLE_UPDATE_CHECK:-true}
+  AUTHENTIK_DISABLE_STARTUP_ANALYTICS: ${AUTHENTIK_DISABLE_STARTUP_ANALYTICS:-true}
+
+  # PostgreSQL 16 on the Docker host
+  AUTHENTIK_POSTGRESQL__HOST: ${PG_HOST:?postgresql host required}
+  AUTHENTIK_POSTGRESQL__PORT: ${PG_PORT:?postgresql port required}
+  AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:?postgresql database required}
+  AUTHENTIK_POSTGRESQL__USER: ${PG_USER:?postgresql user required}
+  AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS:?postgresql password required}
+  AUTHENTIK_POSTGRESQL__SSLMODE: ${PG_SSLMODE:-disable}
+
+  # Email
+  AUTHENTIK_EMAIL__HOST: ${AUTHENTIK_EMAIL__HOST:-}
+  AUTHENTIK_EMAIL__PORT: ${AUTHENTIK_EMAIL__PORT:-587}
+  AUTHENTIK_EMAIL__USERNAME: ${AUTHENTIK_EMAIL__USERNAME:-}
+  AUTHENTIK_EMAIL__PASSWORD: ${AUTHENTIK_EMAIL__PASSWORD:-}
+  AUTHENTIK_EMAIL__USE_TLS: ${AUTHENTIK_EMAIL__USE_TLS:-true}
+  AUTHENTIK_EMAIL__FROM: ${AUTHENTIK_EMAIL__FROM:-authentik@hogehoge.hogehoge.net}
+
+services:
+  server:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.2.2}
+    container_name: authentik-server
+    command: server
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      <<: *authentik-common-environment
+
+      AUTHENTIK_LISTEN__HTTP: ${AUTHENTIK_SERVER_LISTEN_HTTP:-192.168.1.12:10017}
+      AUTHENTIK_LISTEN__HTTPS: ${AUTHENTIK_SERVER_LISTEN_HTTPS:-127.0.0.1:10018}
+      AUTHENTIK_LISTEN__METRICS: ${AUTHENTIK_SERVER_LISTEN_METRICS:-127.0.0.1:10020}
+      AUTHENTIK_LISTEN__DEBUG: ${AUTHENTIK_SERVER_LISTEN_DEBUG:-127.0.0.1:10022}
+      AUTHENTIK_LISTEN__DEBUG_PY: ${AUTHENTIK_SERVER_LISTEN_DEBUG_PY:-127.0.0.1:10023}
+    shm_size: 512mb
+    volumes:
+      - data:/data
+      - custom_templates:/templates
+
+  worker:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.2.2}
+    container_name: authentik-worker
+    command: worker
+    restart: unless-stopped
+    network_mode: host
+    user: root
+    environment:
+      <<: *authentik-common-environment
+
+      AUTHENTIK_LISTEN__HTTP: ${AUTHENTIK_WORKER_LISTEN_HTTP:-127.0.0.1:10019}
+      AUTHENTIK_LISTEN__METRICS: ${AUTHENTIK_WORKER_LISTEN_METRICS:-127.0.0.1:10021}
+      AUTHENTIK_LISTEN__DEBUG_PY: ${AUTHENTIK_WORKER_LISTEN_DEBUG_PY:-127.0.0.1:10024}
+    shm_size: 512mb
+    volumes:
+      - data:/data
+      - certs:/certs
+      - custom_templates:/templates
+      # - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  data:
+    driver: local
+  certs:
+    driver: local
+  custom_templates:
+    driver: local
+```
+
+外部DBに接続する前提なので、`AUTHENTIK_POSTGRESQL__HOST` などをPortainer側から渡します。
+
+.envファイルは以下のようになります。
+
+```dotenv title=".env"
+AUTHENTIK_IMAGE=ghcr.io/goauthentik/server
+AUTHENTIK_TAG=2026.2.2
+
+AUTHENTIK_SECRET_KEY=CHANGE_ME_OPENSSL_RAND_BASE64_60
+AUTHENTIK_ERROR_REPORTING__ENABLED=false
+AUTHENTIK_DISABLE_UPDATE_CHECK=true
+AUTHENTIK_DISABLE_STARTUP_ANALYTICS=true
+
+AUTHENTIK_SERVER_LISTEN_HTTP=192.168.1.12:10017
+AUTHENTIK_SERVER_LISTEN_HTTPS=127.0.0.1:10018
+AUTHENTIK_SERVER_LISTEN_METRICS=127.0.0.1:10020
+AUTHENTIK_SERVER_LISTEN_DEBUG=127.0.0.1:10022
+AUTHENTIK_SERVER_LISTEN_DEBUG_PY=127.0.0.1:10023
+AUTHENTIK_WORKER_LISTEN_HTTP=127.0.0.1:10019
+AUTHENTIK_WORKER_LISTEN_METRICS=127.0.0.1:10021
+AUTHENTIK_WORKER_LISTEN_DEBUG_PY=127.0.0.1:10024
+
+PG_HOST=127.0.0.1
+PG_PORT=5432
+PG_DB=authentik
+PG_USER=authentik_admin
+PG_PASS=CHANGE_ME_POSTGRES_PASSWORD
+PG_SSLMODE=disable
+
+AUTHENTIK_EMAIL__HOST=
+AUTHENTIK_EMAIL__PORT=587
+AUTHENTIK_EMAIL__USERNAME=
+AUTHENTIK_EMAIL__PASSWORD=
+AUTHENTIK_EMAIL__USE_TLS=true
+AUTHENTIK_EMAIL__FROM=authentik@hogehoge.hogehoge.net
+```
+
+Listen先のポートや、PostgreSQLの接続先、メールサーバーの情報などを環境変数で渡しています。
+
+### PortainerからStackを作成する
+
+Portainerにログインし、対象Environmentで `Stacks` から `Add stack` を選択します。  
+Build methodは `Repository` にします。
+
+入力例は以下です。
+
+| 項目 | 値 |
+| --- | --- |
+| Name | `Authentik` |
+| Repository URL | `https://github.com/BuntinJP/Authentik` |
+| Repository reference | `refs/heads/main` |
+| Compose path | `compose.yml` |
+
+Private repositoryの場合は事前に共有シークレットとして、GitHubのPATを登録しておく必要があります。
+
+PortainerのEnvironment variablesに、先ほどの `.env` の内容を入力、もしくはそのままアップロードして反映させます。
+
+CLIですべて完結させる人間だった身としては、コンパネに甘えた人間になってしまったのは恥ずかしいですが、すべてAWSが悪いです(?)。
+
+### Authentikを初期化する
+
+Stackを作成してコンテナが起動したら、ログを確認します。
+
+```console
+>$ docker logs -f Authentik-server
+>$ docker logs -f Authentik-worker
+```
+
+Portainer上からログを見ても良いです。  
+マイグレーションが走り、serverとworkerが落ち着けば第一段階は完了です。
+
+設定が反映されているか確認する場合は、workerで `ak dump_config` を実行します。
+
+```console
+>$ docker compose run --rm worker ak dump_config
+```
+
+Portainer管理の場合は、対象Stackの作業ディレクトリやコンテナexecから確認します。  
+ここには実際の確認コマンドと出力を後で貼ります。
+
+```text title="TODO: ak dump_config sample"
+TODO: PostgreSQL接続先などが意図通りになっていることを示す出力を貼る
+```
+
+初回アクセスは以下です。
+
+```text
+https://Authentik.example.com/if/flow/initial-setup/
+```
+
+ここで `akadmin` の初期設定を行います。  
+初期化が終わったら、管理画面に入り、まずは以下を確認します。
+
+- System Tasksに失敗がないか
+- PostgreSQL接続でエラーが出ていないか
+- メール送信設定をどうするか
+- 管理者ユーザーのMFAを有効化するか
+- 最初に連携するアプリを何にするか
+
+最初の連携先はPortainerあたりが良さそうです。  
+PortainerをAuthentikで守るのは、自分のセルフホスト環境が自分を認証し始める感じがしてだいぶ味があります。若干怖いですが。
+
+## 動作確認
+
+最低限、以下を確認します。
+
+- Authentikのログイン画面が表示できる
+- `akadmin` でログインできる
+- PostgreSQL側に接続が来ている
+- workerのタスクが失敗していない
+- リバースプロキシ越しのURLでWebSocketやリダイレクトが壊れていない
+- 再起動後もログインできる
+
+```console
+># systemctl status postgresql.service
+># systemctl status valkey.service
+>$ docker ps --filter name=Authentik
+```
+
+ここにスクショを入れるなら、以下のあたりです。
+
+```text title="TODO: screenshots"
+TODO: Portainer Stack作成画面
+TODO: Authentik initial setup
+TODO: admin dashboard
+TODO: System Tasks
+```
+
+## まとめ
+
+GoogleやGitHubでログインすれば良い。  
+それは本当にそうです。
+
+ただ、Authentikをセルフホストすると、OIDCやSAMLを自分の環境で触れるようになり、各サービスの認証を自分の手元で組み替えられるようになります。  
+普通に面白いです。だるいですが。
+
+次はPortainer、Grafana、その他の自前サービスをAuthentikに寄せて、どこまで自分の認証基盤として使えるか試していきます。
+
+## 参考
+
+[Docker Compose installation | Authentik](https://docs.goAuthentik.io/install-config/install/docker-compose/)  
+[Configuration | Authentik](https://docs.goAuthentik.io/install-config/configuration/)  
+[Automated install | Authentik](https://docs.goAuthentik.io/install-config/automated-install/)  
+
+利用したスクリプト再掲
+
+[create-app-database-postgres.sh | Gist](https://gist.github.com/BuntinJP/3bd5d379475441e916ae378e0cd04e69)
