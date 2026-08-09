@@ -16,6 +16,12 @@ body {
 }
 
 .blog-shell {
+  --color-fd-foreground: #fbf1c7;
+  --color-fd-card-foreground: #fbf1c7;
+  --color-fd-popover-foreground: #fbf1c7;
+  --color-fd-primary: #fbf1c7;
+  --color-fd-secondary-foreground: #fbf1c7;
+  --color-fd-accent-foreground: #d5c4a1;
   color: #fbf1c7;
 }
 
