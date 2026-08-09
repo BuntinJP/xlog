@@ -49,7 +49,7 @@ const PostPage = async ({ params }: PageProps<'/posts/[slug]'>) => {
         <p className="my-4 text-center">{post.data.description}</p>
         <InlineTOC
           items={post.data.toc}
-          className="blog-inline-toc mb-10 bg-[#242424] text-[#fbf1c7] [&_a]:border-s-0"
+          className="blog-inline-toc mb-10 bg-fd-muted text-[#fbf1c7] [&_a]:border-s-0"
         >
           目次
         </InlineTOC>
