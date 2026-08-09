@@ -10,7 +10,7 @@ import {
 } from '@/lib/blog';
 import { listingMetadata } from '@/lib/seo';
 
-export default async function CategoryPage({ params }: PageProps<'/categories/[slug]'>) {
+const CategoryPage = async ({ params }: PageProps<'/categories/[slug]'>) => {
   const { slug } = await params;
   const name = decodeTermSegment(slug);
   const category = name === undefined ? undefined : findCategory(name);
@@ -25,15 +25,17 @@ export default async function CategoryPage({ params }: PageProps<'/categories/[s
       <PostList posts={category.posts} />
     </main>
   );
-}
+};
 
-export function generateStaticParams(): { slug: string }[] {
+export default CategoryPage;
+
+export const generateStaticParams = (): { slug: string }[] => {
   return categoriesWithPosts.map(({ name }) => ({ slug: name }));
-}
+};
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
-}: PageProps<'/categories/[slug]'>): Promise<Metadata> {
+}: PageProps<'/categories/[slug]'>): Promise<Metadata> => {
   const { slug } = await params;
   const name = decodeTermSegment(slug);
   const category = name === undefined ? undefined : findCategory(name);
@@ -44,4 +46,4 @@ export async function generateMetadata({
     `${category.name} category page of xlog`,
     termPath('/categories', category.name),
   );
-}
+};

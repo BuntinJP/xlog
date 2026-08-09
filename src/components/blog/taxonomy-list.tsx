@@ -2,7 +2,7 @@ import { Folders, Tags } from 'lucide-react';
 import Link from 'next/link';
 import { featuredCategories, otherCategories, tagsWithPosts, termPath } from '@/lib/blog';
 
-function TermLinks({
+const TermLinks = ({
   title,
   basePath,
   terms,
@@ -10,7 +10,7 @@ function TermLinks({
   title: string;
   basePath: '/categories' | '/tags';
   terms: readonly string[];
-}) {
+}) => {
   const Icon = basePath === '/categories' ? Folders : Tags;
 
   return (
@@ -32,9 +32,9 @@ function TermLinks({
       </div>
     </section>
   );
-}
+};
 
-export function CategoriesList() {
+export const CategoriesList = () => {
   return (
     <TermLinks
       title="Categories"
@@ -45,9 +45,9 @@ export function CategoriesList() {
       ]}
     />
   );
-}
+};
 
-export function TagsList() {
+export const TagsList = () => {
   return (
     <TermLinks
       title="Tags"
@@ -55,4 +55,4 @@ export function TagsList() {
       terms={tagsWithPosts.map(({ name }) => name).toSorted()}
     />
   );
-}
+};

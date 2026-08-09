@@ -1,6 +1,6 @@
 import { SiteHeader } from '@/components/blog/site-header';
 
-export default function Layout({ children }: LayoutProps<'/'>) {
+const Layout = ({ children }: LayoutProps<'/'>) => {
   return (
     <div className="blog-shell lg:grid lg:grid-cols-6">
       <div className="hidden lg:col-span-1 lg:block" aria-hidden="true" />
@@ -12,4 +12,6 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       <div className="hidden lg:col-span-1 lg:block" aria-hidden="true" />
     </div>
   );
-}
+};
+
+export default Layout;

@@ -10,11 +10,11 @@ const navigation = [
   { href: '/tags', label: 'Tags', icon: Tags },
 ] as const;
 
-function isActive(pathname: string, href: string): boolean {
+const isActive = (pathname: string, href: string): boolean => {
   return pathname === href || pathname.startsWith(`${href}/`);
-}
+};
 
-export function SiteHeader() {
+export const SiteHeader = () => {
   const pathname = usePathname();
 
   return (
@@ -46,4 +46,4 @@ export function SiteHeader() {
       <div aria-hidden="true" className="mx-3 mt-4 mb-2 border border-[#a89984]" />
     </header>
   );
-}
+};

@@ -29,54 +29,54 @@ for (const page of allPages) {
   parseBlogFrontmatter(page.data, page.path);
 }
 
-function isPost(page: BlogPost): boolean {
+const isPost = (page: BlogPost): boolean => {
   return page.slugs.length > 0;
-}
+};
 
-function byPublishedDateDescending(left: BlogPost, right: BlogPost): number {
+const byPublishedDateDescending = (left: BlogPost, right: BlogPost): number => {
   return right.data.publishedAt.localeCompare(left.data.publishedAt);
-}
+};
 
-function byTaxonomyName(left: TaxonomyEntry, right: TaxonomyEntry): number {
+const byTaxonomyName = (left: TaxonomyEntry, right: TaxonomyEntry): number => {
   return left.name.localeCompare(right.name);
-}
+};
 
-export function getHomePage(): BlogPost | undefined {
+export const getHomePage = (): BlogPost | undefined => {
   return blogSource.getPage([]);
-}
+};
 
-export function getPublishedPosts(): readonly BlogPost[] {
+export const getPublishedPosts = (): readonly BlogPost[] => {
   return allPages.filter((page) => isPost(page) && !page.data.draft).toSorted(byPublishedDateDescending);
-}
+};
 
-export function getSinglePostSlug(post: BlogPost): string {
+export const getSinglePostSlug = (post: BlogPost): string => {
   const slug = post.slugs[0];
   if (slug === undefined || post.slugs.length !== 1) {
     throw new Error(`Blog posts must use exactly one URL segment: ${post.slugs.join('/')}`);
   }
   return slug;
-}
+};
 
-export function getDraftPosts(): readonly BlogPost[] {
+export const getDraftPosts = (): readonly BlogPost[] => {
   return allPages.filter((page) => isPost(page) && page.data.draft).toSorted(byPublishedDateDescending);
-}
+};
 
-export function getPublishedPost(slugs: string[]): BlogPost | undefined {
+export const getPublishedPost = (slugs: string[]): BlogPost | undefined => {
   const page = blogSource.getPage(slugs);
   if (page === undefined || !isPost(page) || page.data.draft) return undefined;
   return page;
-}
+};
 
-export function getVisiblePost(slugs: string[]): BlogPost | undefined {
+export const getVisiblePost = (slugs: string[]): BlogPost | undefined => {
   const publishedPost = getPublishedPost(slugs);
   if (publishedPost !== undefined) return publishedPost;
   if (process.env.NODE_ENV === 'production') return undefined;
 
   const draft = blogSource.getPage(slugs);
   return draft !== undefined && isPost(draft) && draft.data.draft ? draft : undefined;
-}
+};
 
-function createTaxonomy(field: 'categories' | 'tags'): readonly TaxonomyEntry[] {
+const createTaxonomy = (field: 'categories' | 'tags'): readonly TaxonomyEntry[] => {
   const grouped = new Map<string, BlogPost[]>();
 
   for (const post of getPublishedPosts()) {
@@ -91,7 +91,7 @@ function createTaxonomy(field: 'categories' | 'tags'): readonly TaxonomyEntry[] 
     name,
     posts: posts.toSorted(byPublishedDateDescending),
   })).toSorted(byTaxonomyName);
-}
+};
 
 export const tagsWithPosts = createTaxonomy('tags');
 export const categoriesWithPosts = createTaxonomy('categories');
@@ -106,68 +106,68 @@ export const otherCategories = categoriesWithPosts.filter(
   ({ name }) => !featuredCategoryNames.some((featuredName) => featuredName === name),
 );
 
-export function categoriesByPostCount(): readonly TaxonomyEntry[] {
+export const categoriesByPostCount = (): readonly TaxonomyEntry[] => {
   return [
     ...featuredCategories,
     ...otherCategories.toSorted(
       (left, right) => right.posts.length - left.posts.length || byTaxonomyName(left, right),
     ),
   ];
-}
+};
 
-export function categoriesForIndex(): readonly TaxonomyEntry[] {
+export const categoriesForIndex = (): readonly TaxonomyEntry[] => {
   return [
     ...featuredCategories.toSorted(byTaxonomyName),
     ...otherCategories.toSorted(
       (left, right) => right.posts.length - left.posts.length || byTaxonomyName(left, right),
     ),
   ];
-}
+};
 
-export function tagsByPostCount(): readonly TaxonomyEntry[] {
+export const tagsByPostCount = (): readonly TaxonomyEntry[] => {
   return tagsWithPosts.toSorted(
     (left, right) => right.posts.length - left.posts.length || byTaxonomyName(left, right),
   );
-}
+};
 
-export function findCategory(name: string): TaxonomyEntry | undefined {
+export const findCategory = (name: string): TaxonomyEntry | undefined => {
   return categoriesWithPosts.find((entry) => entry.name === name);
-}
+};
 
-export function findTag(name: string): TaxonomyEntry | undefined {
+export const findTag = (name: string): TaxonomyEntry | undefined => {
   return tagsWithPosts.find((entry) => entry.name === name);
-}
+};
 
-export function postLastModifiedAt(post: BlogPost): string {
+export const postLastModifiedAt = (post: BlogPost): string => {
   return post.data.updatedAt ?? post.data.publishedAt;
-}
+};
 
-export function latestPostModifiedAt(posts: readonly BlogPost[]): string {
+export const latestPostModifiedAt = (posts: readonly BlogPost[]): string => {
   const latest = posts.map(postLastModifiedAt).toSorted().at(-1);
   if (latest === undefined) {
     throw new Error('latestPostModifiedAt requires at least one published post');
   }
   return latest;
-}
+};
 
-export function formatJapaneseDate(isoDate: string): string {
+export const formatJapaneseDate = (isoDate: string): string => {
   return new Date(`${isoDate}T00:00:00+09:00`).toLocaleDateString('ja-JP', {
     timeZone: 'Asia/Tokyo',
   });
-}
+};
 
-export function toRfc822Date(isoDate: string): string {
+export const toRfc822Date = (isoDate: string): string => {
   return new Date(`${isoDate}T00:00:00+09:00`).toUTCString();
-}
+};
 
-export function termPath(basePath: '/categories' | '/tags', name: string): string {
+export const termPath = (basePath: '/categories' | '/tags', name: string): string => {
   return `${basePath}/${encodeURIComponent(name)}`;
-}
+};
 
-export function decodeTermSegment(segment: string): string | undefined {
+export const decodeTermSegment = (segment: string): string | undefined => {
   try {
     return decodeURIComponent(segment);
   } catch {
     return undefined;
   }
-}
+};

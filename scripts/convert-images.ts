@@ -10,7 +10,7 @@ type Options = Readonly<{
   write: boolean;
 }>;
 
-function parseOptions(args: readonly string[]): Options {
+const parseOptions = (args: readonly string[]): Options => {
   const [mode, ...flags] = args;
   if (mode !== 'png' && mode !== 'heic') {
     throw new Error('Usage: bun run images:convert <png|heic> [--write]');
@@ -22,9 +22,9 @@ function parseOptions(args: readonly string[]): Options {
 
   const write = flags.includes('--write');
   return { mode, write };
-}
+};
 
-async function walk(directory: string): Promise<string[]> {
+const walk = async (directory: string): Promise<string[]> => {
   const entries = await readdir(directory, { withFileTypes: true });
   const paths = await Promise.all(
     entries.map(async (entry): Promise<string[]> => {
@@ -34,19 +34,19 @@ async function walk(directory: string): Promise<string[]> {
     }),
   );
   return paths.flat().toSorted();
-}
+};
 
-function matchesMode(path: string, mode: Mode): boolean {
+const matchesMode = (path: string, mode: Mode): boolean => {
   const extension = extname(path).toLowerCase();
   return mode === 'png' ? extension === '.png' : extension === '.heic';
-}
+};
 
-function destinationFor(path: string): string {
+const destinationFor = (path: string): string => {
   const parts = parse(path);
   return join(parts.dir, `${parts.name}.webp`);
-}
+};
 
-async function exists(path: string): Promise<boolean> {
+const exists = async (path: string): Promise<boolean> => {
   try {
     await access(path);
     return true;
@@ -61,9 +61,9 @@ async function exists(path: string): Promise<boolean> {
     }
     throw error;
   }
-}
+};
 
-async function run(command: string, args: readonly string[]): Promise<void> {
+const run = async (command: string, args: readonly string[]): Promise<void> => {
   await new Promise<void>((resolve, reject) => {
     const child = spawn(command, args, {
       shell: false,
@@ -75,13 +75,13 @@ async function run(command: string, args: readonly string[]): Promise<void> {
       else reject(new Error(`${command} failed (code=${String(code)}, signal=${String(signal)})`));
     });
   });
-}
+};
 
-async function convertPng(source: string, destination: string): Promise<void> {
+const convertPng = async (source: string, destination: string): Promise<void> => {
   await run('cwebp', ['-quiet', source, '-o', destination]);
-}
+};
 
-async function convertHeic(source: string, destination: string): Promise<void> {
+const convertHeic = async (source: string, destination: string): Promise<void> => {
   const temporaryDirectory = await mkdtemp(join(tmpdir(), 'xlog-heic-'));
   const temporaryPng = join(temporaryDirectory, 'source.png');
 
@@ -91,9 +91,9 @@ async function convertHeic(source: string, destination: string): Promise<void> {
   } finally {
     await rm(temporaryDirectory, { force: true, recursive: true });
   }
-}
+};
 
-async function convertSource(source: string, options: Options): Promise<void> {
+const convertSource = async (source: string, options: Options): Promise<void> => {
   const destination = destinationFor(source);
   console.log(`${options.write ? 'convert' : 'would convert'} ${source} -> ${destination}`);
   if (!options.write) return;
@@ -101,9 +101,9 @@ async function convertSource(source: string, options: Options): Promise<void> {
 
   if (options.mode === 'png') await convertPng(source, destination);
   else await convertHeic(source, destination);
-}
+};
 
-async function main(): Promise<void> {
+const main = async (): Promise<void> => {
   const options = parseOptions(process.argv.slice(2));
   const sources = (await walk('public')).filter((path) => matchesMode(path, options.mode));
 
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
     (previous, source) => previous.then(() => convertSource(source, options)),
     Promise.resolve(),
   );
-}
+};
 
 main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : String(error));

@@ -1,17 +1,17 @@
 import Link from 'next/link';
 import type { BlogPost } from '@/lib/blog';
 
-function monthKey(post: BlogPost): string {
+const monthKey = (post: BlogPost): string => {
   return post.data.publishedAt.slice(0, 7);
-}
+};
 
-function monthLabel(key: string): string {
+const monthLabel = (key: string): string => {
   const match = /^(\d{4})-(\d{2})$/.exec(key);
   if (match?.[1] === undefined || match[2] === undefined) return key;
   return `${match[1]}年${Number(match[2])}月`;
-}
+};
 
-export function PostList({ posts }: { posts: readonly BlogPost[] }) {
+export const PostList = ({ posts }: { posts: readonly BlogPost[] }) => {
   let previousMonth = '';
 
   return (
@@ -35,9 +35,9 @@ export function PostList({ posts }: { posts: readonly BlogPost[] }) {
       })}
     </div>
   );
-}
+};
 
-export function DraftPostList({ posts }: { posts: readonly BlogPost[] }) {
+export const DraftPostList = ({ posts }: { posts: readonly BlogPost[] }) => {
   if (posts.length === 0) return null;
 
   return (
@@ -57,4 +57,4 @@ export function DraftPostList({ posts }: { posts: readonly BlogPost[] }) {
       </div>
     </section>
   );
-}
+};

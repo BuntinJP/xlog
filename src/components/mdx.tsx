@@ -12,7 +12,7 @@ type BlogImageProps = Omit<ComponentProps<'img'>, 'sizes' | 'src'> &
     src?: ComponentProps<'img'>['src'] | ImageProps['src'] | undefined;
   }>;
 
-function BlogImage({ className, priority, sizes, src, style, ...props }: BlogImageProps) {
+const BlogImage = ({ className, priority, sizes, src, style, ...props }: BlogImageProps) => {
   const imageClassName = cn('mx-auto max-h-[420px] w-[min(80vw,700px)] object-contain', className);
   const imageStyle = { ...style, maxHeight: '420px' };
 
@@ -29,15 +29,15 @@ function BlogImage({ className, priority, sizes, src, style, ...props }: BlogIma
       style={imageStyle}
     />
   );
-}
+};
 
-export function getMDXComponents(components?: MDXComponents) {
+export const getMDXComponents = (components?: MDXComponents) => {
   return {
     ...defaultMdxComponents,
     img: BlogImage,
     ...components,
   } satisfies MDXComponents;
-}
+};
 
 export const useMDXComponents = getMDXComponents;
 

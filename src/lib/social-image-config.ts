@@ -8,6 +8,6 @@ export const socialImageVersion = '2026-08-03-v1';
 
 export const siteSocialImagePath = `/generated/social-images/site-${socialImageVersion}.png`;
 
-export function articleSocialImagePath(slug: string, updatedAt: string): string {
+export const articleSocialImagePath = (slug: string, updatedAt: string): string => {
   return `/generated/social-images/posts/${slug}/${updatedAt}-${socialImageVersion}.png`;
-}
+};

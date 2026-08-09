@@ -10,15 +10,15 @@ import {
 } from '@/lib/blog';
 import { siteUrl } from '@/lib/shared';
 
-function absoluteUrl(path: string): string {
+const absoluteUrl = (path: string): string => {
   return new URL(path, siteUrl).href;
-}
+};
 
-function timestamp(isoDate: string): string {
+const timestamp = (isoDate: string): string => {
   return `${isoDate}T00:00:00+09:00`;
-}
+};
 
-export default function sitemap(): MetadataRoute.Sitemap {
+const sitemap = (): MetadataRoute.Sitemap => {
   const posts = getPublishedPosts();
   const latest = latestPostModifiedAt(posts);
   const homeUpdatedAt = getHomePage()?.data.updatedAt ?? latest;
@@ -48,4 +48,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [...fixedRoutes, ...postRoutes, ...categoryRoutes, ...tagRoutes].toSorted((left, right) =>
     left.url.localeCompare(right.url),
   );
-}
+};
+
+export default sitemap;

@@ -5,7 +5,7 @@ import { PostList } from '@/components/blog/post-list';
 import { decodeTermSegment, findTag, tagsWithPosts, termPath } from '@/lib/blog';
 import { listingMetadata } from '@/lib/seo';
 
-export default async function TagPage({ params }: PageProps<'/tags/[slug]'>) {
+const TagPage = async ({ params }: PageProps<'/tags/[slug]'>) => {
   const { slug } = await params;
   const name = decodeTermSegment(slug);
   const tag = name === undefined ? undefined : findTag(name);
@@ -20,13 +20,15 @@ export default async function TagPage({ params }: PageProps<'/tags/[slug]'>) {
       <PostList posts={tag.posts} />
     </main>
   );
-}
+};
 
-export function generateStaticParams(): { slug: string }[] {
+export default TagPage;
+
+export const generateStaticParams = (): { slug: string }[] => {
   return tagsWithPosts.map(({ name }) => ({ slug: name }));
-}
+};
 
-export async function generateMetadata({ params }: PageProps<'/tags/[slug]'>): Promise<Metadata> {
+export const generateMetadata = async ({ params }: PageProps<'/tags/[slug]'>): Promise<Metadata> => {
   const { slug } = await params;
   const name = decodeTermSegment(slug);
   const tag = name === undefined ? undefined : findTag(name);
@@ -37,4 +39,4 @@ export async function generateMetadata({ params }: PageProps<'/tags/[slug]'>): P
     `${tag.name} tag page of xlog`,
     termPath('/tags', tag.name),
   );
-}
+};

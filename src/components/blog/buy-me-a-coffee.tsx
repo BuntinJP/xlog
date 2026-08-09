@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-export function BuyMeACoffee() {
+export const BuyMeACoffee = () => {
   return (
     <Link
       href="https://www.buymeacoffee.com/buntin"
@@ -18,4 +18,4 @@ export function BuyMeACoffee() {
       />
     </Link>
   );
-}
+};

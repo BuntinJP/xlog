@@ -9,12 +9,12 @@ import {
 } from '@/lib/cache-policy';
 import { isCacheableSocialImagePathname } from '@/lib/social-image-cache';
 
-function withHeaders(response: NextResponse, headers: Readonly<Record<string, string>>): NextResponse {
+const withHeaders = (response: NextResponse, headers: Readonly<Record<string, string>>): NextResponse => {
   for (const [name, value] of Object.entries(headers)) response.headers.set(name, value);
   return response;
-}
+};
 
-export default function proxy(request: NextRequest) {
+const proxy = (request: NextRequest) => {
   const pathname = request.nextUrl.pathname;
 
   if (pathname.startsWith('/generated/social-images/')) {
@@ -31,7 +31,9 @@ export default function proxy(request: NextRequest) {
         ? staticPageCacheHeaders
         : noStoreHeaders;
   return withHeaders(NextResponse.next(), headers);
-}
+};
+
+export default proxy;
 
 export const config = {
   matcher: [

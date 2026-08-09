@@ -6,6 +6,6 @@ const cacheableSocialImagePathnames = new Set<string>([
   ...generatedArticleSocialImagePaths,
 ]);
 
-export function isCacheableSocialImagePathname(pathname: string): boolean {
+export const isCacheableSocialImagePathname = (pathname: string): boolean => {
   return cacheableSocialImagePathnames.has(pathname);
-}
+};

@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Layout({ children }: LayoutProps<'/'>) {
+const Layout = ({ children }: LayoutProps<'/'>) => {
   return (
     <html lang="ja" className={shipporiMincho.className} suppressHydrationWarning>
       <body className="flex min-h-dvh flex-col bg-fd-background text-fd-foreground">
@@ -78,4 +78,6 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       </body>
     </html>
   );
-}
+};
+
+export default Layout;

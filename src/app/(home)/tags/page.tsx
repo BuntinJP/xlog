@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { tagsByPostCount, termPath } from '@/lib/blog';
 import { listingMetadata } from '@/lib/seo';
 
-export default function TagsPage() {
+const TagsPage = () => {
   return (
     <main>
       <h1 className="sr-only">Tags</h1>
@@ -23,6 +23,8 @@ export default function TagsPage() {
       </div>
     </main>
   );
-}
+};
+
+export default TagsPage;
 
 export const metadata: Metadata = listingMetadata('Tags - xlog', 'Tags of xlog', '/tags');

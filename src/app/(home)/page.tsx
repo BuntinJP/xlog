@@ -6,7 +6,7 @@ import { getMDXComponents } from '@/components/mdx';
 import { getHomePage } from '@/lib/blog';
 import { rssPath } from '@/lib/shared';
 
-export default function HomePage() {
+const HomePage = () => {
   const about = getHomePage();
   if (about === undefined) notFound();
 
@@ -25,7 +25,9 @@ export default function HomePage() {
       </aside>
     </main>
   );
-}
+};
+
+export default HomePage;
 
 export const metadata: Metadata = {
   alternates: {

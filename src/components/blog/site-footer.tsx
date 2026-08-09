@@ -1,4 +1,4 @@
-export function SiteFooter() {
+export const SiteFooter = () => {
   return (
     <footer className="mt-auto py-10 text-center text-base text-[#a89984]">
       <p className="mb-2">
@@ -8,4 +8,4 @@ export function SiteFooter() {
       <p>&copy; 2026 Buntin Synthia</p>
     </footer>
   );
-}
+};

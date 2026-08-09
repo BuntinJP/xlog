@@ -6,7 +6,7 @@ import {
   socialImageSize,
 } from './social-image-config';
 
-export function listingMetadata(title: string, description: string, path: string): Metadata {
+export const listingMetadata = (title: string, description: string, path: string): Metadata => {
   return {
     title,
     description,
@@ -39,4 +39,4 @@ export function listingMetadata(title: string, description: string, path: string
       },
     },
   };
-}
+};
