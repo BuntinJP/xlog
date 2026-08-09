@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-export default function NotFound() {
+const NotFound = () => {
   return (
     <main className="mx-auto flex flex-1 flex-col items-center justify-center gap-6 px-6 py-12 text-center">
       <h1 className="text-5xl">404</h1>
@@ -11,7 +11,9 @@ export default function NotFound() {
       </Link>
     </main>
   );
-}
+};
+
+export default NotFound;
 
 export const metadata: Metadata = {
   title: '404',

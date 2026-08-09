@@ -9,20 +9,20 @@ import { appName, rssPath, siteDescription, siteUrl } from '@/lib/shared';
 
 export const dynamic = 'force-static';
 
-function xmlEscape(value: string): string {
+const xmlEscape = (value: string): string => {
   return value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&apos;');
-}
+};
 
-function absoluteUrl(path: string): string {
+const absoluteUrl = (path: string): string => {
   return new URL(path, siteUrl).href;
-}
+};
 
-export function GET() {
+export const GET = () => {
   const posts = getPublishedPosts();
   const items = posts
     .map((post) => {
@@ -69,4 +69,4 @@ ${items}
       'X-Content-Type-Options': 'nosniff',
     },
   });
-}
+};

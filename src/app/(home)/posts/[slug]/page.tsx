@@ -13,7 +13,7 @@ import {
   socialImageSize,
 } from '@/lib/social-image-config';
 
-export default async function PostPage({ params }: PageProps<'/posts/[slug]'>) {
+const PostPage = async ({ params }: PageProps<'/posts/[slug]'>) => {
   const { slug } = await params;
   const post = getVisiblePost([slug]);
   if (post === undefined) notFound();
@@ -57,9 +57,11 @@ export default async function PostPage({ params }: PageProps<'/posts/[slug]'>) {
       </DocsBody>
     </main>
   );
-}
+};
 
-export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): Promise<Metadata> {
+export default PostPage;
+
+export const generateMetadata = async ({ params }: PageProps<'/posts/[slug]'>): Promise<Metadata> => {
   const { slug } = await params;
   const post = getVisiblePost([slug]);
   if (post === undefined) notFound();
@@ -106,4 +108,4 @@ export async function generateMetadata({ params }: PageProps<'/posts/[slug]'>): 
       },
     },
   };
-}
+};

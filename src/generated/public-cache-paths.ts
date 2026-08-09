@@ -68,7 +68,7 @@ const publicCacheablePathnames = new Set<string>([
   "/tags/syslog-ng",
 ]);
 
-function normalizePathname(pathname: string): string | undefined {
+const normalizePathname = (pathname: string): string | undefined => {
   try {
     const withoutTrailingSlash = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
     return withoutTrailingSlash
@@ -78,9 +78,9 @@ function normalizePathname(pathname: string): string | undefined {
   } catch {
     return undefined;
   }
-}
+};
 
-export function isPublicCacheablePathname(pathname: string): boolean {
+export const isPublicCacheablePathname = (pathname: string): boolean => {
   const normalized = normalizePathname(pathname);
   return normalized !== undefined && publicCacheablePathnames.has(normalized);
-}
+};

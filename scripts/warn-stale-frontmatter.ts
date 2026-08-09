@@ -6,7 +6,7 @@ type GitResult = Readonly<{
   stderr: string;
 }>;
 
-function git(args: readonly string[]): GitResult {
+const git = (args: readonly string[]): GitResult => {
   const result = spawnSync('git', args, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -17,28 +17,28 @@ function git(args: readonly string[]): GitResult {
     stdout: result.stdout,
     stderr: result.stderr,
   };
-}
+};
 
-function splitFrontmatter(source: string): Readonly<{ frontmatter: string; body: string }> | undefined {
+const splitFrontmatter = (source: string): Readonly<{ frontmatter: string; body: string }> | undefined => {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(source);
   if (match?.[1] === undefined || match[2] === undefined) return undefined;
 
   return { frontmatter: match[1], body: match[2] };
-}
+};
 
-function readField(frontmatter: string, field: 'publishedAt' | 'updatedAt'): string | undefined {
+const readField = (frontmatter: string, field: 'publishedAt' | 'updatedAt'): string | undefined => {
   const match = new RegExp(`^${field}:\\s*['"]?([^'"#\\s]+)`, 'm').exec(frontmatter);
   return match?.[1];
-}
+};
 
-function frontmatterWithoutUpdatedAt(frontmatter: string): string {
+const frontmatterWithoutUpdatedAt = (frontmatter: string): string => {
   return frontmatter
     .split(/\r?\n/)
     .filter((line) => !/^updatedAt:\s*/.test(line))
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith('#'))
     .join('\n');
-}
+};
 
 const staged = git([
   'diff',

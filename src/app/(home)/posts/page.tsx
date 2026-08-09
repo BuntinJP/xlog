@@ -3,7 +3,7 @@ import { DraftPostList, PostList } from '@/components/blog/post-list';
 import { getDraftPosts, getPublishedPosts } from '@/lib/blog';
 import { listingMetadata } from '@/lib/seo';
 
-export default function PostsPage() {
+const PostsPage = () => {
   const published = getPublishedPosts();
 
   return (
@@ -13,6 +13,8 @@ export default function PostsPage() {
       <PostList posts={published} />
     </main>
   );
-}
+};
+
+export default PostsPage;
 
 export const metadata: Metadata = listingMetadata('Posts - xlog', 'Posts of xlog', '/posts');

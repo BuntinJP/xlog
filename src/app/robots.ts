@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { siteUrl } from '@/lib/shared';
 
-export default function robots(): MetadataRoute.Robots {
+const robots = (): MetadataRoute.Robots => {
   return {
     rules: {
       userAgent: '*',
@@ -10,4 +10,6 @@ export default function robots(): MetadataRoute.Robots {
     host: siteUrl,
     sitemap: new URL('/sitemap.xml', siteUrl).href,
   };
-}
+};
+
+export default robots;

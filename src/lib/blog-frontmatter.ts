@@ -24,7 +24,7 @@ export const blogFrontmatterSchema = pageSchema
     }
   });
 
-export function parseBlogFrontmatter(value: unknown, source: string) {
+export const parseBlogFrontmatter = (value: unknown, source: string) => {
   const parsed = blogFrontmatterSchema.safeParse(value);
   if (!parsed.success) {
     const issues = parsed.error.issues
@@ -33,4 +33,4 @@ export function parseBlogFrontmatter(value: unknown, source: string) {
     throw new Error(`Invalid blog frontmatter in ${source}: ${issues}`);
   }
   return parsed.data;
-}
+};

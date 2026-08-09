@@ -4,7 +4,7 @@ import { categoriesForIndex, featuredCategories, termPath } from '@/lib/blog';
 import type { TaxonomyEntry } from '@/lib/blog';
 import { listingMetadata } from '@/lib/seo';
 
-function CategoryLink({ category }: { category: TaxonomyEntry }) {
+const CategoryLink = ({ category }: { category: TaxonomyEntry }) => {
   return (
     <div className="text-xl">
       ・
@@ -16,13 +16,13 @@ function CategoryLink({ category }: { category: TaxonomyEntry }) {
       </Link>
     </div>
   );
-}
+};
 
-function CategoryCount({ category }: { category: TaxonomyEntry }) {
+const CategoryCount = ({ category }: { category: TaxonomyEntry }) => {
   return <div className="text-lg">({category.posts.length}件)</div>;
-}
+};
 
-export default function CategoriesPage() {
+const CategoriesPage = () => {
   const categories = categoriesForIndex();
   const featured = categories.slice(0, featuredCategories.length);
   const others = categories.slice(featuredCategories.length);
@@ -58,7 +58,9 @@ export default function CategoriesPage() {
       </div>
     </main>
   );
-}
+};
+
+export default CategoriesPage;
 
 export const metadata: Metadata = listingMetadata(
   'Categories - xlog',

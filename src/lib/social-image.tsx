@@ -10,12 +10,12 @@ type SocialImageCopy = Readonly<{
 
 let fontData: Promise<Buffer> | undefined;
 
-function loadFont(): Promise<Buffer> {
+const loadFont = (): Promise<Buffer> => {
   fontData ??= readFile(join(process.cwd(), 'public', 'ShipporiMincho-Bold.ttf'));
   return fontData;
-}
+};
 
-export async function renderSocialImage(copy: SocialImageCopy): Promise<ImageResponse> {
+export const renderSocialImage = async (copy: SocialImageCopy): Promise<ImageResponse> => {
   const isArticle = copy.description !== undefined;
 
   return new ImageResponse(
@@ -71,4 +71,4 @@ export async function renderSocialImage(copy: SocialImageCopy): Promise<ImageRes
       ],
     },
   );
-}
+};
