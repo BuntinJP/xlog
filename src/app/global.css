@@ -49,3 +49,7 @@ body {
 .blog-prose :where(strong, code, em, h1, h2, h3, h4, h5, h6) {
   color: #fbf1c7;
 }
+
+.blog-inline-toc > button[aria-expanded='true'] > svg {
+  transform: rotate(180deg);
+}
